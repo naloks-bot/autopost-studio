@@ -1,7 +1,7 @@
 /**
  * AI Generation Service
  * Handles building prompts and calling AI models (OpenAI/xAI)
- * Phase 5.4: Structure for real API integration
+ * Phase 5.6: Real xAI text generation enabled
  */
 
 /**
@@ -105,18 +105,64 @@ async function generateWithOpenAI(prompt, apiKey) {
 }
 
 /**
- * Placeholder for xAI API call
- * TODO: Implement real fetch in Checkpoint 5.5
+ * Real xAI (Grok) API call for text generation
+ * Compatible with OpenAI-style chat completions endpoint
  */
 async function generateWithXAI(prompt, apiKey) {
-  console.log("xAI Provider: (Placeholder) Waiting for real integration");
-  // Simulate delay
-  await new Promise((resolve) => setTimeout(resolve, 1500));
-  return {
-    data: `[xAI Mock] นี่คือเนื้อหาที่จำลองว่าสร้างจาก xAI สำหรับหัวข้อ: ${prompt.slice(0, 50)}...`,
-    error: null,
-    mode: "xai",
-  };
+  if (!apiKey) {
+    return {
+      data: null,
+      error: "ไม่พบ xAI API Key ในการตั้งค่า",
+      mode: "xai",
+    };
+  }
+
+  try {
+    const response = await fetch("https://api.x.ai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: "grok-3-mini",
+        messages: [{ role: "user", content: prompt }],
+        temperature: 0.7,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      return {
+        data: null,
+        error: errorData.error?.message || `xAI API Error: ${response.status}`,
+        mode: "xai",
+      };
+    }
+
+    const result = await response.json();
+    const content = result.choices?.[0]?.message?.content;
+
+    if (!content) {
+      return {
+        data: null,
+        error: "xAI ไม่ได้ส่งเนื้อหากลับมาในรูปแบบที่ถูกต้อง",
+        mode: "xai",
+      };
+    }
+
+    return {
+      data: content.trim(),
+      error: null,
+      mode: "xai",
+    };
+  } catch (error) {
+    return {
+      data: null,
+      error: `เครือข่ายขัดข้อง: ${error.message}`,
+      mode: "xai",
+    };
+  }
 }
 
 /**
@@ -178,9 +224,14 @@ export async function generateImagePrompt({ formData, settings }) {
     };
   }
 
+  // xAI image prompt: keep mock to save tokens (real image generation not enabled yet)
   if (provider === "xai") {
-    const result = await generateWithXAI(prompt, settings.xaiApiKey);
-    return { ...result, data: `[xAI Image Prompt] ${formData.topic}, cinematic lighting.` };
+    await new Promise((resolve) => setTimeout(resolve, 800));
+    return {
+      data: `[Mock xAI Image Prompt] ${formData.topic}, cinematic lighting, professional style.`,
+      error: null,
+      mode: "xai",
+    };
   }
 
   // Fallback to Mock
