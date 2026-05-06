@@ -1,5 +1,6 @@
-import React from "react";
+import React, { useState } from "react";
 import { CheckCircle2, Image as ImageIcon, RefreshCw, Sparkles } from "lucide-react";
+import { generateImage } from "../services/ai-image-generation.js";
 import ActionButton from "../components/ActionButton.jsx";
 
 function CreatePage({
@@ -12,10 +13,34 @@ function CreatePage({
   handleSaveDraft,
   isGenerating,
   isGeneratingImagePrompt,
-  isGeneratingImage,
+  isGeneratingImage: isGeneratingImageProp,
   isSavingDraft,
   generationError,
 }) {
+  // Local state for real image generation
+  const [generatedImage, setGeneratedImage] = useState(null);
+  const [isGeneratingImage, setIsGeneratingImage] = useState(false);
+  const [imageGenerationError, setImageGenerationError] = useState(null);
+
+  // Handler for real image generation via OpenAI or mock
+  async function handleGenerateImage() {
+    // Validate prompt input (use imagePrompt field)
+    if (!form.imagePrompt || form.imagePrompt.trim().length < 5) {
+      setImageGenerationError("กรุณาใส่ Prompt อย่างน้อย 5 ตัวอักษรเพื่อสร้างรูป");
+      return;
+    }
+    setIsGeneratingImage(true);
+    setImageGenerationError(null);
+    const result = await generateImage(form.imagePrompt, settings);
+    if (result.error) {
+      setImageGenerationError(result.error);
+      setGeneratedImage(null);
+    } else {
+      setGeneratedImage(result.data.imageUrl);
+    }
+    setIsGeneratingImage(false);
+  }
+
   return (
     <div className="space-y-6">
       {generationError && (
@@ -82,9 +107,16 @@ function CreatePage({
         <ActionButton
           label="สร้างตัวอย่างรูป"
           icon={ImageIcon}
-          isLoading={isGeneratingImage}
+          isLoading={isGeneratingImageProp}
           onClick={handleGenerateImagePreview}
           variant="amber"
+        />
+        <ActionButton
+          label="Generate Image"
+          icon={ImageIcon}
+          isLoading={isGeneratingImage}
+          onClick={handleGenerateImage}
+          variant="sky"
         />
         <ActionButton
           label="บันทึก Draft"
@@ -96,12 +128,24 @@ function CreatePage({
       </div>
 
       {form.imageUrl && (
-        <img
-          src={form.imageUrl}
-          alt="Draft preview"
-          className="max-h-[28rem] w-full rounded-[1.5rem] border border-white/10 object-cover"
-        />
-      )}
+          <img
+            src={form.imageUrl}
+            alt="Draft preview"
+            className="max-h-[28rem] w-full rounded-[1.5rem] border border-white/10 object-cover"
+          />
+        )}
+        {generatedImage && (
+          <img
+            src={generatedImage}
+            alt="Generated image preview"
+            className="max-h-[28rem] w-full rounded-[1.5rem] border border-white/10 object-cover mt-4"
+          />
+        )}
+        {imageGenerationError && (
+          <div className="rounded-2xl border border-rose-400/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-200 mt-2">
+            {imageGenerationError}
+          </div>
+        )}
     </div>
   );
 }
