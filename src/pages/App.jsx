@@ -92,10 +92,14 @@ function App() {
 
   const schedulerLock = useRef(false);
 
+  // 1. Load data once on mount
   useEffect(() => {
     void loadAllData();
+  }, []);
 
-    // Scheduler Interval (60 seconds)
+  // 2. Setup scheduler interval (60 seconds)
+  // Separated from loadAllData to prevent infinite loop
+  useEffect(() => {
     const interval = setInterval(() => {
       void handleSchedulerTick();
     }, 60000);
@@ -354,9 +358,19 @@ function App() {
       });
 
       if (summary.due > 0) {
-        setSchedulerStatus({
-          lastRun: new Date().toISOString(),
-          ...summary
+        setSchedulerStatus((prev) => {
+          const hasChanged =
+            !prev ||
+            prev.due !== summary.due ||
+            prev.published !== summary.published ||
+            prev.failed !== summary.failed;
+
+          if (!hasChanged) return prev;
+
+          return {
+            lastRun: new Date().toISOString(),
+            ...summary,
+          };
         });
       }
     } catch (err) {

@@ -3,6 +3,11 @@ import { Moon, Sparkles, Sun } from "lucide-react";
 import { APP_VERSION, BUILD_TIME } from "../constants/appConstants.js";
 
 function Header({ workspaceName, isDark, onToggleTheme }) {
+  const buildTimeDisplay = React.useMemo(() => {
+    if (!import.meta.env.DEV) return "จัดการคอนเทนต์และการตั้งค่า AI พร้อมระบบ Sync อัตโนมัติ";
+    return `Dev Build: ${new Date(BUILD_TIME).toLocaleTimeString()}`;
+  }, []);
+
   return (
     <header className="sticky top-0 z-50 border-b border-white/10 bg-slate-950/75 backdrop-blur-xl">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5">
@@ -17,9 +22,7 @@ function Header({ workspaceName, isDark, onToggleTheme }) {
                 v{APP_VERSION}
               </span>
             </div>
-            <p className="text-sm text-slate-300/80">
-              {import.meta.env.DEV ? `Dev Build: ${new Date(BUILD_TIME).toLocaleTimeString()}` : "จัดการคอนเทนต์และการตั้งค่า AI พร้อมระบบ Sync อัตโนมัติ"}
-            </p>
+            <p className="text-sm text-slate-300/80">{buildTimeDisplay}</p>
           </div>
         </div>
 
