@@ -8,7 +8,11 @@ The application is a **client‑side React SPA** built with **Vite**. It communi
 2. **Settings Load** – Local settings are read from `localStorage` (`services/app-settings.js`). If a Supabase `app_settings` row exists, it is fetched and merged.
 3. **Logging & Diagnostics** – `services/logger.js` provides development-only tracing for all core operations.
 4. **Data Fetching** – `fetchRemotePosts` & `fetchRemoteSettings` populate the UI with existing drafts and configuration.
-5. **Scheduler Polling** – `services/scheduler.js` runs every 60s while the app is active to process due scheduled posts.
+5. **Scheduler Polling (Client)** – `services/scheduler.js` runs every 60s while the app is active to process due scheduled posts.
+6. **Scheduler Polling (Server)** – Supabase Edge Function `process-scheduled-posts` provides a server-side entry point for automated processing.
+    - **Security**: Protected by `CRON_SECRET` header validation.
+    - **Privilege**: Uses `SUPABASE_SERVICE_ROLE_KEY` to bypass RLS for administrative processing.
+    - **Reliability**: Designed to be triggered by external cron services for 24/7 automation.
 
 ## Supabase Integration Flow
 - **Environment Snapshot** – `getSupabaseEnvSnapshot` pulls the `SUPABASE_URL` and `SUPABASE_ANON_KEY` from `.env`.

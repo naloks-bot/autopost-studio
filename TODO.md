@@ -10,16 +10,16 @@
 - Image Generation Flow (DALL-E + Supabase Storage Mirroring).
 - Facebook Publishing Foundation (Immediate & Scheduled).
 - Client-Side Scheduler (60s background polling).
-- **Phase 9A**: Server-Side Scheduler Foundation.
-    - Decoupled `publish-processor.js` for cloud-readiness.
-    - Lightweight `scheduler.js` wrapper.
-    - Added in-memory execution locking.
+- **Phase 9B**: Supabase Edge Function Scheduler.
+    - Created `process-scheduled-posts` scaffold in Deno/TypeScript.
+    - Added `CRON_SECRET` validation and service role client initialization.
+    - Implemented settings-aware logic (respects `scheduler_enabled`).
 
 ## In Progress
-- Phase 9B: Supabase Edge Function implementation.
+- Phase 9C: Edge Function logic implementation (Facebook API + status updates).
 
 ## Next Phase Candidates
-1. **Phase 9B: Supabase Edge Function** – Actually migrate the polling to the server.
+1. **Phase 9C: Full Edge Scheduler** – Wire the Edge Function to the real Facebook API.
 2. **Facebook Live Token Setup & App Review** – Transition from developer/mock mode.
 3. **UX Polish / Content Workflow** – Advanced text editing and multi-image post support.
 4. **Auth / Multi-User Support** – Secure team access and role management.
