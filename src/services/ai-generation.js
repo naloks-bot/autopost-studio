@@ -1,14 +1,26 @@
 /**
  * AI Generation Service
  * Handles building prompts and calling AI models (OpenAI/xAI)
- * Currently in Phase 5.1: Mock implementations for testing flow
+ * Phase 5.4: Structure for real API integration
  */
 
 /**
+ * Determines the AI provider based on available settings
+ * @param {Object} settings - App settings
+ * @returns {"openai" | "xai" | "mock"}
+ */
+export function getAIProvider(settings) {
+  if (settings?.openaiApiKey && settings.openaiApiKey.startsWith("sk-")) {
+    return "openai";
+  }
+  if (settings?.xaiApiKey && settings.xaiApiKey.startsWith("xai-")) {
+    return "xai";
+  }
+  return "mock";
+}
+
+/**
  * Builds a structured prompt for social media post generation
- * @param {Object} formData - Current form state (topic, etc.)
- * @param {Object} settings - App settings (business name, brand voice, etc.)
- * @returns {string} The constructed prompt
  */
 export function buildContentPrompt(formData, settings) {
   const voice = settings.brandVoice || "Professional";
@@ -24,9 +36,6 @@ Platform: Facebook/Instagram`;
 
 /**
  * Builds a prompt for generating an image to accompany the post
- * @param {Object} formData - Current form state (topic, content, etc.)
- * @param {Object} settings - App settings
- * @returns {string} The constructed prompt
  */
 export function buildImagePrompt(formData, settings) {
   const topic = formData.topic || "Abstract concept";
@@ -36,17 +45,39 @@ export function buildImagePrompt(formData, settings) {
 }
 
 /**
- * Generates post content using AI (Mock version)
- * @param {Object} params - { formData, settings }
- * @returns {Promise<Object>} Mock uniform result
+ * Placeholder for OpenAI API call
+ * TODO: Implement real fetch in Checkpoint 5.5
+ */
+async function generateWithOpenAI(prompt, apiKey) {
+  console.log("OpenAI Provider: (Placeholder) Waiting for real integration");
+  // Simulate delay
+  await new Promise((resolve) => setTimeout(resolve, 1500));
+  return {
+    data: `[OpenAI Mock] นี่คือเนื้อหาที่จำลองว่าสร้างจาก OpenAI สำหรับหัวข้อ: ${prompt.slice(0, 50)}...`,
+    error: null,
+    mode: "openai",
+  };
+}
+
+/**
+ * Placeholder for xAI API call
+ * TODO: Implement real fetch in Checkpoint 5.5
+ */
+async function generateWithXAI(prompt, apiKey) {
+  console.log("xAI Provider: (Placeholder) Waiting for real integration");
+  // Simulate delay
+  await new Promise((resolve) => setTimeout(resolve, 1500));
+  return {
+    data: `[xAI Mock] นี่คือเนื้อหาที่จำลองว่าสร้างจาก xAI สำหรับหัวข้อ: ${prompt.slice(0, 50)}...`,
+    error: null,
+    mode: "xai",
+  };
+}
+
+/**
+ * Generates post content using the appropriate provider
  */
 export async function generatePostContent({ formData, settings }) {
-  // Simulate network delay
-  await new Promise((resolve) => setTimeout(resolve, 1000));
-
-  const prompt = buildContentPrompt(formData, settings);
-  console.log("Mocking content generation with prompt:", prompt);
-
   if (!formData?.topic || formData.topic.trim().length < 5) {
     return {
       data: null,
@@ -55,6 +86,19 @@ export async function generatePostContent({ formData, settings }) {
     };
   }
 
+  const provider = getAIProvider(settings);
+  const prompt = buildContentPrompt(formData, settings);
+
+  if (provider === "openai") {
+    return generateWithOpenAI(prompt, settings.openaiApiKey);
+  }
+
+  if (provider === "xai") {
+    return generateWithXAI(prompt, settings.xaiApiKey);
+  }
+
+  // Fallback to Mock
+  await new Promise((resolve) => setTimeout(resolve, 1000));
   const mockData = `[Mock Generated Content]\n\nหัวข้อ: ${formData.topic}\n\nนี่คือตัวอย่างเนื้อหาที่ถูกสร้างขึ้นโดย AI สำหรับ ${settings.businessName || "ธุรกิจของคุณ"} โดยเน้นโทนเสียงแบบ ${settings.brandVoice || "มืออาชีพ"}\n\nเนื้อหาประกอบด้วยการชี้ปัญหาของลูกค้า แนะนำบริการ และปิดท้ายด้วย Call to Action ที่ชัดเจน!`;
 
   return {
@@ -65,17 +109,9 @@ export async function generatePostContent({ formData, settings }) {
 }
 
 /**
- * Generates an image prompt using AI (Mock version)
- * @param {Object} params - { formData, settings }
- * @returns {Promise<Object>} Mock uniform result
+ * Generates an image prompt using the appropriate provider
  */
 export async function generateImagePrompt({ formData, settings }) {
-  // Simulate network delay
-  await new Promise((resolve) => setTimeout(resolve, 800));
-
-  const prompt = buildImagePrompt(formData, settings);
-  console.log("Mocking image prompt generation with prompt:", prompt);
-
   if (!formData?.topic || formData.topic.trim().length < 5) {
     return {
       data: null,
@@ -84,6 +120,22 @@ export async function generateImagePrompt({ formData, settings }) {
     };
   }
 
+  const provider = getAIProvider(settings);
+  const prompt = buildImagePrompt(formData, settings);
+
+  // For now, we use the same placeholders for image prompt text generation
+  if (provider === "openai") {
+    const result = await generateWithOpenAI(prompt, settings.openaiApiKey);
+    return { ...result, data: `[OpenAI Image Prompt] ${formData.topic}, high quality visual.` };
+  }
+
+  if (provider === "xai") {
+    const result = await generateWithXAI(prompt, settings.xaiApiKey);
+    return { ...result, data: `[xAI Image Prompt] ${formData.topic}, cinematic lighting.` };
+  }
+
+  // Fallback to Mock
+  await new Promise((resolve) => setTimeout(resolve, 800));
   const mockPrompt = `Premium visual of ${formData.topic}, ${settings.brandVoice || "elegant"} aesthetic, professional photography style.`;
 
   return {
