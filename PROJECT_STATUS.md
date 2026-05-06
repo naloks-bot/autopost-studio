@@ -57,6 +57,10 @@ src
     - Automated upload of generated images to **Supabase Storage** (`generated-images` bucket).
     - Metadata (URL, storage path, provider) attached to draft data.
     - Robust fallback: stays on external URL if storage upload fails.
+- **Phase 6B Complete**: Integrated **Supabase Image Metadata Persistence**.
+    - Updated `posts` table schema to store image provider, revised prompt, and storage metadata.
+    - Enabled remote draft insertion with full image metadata support.
+    - Updated Status page to display saved image previews and technical metadata.
 
 ## Current Known Issues
 - **Supabase RLS**: write operations on the `posts` table are blocked until proper row‑level security policies are added.
@@ -74,11 +78,11 @@ src
 5. Respect the project’s incremental refactor approach: small, isolated changes.
 
 ## Current Phase
-**Phase 6A Complete: Image Generation Flow MVP** – Real image generation is wired into the creation flow with automated Supabase Storage backup.
+**Phase 6B Complete: Supabase Image Metadata Persistence** – The app now fully persists AI-generated images and their technical metadata to Supabase.
 
 ## Recommended Next Phase
-1. **Phase 6B: Supabase Schema + Image Metadata Persistence** – Update database schema to store image provider/prompt metadata and enable full draft sync.
-2. **Facebook Posting Flow** – Add `services/facebook.js` wrapper around Graph API to publish posts.
+1. **Phase 7: Facebook Posting Flow** – Add `services/facebook.js` wrapper around Graph API to publish posts.
+2. **Scheduler Integration** – implement client-side or edge-function based publishing.
 3. **Scheduler Integration** – implement client-side or edge-function based publishing.
 
 ## Current Pages / Components / Services / Constants Summary

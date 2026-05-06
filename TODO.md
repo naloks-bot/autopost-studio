@@ -21,16 +21,19 @@
     - Real-time generation and preview UI in `CreatePage`.
     - Automated mirror-upload to `generated-images` bucket.
     - Improved image preview state with provider and revised prompt info.
+- **Phase 6B**: Supabase Image Metadata Persistence.
+    - Updated `posts` table schema with new image metadata columns.
+    - Enabled remote draft sync for full image metadata.
+    - Updated Status page to display saved image previews and technical details.
 
 ## In Progress
 - UI polish for the dashboard layout (split‑screen, scrollable sections) – see recent UI optimizations.
 - Ongoing refactoring of constants and service abstractions.
 
 ## Next Phase
-1. **Phase 6B: Supabase Schema + Image Metadata Persistence** – Update database schema to support new image fields and enable remote sync for metadata.
-2. **Facebook Posting Flow** – Add `services/facebook.js` wrapper around Graph API to publish posts.
-3. **Scheduler Integration** – implement client-side or edge-function based publishing.
-4. **TypeScript Migration** – introduce TS for better maintainability.
+1. **Phase 7: Facebook Posting Flow** – Add `services/facebook.js` wrapper around Graph API to publish posts.
+2. **Scheduler Integration** – implement client-side or edge-function based publishing.
+3. **TypeScript Migration** – introduce TS for better maintainability.
 
 ## Future Features
 - Multi‑account support (multiple Facebook pages).

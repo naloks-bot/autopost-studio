@@ -14,8 +14,8 @@ The application is a **client‑side React SPA** built with **Vite**. It communi
 ## Supabase Integration Flow
 - **Environment Snapshot** – `getSupabaseEnvSnapshot` pulls the `SUPABASE_URL` and `SUPABASE_ANON_KEY` from `.env` so the UI can display which credentials are in use.
 - **CRUD Services** (`services/supabase.js`)
-  - `fetchRemotePosts` – SELECT from `public.posts`.
-  - `insertRemoteDraft` – INSERT a new draft row.
+  - `fetchRemotePosts` – SELECT from `public.posts` (including new image metadata columns).
+  - `insertRemoteDraft` – INSERT a new draft row with full image metadata (`image_provider`, `image_revised_prompt`, `image_storage_path`, `image_storage_mode`).
   - `fetchRemoteSettings` – SELECT the singleton `app_settings` row.
   - `saveRemoteSettings` – UPSERT the `app_settings` row.
 - **Row‑Level Security** – Policies defined in `supabase-setup.sql` allow **anonymous** users to read/write the tables when the project is in development mode. Production will tighten these policies.
@@ -45,8 +45,9 @@ The application is a **client‑side React SPA** built with **Vite**. It communi
 - **Future Queue** – Consider integrating a lightweight queue (e.g., Supabase Realtime + Postgres `pg_notify`) to decouple scheduling from the UI.
 
 ## Storage Strategy
-- **Supabase Storage** – Store generated images in the `generated-images` bucket; URLs returned are CDN‑cached.
-- **Local Fallback** – When offline or if upload fails, the UI uses the direct provider URL or placeholder images.
+- **Supabase Storage** – Store generated images in the `generated-images` bucket; file paths are organized by date (`generated/YYYY-MM-DD/gen-<timestamp>.webp`).
+- **Mirroring** – Every successfully generated image is automatically mirrored to Supabase Storage for persistence.
+- **Local Fallback** – When offline or if upload fails, the UI uses the direct provider URL (OpenAI) or placeholder images.
 - **Cost‑Effective** – Keep image size under 1 MB and purge files older than 30 days via a scheduled cleanup function.
 
 ## Folder Structure Target (Planned)
