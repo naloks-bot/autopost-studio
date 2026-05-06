@@ -21,15 +21,16 @@ The application is a **client‑side React SPA** built with **Vite**. It communi
 - **Row‑Level Security** – Policies defined in `supabase-setup.sql` allow **anonymous** users to read/write the tables when the project is in development mode. Production will tighten these policies.
 
 ## AI Generation Flow
-1. **Service Layer** (`services/ai-generation.js`) – Acts as a dispatcher for multiple AI providers.
-2. **Provider Routing**:
-   - **`openai`**: Calls OpenAI Chat Completions (`gpt-4o-mini`).
-   - **`xai`**: Calls xAI Chat Completions (`grok-3-mini`).
-   - **`mock`**: Returns simulated data (default fallback if no keys present).
-3. **Detection Logic**: Uses `aiProvider` setting if set; otherwise auto-detects based on key prefixes (`sk-` for OpenAI, `xai-` for xAI).
-4. **Return Shape**: Every generation function returns a uniform object:
-   `{ data: string | null, error: string | null, mode: "openai" | "xai" | "mock" }`
-5. **Text vs Image**: Real API calls are enabled for post content. Image prompts are currently generated as mock text to save tokens as requested.
+1. **Text Generation** (`services/ai-generation.js`) – Dispatcher for OpenAI, xAI, and Mock text models.
+2. **Image Generation** (`services/ai-image-generation.js`) – Specialized service for image generation (OpenAI DALL-E support).
+3. **Storage Integration** (`services/storage.js`) – Handles binary uploads to Supabase Storage.
+4. **End-to-End Flow**:
+   - Prompt generation (AI thinks of a visual description).
+   - Image generation (AI creates the image).
+   - Preview (User sees the result in `CreatePage`).
+   - Automated Upload (Image is mirrored to Supabase Storage bucket `generated-images`).
+   - Metadata Capture (Stored URL, storage path, and provider info are attached to the draft).
+5. **Fallback Strategy**: If Supabase Storage is offline or misconfigured, the app retains the original provider URL to ensure the image remains visible in the current session.
 
 ## Future Facebook Posting Flow
 - **Access Token Management** – Use the stored `facebookPageAccessToken` and `facebookPageId` from settings.
@@ -44,8 +45,8 @@ The application is a **client‑side React SPA** built with **Vite**. It communi
 - **Future Queue** – Consider integrating a lightweight queue (e.g., Supabase Realtime + Postgres `pg_notify`) to decouple scheduling from the UI.
 
 ## Storage Strategy
-- **Supabase Storage** – Store generated images in the `public` bucket; URLs returned are CDN‑cached.
-- **Local Fallback** – When offline, the UI uses placeholder images (e.g., `picsum.photos`).
+- **Supabase Storage** – Store generated images in the `generated-images` bucket; URLs returned are CDN‑cached.
+- **Local Fallback** – When offline or if upload fails, the UI uses the direct provider URL or placeholder images.
 - **Cost‑Effective** – Keep image size under 1 MB and purge files older than 30 days via a scheduled cleanup function.
 
 ## Folder Structure Target (Planned)
@@ -57,7 +58,9 @@ src/
 ├─ pages/              # Route‑level screens (App, Create, Settings, …)
 ├─ services/           # Business logic & external API wrappers
 │   ├─ supabase.js      # Existing Supabase wrappers
-│   ├─ ai-generation.js # OpenAI/xAI/Mock integration
+│   ├─ ai-generation.js # Text generation dispatcher
+│   ├─ ai-image-generation.js # Image generation dispatcher
+│   ├─ storage.js       # Supabase Storage integration
 │   ├─ facebook.js      # Future Graph API wrapper
 │   └─ scheduler.js     # Future client‑side / edge‑function glue
 ├─ utils/              # Helper functions (formatting, validation)

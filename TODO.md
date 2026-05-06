@@ -15,14 +15,20 @@
     - OpenAI and xAI real API fetch implementations.
     - Hybrid mock/real dispatcher with provider routing.
     - Form validation and error state handling in `CreatePage`.
+- **Phase 6A**: Image Generation Flow MVP.
+    - New `ai-image-generation.js` service (OpenAI Images API).
+    - New `storage.js` service for Supabase Storage integration.
+    - Real-time generation and preview UI in `CreatePage`.
+    - Automated mirror-upload to `generated-images` bucket.
+    - Improved image preview state with provider and revised prompt info.
 
 ## In Progress
 - UI polish for the dashboard layout (split‑screen, scrollable sections) – see recent UI optimizations.
 - Ongoing refactoring of constants and service abstractions.
 
 ## Next Phase
-1. **Phase 6: Image Generation & Storage** – implement real image generation (OpenAI DALL-E or similar) and store results in Supabase Storage.
-2. **Facebook Posting Flow** – add `services/facebook.js` wrapper around Graph API to publish posts.
+1. **Phase 6B: Supabase Schema + Image Metadata Persistence** – Update database schema to support new image fields and enable remote sync for metadata.
+2. **Facebook Posting Flow** – Add `services/facebook.js` wrapper around Graph API to publish posts.
 3. **Scheduler Integration** – implement client-side or edge-function based publishing.
 4. **TypeScript Migration** – introduce TS for better maintainability.
 
@@ -43,7 +49,7 @@
 ## Bugs / Known Issues
 - **Supabase RLS**: write operations on `posts` are blocked until proper policies are applied.
 - **Missing tables**: `app_settings` and `posts` may not exist until `supabase-setup.sql` is run.
-- **AI Image Generation** is currently mock-only (text prompts are generated, but no real image API call is made).
+- **Supabase Storage**: Bucket `generated-images` must exist and be public (or have correct RLS policies) for mirroring to work.
 - **Facebook integration** is currently only UI placeholders – no actual posting.
 - Offline drafts are not automatically synced when connectivity is restored.
 - Dark mode gradient background may cause performance issues on low‑end devices.

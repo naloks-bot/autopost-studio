@@ -34,7 +34,9 @@ src
 │   ├─ SettingsPage.jsx
 │   └─ StatusPage.jsx
 ├─ services/
-│   ├─ ai-generation.js (OpenAI / xAI / Mock dispatcher)
+│   ├─ ai-generation.js (OpenAI / xAI / Mock text dispatcher)
+│   ├─ ai-image-generation.js (OpenAI / Mock image dispatcher)
+│   ├─ storage.js (Supabase Storage wrapper)
 │   ├─ app-settings.js  (local settings persistence)
 │   ├─ local-drafts.js  (offline draft handling)
 │   └─ supabase.js      (Supabase API wrapper)
@@ -46,23 +48,20 @@ src
 - Centralised constants (`appConstants.js`) for tabs, guide sections, and default form data.
 - Added dark‑mode toggle with a gradient background.
 - Implemented graceful fallback when Supabase is unavailable (offline/read‑only modes).
-- **Phase 4**: Extraction of reusable UI components (`Header`, `StatusCard`, `SectionCard`, `TabButton`, `ActionButton`).
-- **Phase 5**: AI Text Generation Integration.
-    - Isolated service `ai-generation.js`.
-    - OpenAI and xAI real API fetch implementations.
-    - Hybrid mock/real dispatcher with provider routing.
-    - Form validation and error state handling in `CreatePage`.
-- Consolidated UI text into reusable components (e.g., `SettingsField`).
-- **Phase 5 Complete**: Integrated **AI Text Generation**.
-    - Supports **OpenAI (GPT-4o-mini)** and **xAI (Grok-3-mini)** via real API fetches.
-    - Automated provider detection (via API key prefix) or explicit setting.
-    - Robust error handling and localized validation in `CreatePage`.
-    - Expanded Settings UI to manage API keys, models, and providers.
+- **Phase 4 Complete**: Extraction of reusable UI components (`Header`, `StatusCard`, `SectionCard`, `TabButton`, `ActionButton`).
+- **Phase 5 Complete**: Integrated **AI Text Generation** (OpenAI & xAI).
+- **Phase 6A Complete**: Integrated **Image Generation Flow MVP**.
+    - Isolated image generation service (`ai-image-generation.js`) with OpenAI and Mock support.
+    - Real-time image generation connected to `CreatePage` with status feedback.
+    - Improved image preview state with provider info and revised prompts.
+    - Automated upload of generated images to **Supabase Storage** (`generated-images` bucket).
+    - Metadata (URL, storage path, provider) attached to draft data.
+    - Robust fallback: stays on external URL if storage upload fails.
 
 ## Current Known Issues
 - **Supabase RLS**: write operations on the `posts` table are blocked until proper row‑level security policies are added.
 - **Missing tables**: `app_settings` and `posts` may not exist until `supabase-setup.sql` is executed.
-- **AI Image Generation** is currently mock-only.
+- **Supabase Storage**: Bucket `generated-images` must exist and be public (or have correct RLS policies) for mirroring to work.
 - **Facebook integration** is not yet implemented – only placeholders exist in the UI.
 - Offline mode stores drafts locally but does not sync automatically when connectivity is restored.
 - No TypeScript typing; linting rules are minimal.
@@ -75,17 +74,17 @@ src
 5. Respect the project’s incremental refactor approach: small, isolated changes.
 
 ## Current Phase
-**Phase 5 Complete: AI Text Generation** – The app now possesses real AI content generation capabilities with support for OpenAI and xAI.
+**Phase 6A Complete: Image Generation Flow MVP** – Real image generation is wired into the creation flow with automated Supabase Storage backup.
 
 ## Recommended Next Phase
-1. **Phase 6: Image Generation & Storage** – implement real image generation (OpenAI DALL-E or similar) and store results in Supabase Storage.
-2. **Facebook Posting Flow** – add `services/facebook.js` wrapper around Graph API to publish posts.
+1. **Phase 6B: Supabase Schema + Image Metadata Persistence** – Update database schema to store image provider/prompt metadata and enable full draft sync.
+2. **Facebook Posting Flow** – Add `services/facebook.js` wrapper around Graph API to publish posts.
 3. **Scheduler Integration** – implement client-side or edge-function based publishing.
 
 ## Current Pages / Components / Services / Constants Summary
 - **Pages**: `App.jsx`, `CreatePage.jsx`, `GuidePage.jsx`, `SettingsPage.jsx`, `StatusPage.jsx`.
 - **Components**: `Header`, `StatusCard`, `SectionCard`, `TabButton`, `ActionButton`.
-- **Services**: `ai-generation.js`, `app-settings.js`, `local-drafts.js`, `supabase.js`.
+- **Services**: `ai-generation.js`, `ai-image-generation.js`, `storage.js`, `app-settings.js`, `local-drafts.js`, `supabase.js`.
 - **Constants**: `appConstants.js` – contains tabs, guide sections, default form values, status copy strings.
 
 ---
