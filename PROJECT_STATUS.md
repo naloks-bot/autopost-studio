@@ -66,16 +66,16 @@ src
     - Improved error messaging for common Facebook and Supabase Storage failures.
     - Verified cross-mode stability (online, offline, missing config).
     - Established a manual QA checklist for ongoing verification.
-- **Phase 9B Complete**: **Supabase Edge Function Scheduler**.
-    - Created `process-scheduled-posts` Edge Function scaffold.
-    - Implemented `CRON_SECRET` validation for secure external triggers.
-    - Added server-side fetching of `app_settings` and `posts` using Service Role key.
-    - Established safety checks (checks `scheduler_enabled` before processing).
-    - Client-side scheduler remains active as a fallback.
+- **Phase 9C Complete**: **Full Edge Scheduler Publish Execution**.
+    - Extended Edge Function to perform the full identify -> publish -> update cycle.
+    - Added support for live Facebook Graph API calls (v23.0) from the server.
+    - Implemented per-post error handling to prevent batch failures.
+    - Supported both text-only and image-linked posts.
+    - Maintained full compatibility with `facebookPublishMode` and `schedulerEnabled`.
 
 ## Current Known Issues
-- **Supabase RLS**: write operations on the `posts` table are blocked until proper row‑level security policies are added. (Partially addressed in `supabase-setup.sql`).
-- **Client-Side Scheduler**: Automation only runs while the browser tab is open and active. (Edge Function added in 9B to eventually replace this).
+- **Supabase RLS**: write operations on the `posts` table are blocked until proper row‑level security policies are applied. (Partially addressed in `supabase-setup.sql`).
+- **Client-Side Scheduler**: Automation only runs while the browser tab is open and active. (Edge Function now exists as a server-side alternative).
 - Offline mode stores drafts locally but does not sync automatically when connectivity is restored.
 
 ## Current Coding Rules for AI Assistants
@@ -85,7 +85,7 @@ src
 4. Keep new code consistent with the existing ES module style.
 
 ## Current Phase
-**Phase 9B Complete: Supabase Edge Function Scheduler** – Server-side scaffold is ready for production wiring.
+**Phase 9C Complete: Full Edge Scheduler Publish Execution** – The backend can now autonomously process and publish scheduled content.
 
 ## Recommended Next Phase
 1. **Facebook Live Token Setup & App Review** – Transition from developer tokens to production-grade permissions.

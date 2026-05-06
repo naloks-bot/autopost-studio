@@ -29,10 +29,13 @@ The application is a **client‑side React SPA** built with **Vite**. It communi
 4. **Resiliency**: If Storage upload fails, the app falls back to the provider URL; if AI fails, the app uses a mock template.
 
 ## Facebook Posting Flow
-1. **Centralized Processor** (`services/publish-processor.js`) – Contains the core logic for filtering due posts and executing the publish flow. Decoupled from React to support Edge Function migration.
-2. **Client Wrapper** (`services/scheduler.js`) – Lightweight polling loop that triggers the processor every 60s while the app is active.
-3. **Safety Controls**: Respects `facebookPublishMode` and `schedulerEnabled` with in-memory execution locking.
-4. **Error Handling**: Detailed extraction of Facebook error codes (190, 200, etc.) for user-facing feedback.
+1. **Centralized Processor** (`services/publish-processor.js`) – Core logic for client-side detection and execution.
+2. **Edge Function** (`supabase/functions/process-scheduled-posts`) – Server-side mirror of the publishing logic.
+    - **Identity**: Identifies `status: scheduled` posts due for publication.
+    - **Execution**: Calls Facebook Graph API v23.0 (`/${pageId}/feed`) using server-side secrets.
+    - **Status**: Updates `status: posted` and `posted_at` in Supabase after success.
+3. **Safety Controls**: Respects `facebookPublishMode` and `schedulerEnabled` with `CRON_SECRET` protection.
+4. **Error Handling**: Detailed per-post error reporting in response payloads.
 
 ## Folder Structure
 ```
