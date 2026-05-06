@@ -223,6 +223,8 @@ function App() {
       image_url: extraData.image_url || form.imageUrl.trim(),
       image_provider: extraData.image_provider || null,
       image_revised_prompt: extraData.image_revised_prompt || null,
+      image_storage_path: extraData.image_storage_path || null,
+      image_storage_mode: extraData.image_storage_mode || null,
       status: "draft",
       created_at: new Date().toISOString(),
     };

@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { CheckCircle2, Image as ImageIcon, RefreshCw, Sparkles } from "lucide-react";
 import { generateImage } from "../services/ai-image-generation.js";
+import { uploadImageFromUrl } from "../services/storage.js";
 import ActionButton from "../components/ActionButton.jsx";
 
 function CreatePage({
@@ -42,10 +43,32 @@ function CreatePage({
         setImageGenerationError(result.error);
         // Keep previous image if error, or clear it? Usually better to keep it unless user clears.
       } else {
+        const rawUrl = result.data.imageUrl;
+        let finalUrl = rawUrl;
+        let storagePath = null;
+        let storageMode = "external";
+
+        // Try to upload to Supabase Storage for permanence
+        const today = new Date().toISOString().split("T")[0];
+        const filename = `gen-${Date.now()}.webp`;
+        const filePath = `generated/${today}/${filename}`;
+
+        const uploadResult = await uploadImageFromUrl(filePath, rawUrl);
+        if (uploadResult.data) {
+          finalUrl = uploadResult.data;
+          storagePath = filePath;
+          storageMode = "supabase";
+        } else if (uploadResult.error && uploadResult.mode !== "offline") {
+          console.warn("Storage upload failed, using original URL:", uploadResult.error);
+          // Non-blocking: we still have the original result.data.imageUrl
+        }
+
         setGeneratedImage({
-          imageUrl: result.data.imageUrl,
+          imageUrl: finalUrl,
           revisedPrompt: result.data.revisedPrompt,
-          mode: result.mode
+          mode: result.mode,
+          storagePath,
+          storageMode,
         });
       }
     } catch (err) {
@@ -62,6 +85,8 @@ function CreatePage({
           image_prompt: form.imagePrompt,
           image_provider: generatedImage.mode,
           image_revised_prompt: generatedImage.revisedPrompt,
+          image_storage_path: generatedImage.storagePath || null,
+          image_storage_mode: generatedImage.storageMode || null,
         }
       : {};
     handleSaveDraft(extraData);
