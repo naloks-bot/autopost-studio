@@ -55,6 +55,18 @@ function CreatePage({
     }
   }
 
+  function handleInternalSave() {
+    const extraData = generatedImage?.imageUrl
+      ? {
+          image_url: generatedImage.imageUrl,
+          image_prompt: form.imagePrompt,
+          image_provider: generatedImage.mode,
+          image_revised_prompt: generatedImage.revisedPrompt,
+        }
+      : {};
+    handleSaveDraft(extraData);
+  }
+
   function handleClearImage() {
     setGeneratedImage(null);
     setImageGenerationError(null);
@@ -141,7 +153,7 @@ function CreatePage({
           label="บันทึก Draft"
           icon={CheckCircle2}
           isLoading={isSavingDraft}
-          onClick={handleSaveDraft}
+          onClick={handleInternalSave}
           variant="emerald"
         />
       </div>

@@ -208,7 +208,7 @@ function App() {
     }, 900);
   }
 
-  async function handleSaveDraft() {
+  async function handleSaveDraft(extraData = {}) {
     if (!form.topic.trim() || !form.content.trim()) {
       window.alert("ต้องมีทั้งหัวข้อและเนื้อหาก่อนบันทึก");
       return;
@@ -219,8 +219,10 @@ function App() {
     const draft = {
       topic: form.topic.trim(),
       content: form.content.trim(),
-      image_prompt: form.imagePrompt.trim(),
-      image_url: form.imageUrl.trim(),
+      image_prompt: extraData.image_prompt || form.imagePrompt.trim(),
+      image_url: extraData.image_url || form.imageUrl.trim(),
+      image_provider: extraData.image_provider || null,
+      image_revised_prompt: extraData.image_revised_prompt || null,
       status: "draft",
       created_at: new Date().toISOString(),
     };
