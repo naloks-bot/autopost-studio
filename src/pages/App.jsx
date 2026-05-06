@@ -19,6 +19,7 @@ import Header from "../components/Header.jsx";
 import StatusCard from "../components/StatusCard.jsx";
 import SectionCard from "../components/SectionCard.jsx";
 import TabButton from "../components/TabButton.jsx";
+import { generateImagePrompt, generatePostContent } from "../services/ai-generation.js";
 
 function formatDate(value) {
   if (!value) return "-";
@@ -79,6 +80,7 @@ function App() {
   const [settingsMessage, setSettingsMessage] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isGeneratingImagePrompt, setIsGeneratingImagePrompt] = useState(false);
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
   const [isSavingDraft, setIsSavingDraft] = useState(false);
   const [isSavingSettings, setIsSavingSettings] = useState(false);
@@ -145,7 +147,7 @@ function App() {
     setSettings((current) => ({ ...current, [key]: value }));
   }
 
-  function handleGenerateContent() {
+  async function handleGenerateContent() {
     if (!form.topic.trim()) {
       window.alert("กรุณาใส่หัวข้อก่อน");
       return;
@@ -153,20 +155,34 @@ function App() {
 
     setIsGenerating(true);
 
-    const voice = settings.brandVoice || "มืออาชีพ";
-    const businessName = settings.businessName || "แบรนด์ของคุณ";
+    const result = await generatePostContent({ formData: form, settings });
 
-    window.setTimeout(() => {
-      updateForm(
-        "content",
-        `โพสต์สำหรับ ${businessName}\n\nหัวข้อ: ${form.topic}\n\nโทนที่ต้องการ: ${voice}\n\nเริ่มด้วยการชี้ปัญหาที่ลูกค้ากำลังเจอ อธิบายว่าบริการหรือสินค้าของคุณช่วยอย่างไร และปิดท้ายด้วยคำกระตุ้นให้ทักแชตหรือคอมเมนต์เพื่อรับรายละเอียดเพิ่มเติม`
-      );
-      updateForm(
-        "imagePrompt",
-        `Create a premium Thai social post for "${form.topic}" in a ${voice} brand voice, modern composition, clean lighting, Facebook-ready layout`
-      );
-      setIsGenerating(false);
-    }, 900);
+    if (result.data) {
+      updateForm("content", result.data);
+    } else if (result.error) {
+      console.error("Content generation error:", result.error);
+    }
+
+    setIsGenerating(false);
+  }
+
+  async function handleGenerateImagePrompt() {
+    if (!form.topic.trim()) {
+      window.alert("กรุณาใส่หัวข้อก่อน");
+      return;
+    }
+
+    setIsGeneratingImagePrompt(true);
+
+    const result = await generateImagePrompt({ formData: form, settings });
+
+    if (result.data) {
+      updateForm("imagePrompt", result.data);
+    } else if (result.error) {
+      console.error("Image prompt generation error:", result.error);
+    }
+
+    setIsGeneratingImagePrompt(false);
   }
 
   function handleGenerateImagePreview() {
@@ -314,9 +330,11 @@ function App() {
                 settings={settings}
                 updateForm={updateForm}
                 handleGenerateContent={handleGenerateContent}
+                handleGenerateImagePrompt={handleGenerateImagePrompt}
                 handleGenerateImagePreview={handleGenerateImagePreview}
                 handleSaveDraft={handleSaveDraft}
                 isGenerating={isGenerating}
+                isGeneratingImagePrompt={isGeneratingImagePrompt}
                 isGeneratingImage={isGeneratingImage}
                 isSavingDraft={isSavingDraft}
               />

@@ -7,9 +7,11 @@ function CreatePage({
   settings,
   updateForm,
   handleGenerateContent,
+  handleGenerateImagePrompt,
   handleGenerateImagePreview,
   handleSaveDraft,
   isGenerating,
+  isGeneratingImagePrompt,
   isGeneratingImage,
   isSavingDraft,
 }) {
@@ -46,7 +48,22 @@ function CreatePage({
       </div>
 
       <div>
-        <label className="mb-2 block text-sm text-slate-300">Prompt รูป</label>
+        <div className="mb-2 flex items-center justify-between">
+          <label className="text-sm text-slate-300">Prompt รูป</label>
+          <button
+            type="button"
+            onClick={handleGenerateImagePrompt}
+            disabled={isGeneratingImagePrompt}
+            className="flex items-center gap-1.5 text-xs font-medium text-cyan-400 transition hover:text-cyan-300 disabled:opacity-50"
+          >
+            {isGeneratingImagePrompt ? (
+              <RefreshCw className="h-3 w-3 animate-spin" />
+            ) : (
+              <Sparkles className="h-3 w-3" />
+            )}
+            AI ช่วยคิด Prompt
+          </button>
+        </div>
         <textarea
           value={form.imagePrompt}
           onChange={(event) => updateForm("imagePrompt", event.target.value)}
