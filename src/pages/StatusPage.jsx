@@ -56,7 +56,34 @@ function StatusPage({
                       {post.source === "local" ? "local draft" : "supabase"}
                     </span>
                   </div>
-                  <p className="mt-2 text-sm text-slate-300">{post.content}</p>
+                  <p className="mt-2 text-sm text-slate-300 line-clamp-3">{post.content}</p>
+                  
+                  {post.image_url && (
+                    <div className="mt-4 flex items-center gap-4">
+                      <img
+                        src={post.image_url}
+                        alt="Preview"
+                        className="h-16 w-16 rounded-xl border border-white/10 object-cover"
+                      />
+                      <div className="space-y-1 text-[10px] text-slate-400">
+                        <p>
+                          <span className="text-slate-500">Provider:</span>{" "}
+                          {post.image_provider || "mock"}
+                        </p>
+                        <p>
+                          <span className="text-slate-500">Storage:</span>{" "}
+                          {post.image_storage_mode || "external"}
+                        </p>
+                        {post.image_storage_path && (
+                          <p className="max-w-[150px] truncate">
+                            <span className="text-slate-500">Path:</span>{" "}
+                            {post.image_storage_path}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
                   <p className="mt-3 text-xs text-slate-500">
                     สร้างเมื่อ {formatDate(post.created_at)}
                   </p>
