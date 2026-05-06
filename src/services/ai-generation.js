@@ -1,3 +1,5 @@
+import { logger } from "./logger.js";
+
 /**
  * AI Generation Service
  * Handles building prompts and calling AI models (OpenAI/xAI)
@@ -200,16 +202,28 @@ export async function generatePostContent({ formData, settings }) {
   if (provider === "xai") {
     return generateWithXAI(prompt, settings.xaiApiKey, settings.xaiModel);
   }
+  try {
+    const provider = getAIProvider(settings);
+    const prompt = buildContentPrompt(formData, settings);
 
-  // Fallback to Mock
-  await new Promise((resolve) => setTimeout(resolve, 1000));
-  const mockData = `[Mock Generated Content]\n\nหัวข้อ: ${formData.topic}\n\nนี่คือตัวอย่างเนื้อหาที่ถูกสร้างขึ้นโดย AI สำหรับ ${settings.businessName || "ธุรกิจของคุณ"} โดยเน้นโทนเสียงแบบ ${settings.brandVoice || "มืออาชีพ"}\n\nเนื้อหาประกอบด้วยการชี้ปัญหาของลูกค้า แนะนำบริการ และปิดท้ายด้วย Call to Action ที่ชัดเจน!`;
+    let result;
+    if (provider === "openai") {
+      result = await generateWithOpenAI(prompt, settings.openaiApiKey, settings.openaiModel);
+    } else if (provider === "xai") {
+      result = await generateWithXAI(prompt, settings.xaiApiKey, settings.xaiModel);
+    } else {
+      // Fallback to Mock
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      const mockData = `[Mock Generated Content]\n\nหัวข้อ: ${formData.topic}\n\nนี่คือตัวอย่างเนื้อหาที่ถูกสร้างขึ้นโดย AI สำหรับ ${settings.businessName || "ธุรกิจของคุณ"} โดยเน้นโทนเสียงแบบ ${settings.brandVoice || "มืออาชีพ"}\n\nเนื้อหาประกอบด้วยการชี้ปัญหาของลูกค้า แนะนำบริการ และปิดท้ายด้วย Call to Action ที่ชัดเจน!`;
+      result = { data: mockData, error: null, mode: "mock" };
+    }
 
-  return {
-    data: mockData,
-    error: null,
-    mode: "mock",
-  };
+    logger.info(`Text generation complete. Mode: ${result.mode}`);
+    return result;
+  } catch (err) {
+    logger.error("Text generation failed:", err);
+    return { data: null, error: err.message, mode: "mock" };
+  }
 }
 
 /**

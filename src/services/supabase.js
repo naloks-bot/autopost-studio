@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { logger } from "./logger.js";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -8,6 +9,10 @@ const SETTINGS_SELECT =
   "id, workspace_name, business_name, brand_voice, default_topic_hint, openai_api_key, xai_api_key, facebook_app_id, facebook_app_secret, facebook_page_id, facebook_page_access_token, created_at, updated_at";
 
 export const hasSupabaseConfig = Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
+
+if (!hasSupabaseConfig) {
+  logger.warn("Supabase environment variables are missing (VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY).");
+}
 
 export const supabase = hasSupabaseConfig
   ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
@@ -43,6 +48,8 @@ export function normalizePost(post) {
 function classifySupabaseError(error) {
   if (!error) return "connected";
 
+  logger.error("Supabase Error Caught:", error);
+
   if (
     error.code === "42501" ||
     error.code === "401" ||
@@ -71,6 +78,7 @@ export async function fetchRemotePosts() {
     };
   }
 
+  logger.info("Fetching remote posts...");
   const { data, error } = await supabase
     .from("posts")
     .select(POSTS_SELECT)
@@ -80,6 +88,7 @@ export async function fetchRemotePosts() {
     return { data: [], error, mode: classifySupabaseError(error) };
   }
 
+  logger.info(`Fetched ${data?.length || 0} posts from Supabase.`);
   return {
     data: (data ?? []).map((post) => normalizePost({ ...post, source: "remote" })),
     error: null,
@@ -96,6 +105,7 @@ export async function insertRemoteDraft(draft) {
     };
   }
 
+  logger.info("Inserting remote draft...");
   const payload = {
     page_id: draft.page_id || null,
     topic: draft.topic,
@@ -125,6 +135,7 @@ export async function insertRemoteDraft(draft) {
     };
   }
 
+  logger.info("Remote draft insertion successful.");
   return {
     data: normalizePost({ ...data, source: "remote" }),
     error: null,
@@ -141,6 +152,7 @@ export async function updateRemotePostStatus(postId, status, extraData = {}) {
     };
   }
 
+  logger.info(`Updating status for post ${postId} to: ${status}`);
   const payload = {
     status,
     ...extraData,
@@ -161,6 +173,7 @@ export async function updateRemotePostStatus(postId, status, extraData = {}) {
     };
   }
 
+  logger.info("Post status update successful.");
   return {
     data: normalizePost({ ...data, source: "remote" }),
     error: null,
@@ -192,6 +205,7 @@ export async function fetchRemoteSettings() {
     };
   }
 
+  logger.info("Fetching remote settings...");
   const { data, error } = await supabase
     .from("app_settings")
     .select(SETTINGS_SELECT)
@@ -203,9 +217,11 @@ export async function fetchRemoteSettings() {
   }
 
   if (!data) {
+    logger.info("No remote settings found. Using local defaults.");
     return { data: null, error: null, mode: "empty" };
   }
 
+  logger.info("Remote settings loaded successfully.");
   return { data: normalizeSettings(data), error: null, mode: "connected" };
 }
 
@@ -218,6 +234,7 @@ export async function saveRemoteSettings(settings) {
     };
   }
 
+  logger.info("Saving remote settings...");
   const payload = {
     id: "default",
     workspace_name: settings.workspaceName,
@@ -243,5 +260,6 @@ export async function saveRemoteSettings(settings) {
     return { data: null, error, mode: classifySupabaseError(error) };
   }
 
+  logger.info("Remote settings saved successfully.");
   return { data: normalizeSettings(data), error: null, mode: "connected" };
 }

@@ -60,6 +60,12 @@ src
     - Automated background polling (every 60s) while the app is open.
     - Automatic detection and publication of "due" scheduled posts.
     - Status page visibility for scheduled/posted timestamps and scheduler activity.
+- **Phase 8 Complete**: **Production Hardening & QA Pass**.
+    - Introduced a centralized `logger.js` for development-only tracing.
+    - Added defensive validation and error extraction across all services.
+    - Improved error messaging for common Facebook and Supabase Storage failures.
+    - Verified cross-mode stability (online, offline, missing config).
+    - Established a manual QA checklist for ongoing verification.
 
 ## Current Known Issues
 - **Supabase RLS**: write operations on the `posts` table are blocked until proper row‑level security policies are added.
@@ -75,18 +81,24 @@ src
 4. Keep new code consistent with the existing ES module style.
 
 ## Current Phase
-**Phase 7B Complete: Scheduler & Automation Foundation** – The app now supports background automated publishing for scheduled drafts when open.
+**Phase 8 Complete: Production Hardening & QA Pass** – The app is now stable, well-logged, and ready for production-like usage.
 
 ## Recommended Next Phase
-1. **Phase 8: Multi-Account & Analytics** – Support for multiple Facebook pages and basic post performance tracking.
-2. **Phase 9: Supabase Edge Scheduler** – 24/7 automation via Edge Functions.
+1. **Phase 9: Supabase Edge Scheduler** – Migrate client-side polling to a server-side cron job for 24/7 reliability.
+2. **Phase 10: Multi-Account Support** – Support for managing multiple Facebook pages from one dashboard.
 3. **TypeScript Migration** – introduce TS for better maintainability.
 
 ## Current Pages / Components / Services / Constants Summary
 - **Pages**: `App.jsx`, `CreatePage.jsx`, `GuidePage.jsx`, `SettingsPage.jsx`, `StatusPage.jsx`.
 - **Components**: `Header`, `StatusCard`, `SectionCard`, `TabButton`, `ActionButton`.
-- **Services**: `ai-generation.js`, `ai-image-generation.js`, `facebook.js`, `scheduler.js`, `storage.js`, `app-settings.js`, `local-drafts.js`, `supabase.js`.
+- **Services**: `ai-generation.js`, `ai-image-generation.js`, `facebook.js`, `logger.js`, `scheduler.js`, `storage.js`, `app-settings.js`, `local-drafts.js`, `supabase.js`.
 - **Constants**: `appConstants.js` – contains tabs, guide sections, default form values, status copy strings.
 
----
-*Generated on 2026‑05‑06*
+## QA Checklist (Verified)
+- [x] **Create Text**: AI successfully generates Thai/English content.
+- [x] **Generate Image**: AI generates images and mirrors them to Supabase Storage.
+- [x] **Save Draft**: Drafts persist with full image metadata.
+- [x] **Status View**: Persisted metadata and previews render correctly.
+- [x] **Manual Publish**: Immediate posting to Facebook Page works.
+- [x] **Scheduled Publish**: Background automation works while the tab is open.
+- [x] **Error Handling**: Graceful warnings for missing config or network failure.

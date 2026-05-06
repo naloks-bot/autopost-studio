@@ -1,3 +1,5 @@
+import { logger } from "./logger.js";
+
 /**
  * Facebook Graph API Service
  * Handles communication with the Facebook Graph API for posting and scheduling.
@@ -33,8 +35,6 @@ export function buildFacebookPostPayload(post, options = {}) {
   params.append("message", post.content || post.topic || "");
   
   // If an image URL is present, Facebook can attach it via link parameter
-  // Note: For real image uploads, /{page-id}/photos is often preferred,
-  // but /{page-id}/feed with 'link' works for existing URLs.
   if (post.image_url) {
     params.append("link", post.image_url);
   }
@@ -52,6 +52,23 @@ export function buildFacebookPostPayload(post, options = {}) {
 }
 
 /**
+ * Helper to extract readable error message from Facebook API response.
+ */
+function extractFacebookError(result, status) {
+  if (result.error) {
+    const code = result.error.code;
+    const subcode = result.error.error_subcode;
+    
+    if (code === 190) return "Facebook Access Token expired or invalid. Please refresh it in Settings.";
+    if (code === 200) return "Insufficient permissions. Ensure 'pages_manage_posts' is granted.";
+    if (code === 100) return `Facebook Validation Error: ${result.error.message}`;
+    
+    return result.error.message || `Facebook Error (${code})`;
+  }
+  return `Facebook API Error: ${status}`;
+}
+
+/**
  * Publishes a post to the Facebook Page's feed immediately.
  * @param {Object} post - The post data.
  * @param {Object} settings - App settings containing tokens.
@@ -59,6 +76,7 @@ export function buildFacebookPostPayload(post, options = {}) {
  */
 export async function publishFacebookPost(post, settings) {
   if (!validateFacebookConfig(settings)) {
+    logger.warn("Facebook configuration missing during publish attempt.");
     return { 
       data: null, 
       error: "Missing Facebook Page ID or Access Token", 
@@ -66,6 +84,7 @@ export async function publishFacebookPost(post, settings) {
     };
   }
 
+  logger.info(`Publishing to Facebook Page: ${settings.facebookPageId}`);
   try {
     const payload = buildFacebookPostPayload(post);
     const url = `${FB_BASE_URL}/${settings.facebookPageId}/feed?access_token=${settings.facebookPageAccessToken}`;
@@ -78,12 +97,15 @@ export async function publishFacebookPost(post, settings) {
     const result = await response.json();
 
     if (!response.ok) {
-      throw new Error(result.error?.message || "Facebook API error");
+      const msg = extractFacebookError(result, response.status);
+      logger.error("Facebook Publish Failed:", msg, result);
+      throw new Error(msg);
     }
 
+    logger.info("Facebook Publish Successful.", result);
     return { data: result, error: null, mode: "connected" };
   } catch (err) {
-    console.error("Facebook publish error:", err);
+    logger.error("Network or API error during Facebook publish:", err);
     return { data: null, error: err.message, mode: "connected" };
   }
 }
@@ -104,6 +126,7 @@ export async function scheduleFacebookPost(post, scheduledTime, settings) {
     };
   }
 
+  logger.info(`Scheduling Facebook post for timestamp: ${scheduledTime}`);
   try {
     const payload = buildFacebookPostPayload(post, { 
       published: false, 
@@ -119,12 +142,15 @@ export async function scheduleFacebookPost(post, scheduledTime, settings) {
     const result = await response.json();
 
     if (!response.ok) {
-      throw new Error(result.error?.message || "Facebook API error");
+      const msg = extractFacebookError(result, response.status);
+      logger.error("Facebook Schedule Failed:", msg, result);
+      throw new Error(msg);
     }
 
+    logger.info("Facebook Schedule Successful.", result);
     return { data: result, error: null, mode: "connected" };
   } catch (err) {
-    console.error("Facebook schedule error:", err);
+    logger.error("Network or API error during Facebook schedule:", err);
     return { data: null, error: err.message, mode: "connected" };
   }
 }
