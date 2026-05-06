@@ -20,11 +20,16 @@ The application is a **client‑side React SPA** built with **Vite**. It communi
   - `saveRemoteSettings` – UPSERT the `app_settings` row.
 - **Row‑Level Security** – Policies defined in `supabase-setup.sql` allow **anonymous** users to read/write the tables when the project is in development mode. Production will tighten these policies.
 
-## Future AI Generation Flow
-1. **Prompt Construction** – The UI already builds a text prompt for content and an image prompt for a placeholder image.
-2. **AI Service Wrapper** – A new service (`services/ai-generation.js`) will call OpenAI (`/v1/completions`) or xAI (`/v1/chat/completions`) using the API keys stored in settings.
-3. **Result Handling** – Returned content and image URLs will be merged into the draft form, then saved via the existing Supabase draft flow.
-4. **Error & Rate‑Limit Management** – Centralised handling will surface messages in the Settings UI.
+## AI Generation Flow
+1. **Service Layer** (`services/ai-generation.js`) – Acts as a dispatcher for multiple AI providers.
+2. **Provider Routing**:
+   - **`openai`**: Calls OpenAI Chat Completions (`gpt-4o-mini`).
+   - **`xai`**: Calls xAI Chat Completions (`grok-3-mini`).
+   - **`mock`**: Returns simulated data (default fallback if no keys present).
+3. **Detection Logic**: Uses `aiProvider` setting if set; otherwise auto-detects based on key prefixes (`sk-` for OpenAI, `xai-` for xAI).
+4. **Return Shape**: Every generation function returns a uniform object:
+   `{ data: string | null, error: string | null, mode: "openai" | "xai" | "mock" }`
+5. **Text vs Image**: Real API calls are enabled for post content. Image prompts are currently generated as mock text to save tokens as requested.
 
 ## Future Facebook Posting Flow
 - **Access Token Management** – Use the stored `facebookPageAccessToken` and `facebookPageId` from settings.
@@ -52,7 +57,7 @@ src/
 ├─ pages/              # Route‑level screens (App, Create, Settings, …)
 ├─ services/           # Business logic & external API wrappers
 │   ├─ supabase.js      # Existing Supabase wrappers
-│   ├─ ai-generation.js# Future OpenAI/xAI integration
+│   ├─ ai-generation.js # OpenAI/xAI/Mock integration
 │   ├─ facebook.js      # Future Graph API wrapper
 │   └─ scheduler.js     # Future client‑side / edge‑function glue
 ├─ utils/              # Helper functions (formatting, validation)

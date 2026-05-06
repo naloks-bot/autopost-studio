@@ -10,17 +10,21 @@
 - Basic Supabase schema (`supabase-setup.sql`) and RLS policies for development.
 - Graceful offline/read‑only handling when Supabase is unavailable.
 - **Phase 4**: Extraction of reusable UI components (`Header`, `StatusCard`, `SectionCard`, `TabButton`, `ActionButton`).
+- **Phase 5**: AI Text Generation Integration.
+    - Isolated service `ai-generation.js`.
+    - OpenAI and xAI real API fetch implementations.
+    - Hybrid mock/real dispatcher with provider routing.
+    - Form validation and error state handling in `CreatePage`.
 
 ## In Progress
 - UI polish for the dashboard layout (split‑screen, scrollable sections) – see recent UI optimizations.
 - Ongoing refactoring of constants and service abstractions.
 
 ## Next Phase
-1. **AI Generation Integration** – implement `services/ai-generation.js` to call OpenAI/xAI for content and image generation.
+1. **Phase 6: Image Generation & Storage** – implement real image generation (OpenAI DALL-E or similar) and store results in Supabase Storage.
 2. **Facebook Posting Flow** – add `services/facebook.js` wrapper around Graph API to publish posts.
-3. **Scheduler** – design a lightweight client‑side scheduler (or Supabase Edge Function) for timed posting.
-4. **Storage Enhancements** – integrate Supabase Storage for generated images, add cleanup routine.
-5. **TypeScript Migration** – introduce TS for better maintainability.
+3. **Scheduler Integration** – implement client-side or edge-function based publishing.
+4. **TypeScript Migration** – introduce TS for better maintainability.
 
 ## Future Features
 - Multi‑account support (multiple Facebook pages).
@@ -39,6 +43,7 @@
 ## Bugs / Known Issues
 - **Supabase RLS**: write operations on `posts` are blocked until proper policies are applied.
 - **Missing tables**: `app_settings` and `posts` may not exist until `supabase-setup.sql` is run.
+- **AI Image Generation** is currently mock-only (text prompts are generated, but no real image API call is made).
 - **Facebook integration** is currently only UI placeholders – no actual posting.
 - Offline drafts are not automatically synced when connectivity is restored.
 - Dark mode gradient background may cause performance issues on low‑end devices.
