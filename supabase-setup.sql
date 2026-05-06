@@ -7,11 +7,21 @@ create table if not exists public.posts (
   content text not null,
   image_prompt text default '',
   image_url text default '',
+  image_provider text,             -- AI model provider (openai, xai, mock)
+  image_revised_prompt text,      -- AI revised prompt (if any)
+  image_storage_path text,        -- Supabase Storage path
+  image_storage_mode text,        -- storage mode (supabase, external)
   status text not null default 'draft',
   scheduled_at timestamptz,
   posted_at timestamptz,
   created_at timestamptz not null default now()
 );
+
+-- Migration-safe column additions for existing tables
+alter table public.posts add column if not exists image_provider text;
+alter table public.posts add column if not exists image_revised_prompt text;
+alter table public.posts add column if not exists image_storage_path text;
+alter table public.posts add column if not exists image_storage_mode text;
 
 create table if not exists public.app_settings (
   id text primary key default 'default',
