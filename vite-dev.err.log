@@ -1,0 +1,151 @@
+[2m17:53:18[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m Pre-transform error: D:\WebApp\Autopost Studio\src\pages\App.jsx: Unexpected character '�'. (40:34)
+
+[0m [90m 38 |[39m [36mconst[39m guideSections [33m=[39m [
+ [90m 39 |[39m   {
+[31m[1m>[22m[39m[90m 40 |[39m     title[33m:[39m [32m"�?,?ริ�??ม�???�???�?"[39m[33m?[39m�[33m?[39m[32m'�S�???�???า�?"?แอ�???�?"?ี�???",[39m
+ [90m    |[39m                                   [31m[1m^[22m[39m
+ [90m 41 |[39m     items[33m:[39m [
+ [90m 42 |[39m       [32m"�?,?�???ิ�???แ�??"[39m�[33m?[39m[33m?[39m[33m?[39m �[33m?[39m[33m?[39m[33m?[39mั�[33m?[39m[33m?[39m[33m?[39m�[33m?[39m[33m?[39m[33m?[39m�[33m?[39m[33m?[39mz�[33m?[39m[33m?[39mา แล�[33m?[39m[33m?[39m[33m?[39mวกรอก�[33m?[39m[33m?[39ms�[33m?[39m[33m?[39m[33m?[39mอมูล�[33m?[39moุรกิ�[33m?[39m[33m?[39m �[33m?[39m[33m?[39ms�[33m?[39m[33m?[39m[32m"�?"[39m[33m?[39mการสื�[33m?[39m[33m?[39mอสาร และ [33mAPI[39m �[33m?[39m[33m?[39m[32m"ี�??�???�???อ�???�?'�S�???�?'ห�???�??zร�sก�??อ�?"[39m[33m?[39m[32m",[39m
+ [90m 43 |[39m       [32m"ก�???�sั�?"[39m[33m?[39m�[33m?[39m[33m?[39m[32m"ึกการ�???ั�???�???�??z�??า ระ�s�s�??ะ�?,?ก�???�sล�???�?'�?"[39m[33m?[39m�[33m?[39m[33m,[39m[33m?[39mว�[33m?[39m[33m?[39m[33m?[39m�sแอ�[33m?[39m[33m?[39m[33m?[39m�[33m?[39m[33m?[39m[32m"ั�?"[39m[33m?[39m�[33m?[39m[33m?[39m[32m"ี และ�??ะ�zยายาม sync �??z�???�??"[39mี�[33m?[39m[33m?[39m [33mSupabase[39m �[33m?[39m[33m?[39m[32m"�???าสิ�??"[39m�[33m?[39moิ�[33m?[39m[32m'ฐา�?"?�??s�???อมูล�zร�???อม",[39m[0m
+  Plugin: [35mvite:react-babel[39m
+  File: [36mD:/WebApp/Autopost Studio/src/pages/App.jsx[39m:40:34
+[33m  38 |  const guideSections = [
+  39 |    {
+  40 |      title: "�?,?ริ�??ม�???�???�?"?�?'�S�???�???า�?"?แอ�???�?"?ี�???",
+     |                                    ^
+  41 |      items: [
+  42 |        "�?,?�???ิ�???แ�??"�??? �???ั�???�???�??z�??า แล�???วกรอก�??s�???อมูล�?oุรกิ�?? �??s�??"�?"?การสื�??อสาร และ AP...[39m
+[2m17:53:18[22m [31m[1m[vite][22m[39m [31mInternal server error: D:\WebApp\Autopost Studio\src\pages\App.jsx: Unexpected character '�'. (40:34)
+
+[0m [90m 38 |[31m [36mconst[31m guideSections [33m=[31m [
+ [90m 39 |[31m   {
+[31m[1m>[22m[31m[90m 40 |[31m     title[33m:[31m [32m"�?,?ริ�??ม�???�???�?"[31m[33m?[31m�[33m?[31m[32m'�S�???�???า�?"?แอ�???�?"?ี�???",[31m
+ [90m    |[31m                                   [31m[1m^[22m[31m
+ [90m 41 |[31m     items[33m:[31m [
+ [90m 42 |[31m       [32m"�?,?�???ิ�???แ�??"[31m�[33m?[31m[33m?[31m[33m?[31m �[33m?[31m[33m?[31m[33m?[31mั�[33m?[31m[33m?[31m[33m?[31m�[33m?[31m[33m?[31m[33m?[31m�[33m?[31m[33m?[31mz�[33m?[31m[33m?[31mา แล�[33m?[31m[33m?[31m[33m?[31mวกรอก�[33m?[31m[33m?[31ms�[33m?[31m[33m?[31m[33m?[31mอมูล�[33m?[31moุรกิ�[33m?[31m[33m?[31m �[33m?[31m[33m?[31ms�[33m?[31m[33m?[31m[32m"�?"[31m[33m?[31mการสื�[33m?[31m[33m?[31mอสาร และ [33mAPI[31m �[33m?[31m[33m?[31m[32m"ี�??�???�???อ�???�?'�S�???�?'ห�???�??zร�sก�??อ�?"[31m[33m?[31m[32m",[31m
+ [90m 43 |[31m       [32m"ก�???�sั�?"[31m[33m?[31m�[33m?[31m[33m?[31m[32m"ึกการ�???ั�???�???�??z�??า ระ�s�s�??ะ�?,?ก�???�sล�???�?'�?"[31m[33m?[31m�[33m?[31m[33m,[31m[33m?[31mว�[33m?[31m[33m?[31m[33m?[31m�sแอ�[33m?[31m[33m?[31m[33m?[31m�[33m?[31m[33m?[31m[32m"ั�?"[31m[33m?[31m�[33m?[31m[33m?[31m[32m"ี และ�??ะ�zยายาม sync �??z�???�??"[31mี�[33m?[31m[33m?[31m [33mSupabase[31m �[33m?[31m[33m?[31m[32m"�???าสิ�??"[31m�[33m?[31moิ�[33m?[31m[32m'ฐา�?"?�??s�???อมูล�zร�???อม",[31m[0m[39m
+  Plugin: [35mvite:react-babel[39m
+  File: [36mD:/WebApp/Autopost Studio/src/pages/App.jsx[39m:40:34
+[33m  38 |  const guideSections = [
+  39 |    {
+  40 |      title: "�?,?ริ�??ม�???�???�?"?�?'�S�???�???า�?"?แอ�???�?"?ี�???",
+     |                                    ^
+  41 |      items: [
+  42 |        "�?,?�???ิ�???แ�??"�??? �???ั�???�???�??z�??า แล�???วกรอก�??s�???อมูล�?oุรกิ�?? �??s�??"�?"?การสื�??อสาร และ AP...[39m
+      at constructor (D:\WebApp\Autopost Studio\node_modules\@babel\parser\lib\index.js:365:19)
+      at JSXParserMixin.raise (D:\WebApp\Autopost Studio\node_modules\@babel\parser\lib\index.js:6616:19)
+      at JSXParserMixin.getTokenFromCode (D:\WebApp\Autopost Studio\node_modules\@babel\parser\lib\index.js:6323:16)
+      at JSXParserMixin.getTokenFromCode (D:\WebApp\Autopost Studio\node_modules\@babel\parser\lib\index.js:4809:11)
+      at JSXParserMixin.nextToken (D:\WebApp\Autopost Studio\node_modules\@babel\parser\lib\index.js:5799:10)
+      at JSXParserMixin.next (D:\WebApp\Autopost Studio\node_modules\@babel\parser\lib\index.js:5709:10)
+      at JSXParserMixin.eat (D:\WebApp\Autopost Studio\node_modules\@babel\parser\lib\index.js:5713:12)
+      at JSXParserMixin.parseConditional (D:\WebApp\Autopost Studio\node_modules\@babel\parser\lib\index.js:10905:14)
+      at JSXParserMixin.parseMaybeConditional (D:\WebApp\Autopost Studio\node_modules\@babel\parser\lib\index.js:10902:17)
+      at JSXParserMixin.parseMaybeAssign (D:\WebApp\Autopost Studio\node_modules\@babel\parser\lib\index.js:10848:21)
+      at D:\WebApp\Autopost Studio\node_modules\@babel\parser\lib\index.js:10817:39
+      at JSXParserMixin.allowInAnd (D:\WebApp\Autopost Studio\node_modules\@babel\parser\lib\index.js:12443:12)
+      at JSXParserMixin.parseMaybeAssignAllowIn (D:\WebApp\Autopost Studio\node_modules\@babel\parser\lib\index.js:10817:17)
+      at JSXParserMixin.parseMaybeAssignAllowInOrVoidPattern (D:\WebApp\Autopost Studio\node_modules\@babel\parser\lib\index.js:12510:17)
+      at JSXParserMixin.parseObjectProperty (D:\WebApp\Autopost Studio\node_modules\@babel\parser\lib\index.js:11967:83)
+      at JSXParserMixin.parseObjPropValue (D:\WebApp\Autopost Studio\node_modules\@babel\parser\lib\index.js:11995:100)
+      at JSXParserMixin.parsePropertyDefinition (D:\WebApp\Autopost Studio\node_modules\@babel\parser\lib\index.js:11932:17)
+      at JSXParserMixin.parseObjectLike (D:\WebApp\Autopost Studio\node_modules\@babel\parser\lib\index.js:11849:21)
+      at JSXParserMixin.parseExprAtom (D:\WebApp\Autopost Studio\node_modules\@babel\parser\lib\index.js:11356:23)
+      at JSXParserMixin.parseExprAtom (D:\WebApp\Autopost Studio\node_modules\@babel\parser\lib\index.js:4776:20)
+      at JSXParserMixin.parseExprSubscripts (D:\WebApp\Autopost Studio\node_modules\@babel\parser\lib\index.js:11098:23)
+      at JSXParserMixin.parseUpdate (D:\WebApp\Autopost Studio\node_modules\@babel\parser\lib\index.js:11083:21)
+      at JSXParserMixin.parseMaybeUnary (D:\WebApp\Autopost Studio\node_modules\@babel\parser\lib\index.js:11063:23)
+      at JSXParserMixin.parseMaybeUnaryOrPrivate (D:\WebApp\Autopost Studio\node_modules\@babel\parser\lib\index.js:10916:61)
+      at JSXParserMixin.parseExprOps (D:\WebApp\Autopost Studio\node_modules\@babel\parser\lib\index.js:10921:23)
+      at JSXParserMixin.parseMaybeConditional (D:\WebApp\Autopost Studio\node_modules\@babel\parser\lib\index.js:10898:23)
+      at JSXParserMixin.parseMaybeAssign (D:\WebApp\Autopost Studio\node_modules\@babel\parser\lib\index.js:10848:21)
+      at D:\WebApp\Autopost Studio\node_modules\@babel\parser\lib\index.js:10817:39
+      at JSXParserMixin.allowInAnd (D:\WebApp\Autopost Studio\node_modules\@babel\parser\lib\index.js:12443:12)
+      at JSXParserMixin.parseMaybeAssignAllowIn (D:\WebApp\Autopost Studio\node_modules\@babel\parser\lib\index.js:10817:17)
+      at JSXParserMixin.parseMaybeAssignAllowInOrVoidPattern (D:\WebApp\Autopost Studio\node_modules\@babel\parser\lib\index.js:12510:17)
+      at JSXParserMixin.parseExprListItem (D:\WebApp\Autopost Studio\node_modules\@babel\parser\lib\index.js:12192:18)
+      at JSXParserMixin.parseExprList (D:\WebApp\Autopost Studio\node_modules\@babel\parser\lib\index.js:12167:22)
+      at JSXParserMixin.parseArrayLike (D:\WebApp\Autopost Studio\node_modules\@babel\parser\lib\index.js:12074:26)
+      at JSXParserMixin.parseExprAtom (D:\WebApp\Autopost Studio\node_modules\@babel\parser\lib\index.js:11352:23)
+      at JSXParserMixin.parseExprAtom (D:\WebApp\Autopost Studio\node_modules\@babel\parser\lib\index.js:4776:20)
+      at JSXParserMixin.parseExprSubscripts (D:\WebApp\Autopost Studio\node_modules\@babel\parser\lib\index.js:11098:23)
+      at JSXParserMixin.parseUpdate (D:\WebApp\Autopost Studio\node_modules\@babel\parser\lib\index.js:11083:21)
+      at JSXParserMixin.parseMaybeUnary (D:\WebApp\Autopost Studio\node_modules\@babel\parser\lib\index.js:11063:23)
+      at JSXParserMixin.parseMaybeUnaryOrPrivate (D:\WebApp\Autopost Studio\node_modules\@babel\parser\lib\index.js:10916:61)
+      at JSXParserMixin.parseExprOps (D:\WebApp\Autopost Studio\node_modules\@babel\parser\lib\index.js:10921:23)
+      at JSXParserMixin.parseMaybeConditional (D:\WebApp\Autopost Studio\node_modules\@babel\parser\lib\index.js:10898:23)
+      at JSXParserMixin.parseMaybeAssign (D:\WebApp\Autopost Studio\node_modules\@babel\parser\lib\index.js:10848:21)
+      at D:\WebApp\Autopost Studio\node_modules\@babel\parser\lib\index.js:10817:39
+      at JSXParserMixin.allowInAnd (D:\WebApp\Autopost Studio\node_modules\@babel\parser\lib\index.js:12438:16)
+      at JSXParserMixin.parseMaybeAssignAllowIn (D:\WebApp\Autopost Studio\node_modules\@babel\parser\lib\index.js:10817:17)
+      at JSXParserMixin.parseVar (D:\WebApp\Autopost Studio\node_modules\@babel\parser\lib\index.js:13401:91)
+      at JSXParserMixin.parseVarStatement (D:\WebApp\Autopost Studio\node_modules\@babel\parser\lib\index.js:13247:10)
+      at JSXParserMixin.parseStatementContent (D:\WebApp\Autopost Studio\node_modules\@babel\parser\lib\index.js:12868:23)
+      at JSXParserMixin.parseStatementLike (D:\WebApp\Autopost Studio\node_modules\@babel\parser\lib\index.js:12784:17)
+[2m17:54:16[22m [31m[1m[vite][22m[39m [31mInternal server error: D:\WebApp\Autopost Studio\src\pages\App.jsx: Unexpected character '�'. (40:34)
+
+[0m [90m 38 |[31m [36mconst[31m guideSections [33m=[31m [
+ [90m 39 |[31m   {
+[31m[1m>[22m[31m[90m 40 |[31m     title[33m:[31m [32m"�?,?ริ�??ม�???�???�?"[31m[33m?[31m�[33m?[31m[32m'�S�???�???า�?"?แอ�???�?"?ี�???",[31m
+ [90m    |[31m                                   [31m[1m^[22m[31m
+ [90m 41 |[31m     items[33m:[31m [
+ [90m 42 |[31m       [32m"�?,?�???ิ�???แ�??"[31m�[33m?[31m[33m?[31m[33m?[31m �[33m?[31m[33m?[31m[33m?[31mั�[33m?[31m[33m?[31m[33m?[31m�[33m?[31m[33m?[31m[33m?[31m�[33m?[31m[33m?[31mz�[33m?[31m[33m?[31mา แล�[33m?[31m[33m?[31m[33m?[31mวกรอก�[33m?[31m[33m?[31ms�[33m?[31m[33m?[31m[33m?[31mอมูล�[33m?[31moุรกิ�[33m?[31m[33m?[31m �[33m?[31m[33m?[31ms�[33m?[31m[33m?[31m[32m"�?"[31m[33m?[31mการสื�[33m?[31m[33m?[31mอสาร และ [33mAPI[31m �[33m?[31m[33m?[31m[32m"ี�??�???�???อ�???�?'�S�???�?'ห�???�??zร�sก�??อ�?"[31m[33m?[31m[32m",[31m
+ [90m 43 |[31m       [32m"ก�???�sั�?"[31m[33m?[31m�[33m?[31m[33m?[31m[32m"ึกการ�???ั�???�???�??z�??า ระ�s�s�??ะ�?,?ก�???�sล�???�?'�?"[31m[33m?[31m�[33m?[31m[33m,[31m[33m?[31mว�[33m?[31m[33m?[31m[33m?[31m�sแอ�[33m?[31m[33m?[31m[33m?[31m�[33m?[31m[33m?[31m[32m"ั�?"[31m[33m?[31m�[33m?[31m[33m?[31m[32m"ี และ�??ะ�zยายาม sync �??z�???�??"[31mี�[33m?[31m[33m?[31m [33mSupabase[31m �[33m?[31m[33m?[31m[32m"�???าสิ�??"[31m�[33m?[31moิ�[33m?[31m[32m'ฐา�?"?�??s�???อมูล�zร�???อม",[31m[0m[39m
+  Plugin: [35mvite:react-babel[39m
+  File: [36mD:/WebApp/Autopost Studio/src/pages/App.jsx[39m:40:34
+[33m  38 |  const guideSections = [
+  39 |    {
+  40 |      title: "�?,?ริ�??ม�???�???�?"?�?'�S�???�???า�?"?แอ�???�?"?ี�???",
+     |                                    ^
+  41 |      items: [
+  42 |        "�?,?�???ิ�???แ�??"�??? �???ั�???�???�??z�??า แล�???วกรอก�??s�???อมูล�?oุรกิ�?? �??s�??"�?"?การสื�??อสาร และ AP...[39m
+      at constructor (D:\WebApp\Autopost Studio\node_modules\@babel\parser\lib\index.js:365:19)
+      at JSXParserMixin.raise (D:\WebApp\Autopost Studio\node_modules\@babel\parser\lib\index.js:6616:19)
+      at JSXParserMixin.getTokenFromCode (D:\WebApp\Autopost Studio\node_modules\@babel\parser\lib\index.js:6323:16)
+      at JSXParserMixin.getTokenFromCode (D:\WebApp\Autopost Studio\node_modules\@babel\parser\lib\index.js:4809:11)
+      at JSXParserMixin.nextToken (D:\WebApp\Autopost Studio\node_modules\@babel\parser\lib\index.js:5799:10)
+      at JSXParserMixin.next (D:\WebApp\Autopost Studio\node_modules\@babel\parser\lib\index.js:5709:10)
+      at JSXParserMixin.eat (D:\WebApp\Autopost Studio\node_modules\@babel\parser\lib\index.js:5713:12)
+      at JSXParserMixin.parseConditional (D:\WebApp\Autopost Studio\node_modules\@babel\parser\lib\index.js:10905:14)
+      at JSXParserMixin.parseMaybeConditional (D:\WebApp\Autopost Studio\node_modules\@babel\parser\lib\index.js:10902:17)
+      at JSXParserMixin.parseMaybeAssign (D:\WebApp\Autopost Studio\node_modules\@babel\parser\lib\index.js:10848:21)
+      at D:\WebApp\Autopost Studio\node_modules\@babel\parser\lib\index.js:10817:39
+      at JSXParserMixin.allowInAnd (D:\WebApp\Autopost Studio\node_modules\@babel\parser\lib\index.js:12443:12)
+      at JSXParserMixin.parseMaybeAssignAllowIn (D:\WebApp\Autopost Studio\node_modules\@babel\parser\lib\index.js:10817:17)
+      at JSXParserMixin.parseMaybeAssignAllowInOrVoidPattern (D:\WebApp\Autopost Studio\node_modules\@babel\parser\lib\index.js:12510:17)
+      at JSXParserMixin.parseObjectProperty (D:\WebApp\Autopost Studio\node_modules\@babel\parser\lib\index.js:11967:83)
+      at JSXParserMixin.parseObjPropValue (D:\WebApp\Autopost Studio\node_modules\@babel\parser\lib\index.js:11995:100)
+      at JSXParserMixin.parsePropertyDefinition (D:\WebApp\Autopost Studio\node_modules\@babel\parser\lib\index.js:11932:17)
+      at JSXParserMixin.parseObjectLike (D:\WebApp\Autopost Studio\node_modules\@babel\parser\lib\index.js:11849:21)
+      at JSXParserMixin.parseExprAtom (D:\WebApp\Autopost Studio\node_modules\@babel\parser\lib\index.js:11356:23)
+      at JSXParserMixin.parseExprAtom (D:\WebApp\Autopost Studio\node_modules\@babel\parser\lib\index.js:4776:20)
+      at JSXParserMixin.parseExprSubscripts (D:\WebApp\Autopost Studio\node_modules\@babel\parser\lib\index.js:11098:23)
+      at JSXParserMixin.parseUpdate (D:\WebApp\Autopost Studio\node_modules\@babel\parser\lib\index.js:11083:21)
+      at JSXParserMixin.parseMaybeUnary (D:\WebApp\Autopost Studio\node_modules\@babel\parser\lib\index.js:11063:23)
+      at JSXParserMixin.parseMaybeUnaryOrPrivate (D:\WebApp\Autopost Studio\node_modules\@babel\parser\lib\index.js:10916:61)
+      at JSXParserMixin.parseExprOps (D:\WebApp\Autopost Studio\node_modules\@babel\parser\lib\index.js:10921:23)
+      at JSXParserMixin.parseMaybeConditional (D:\WebApp\Autopost Studio\node_modules\@babel\parser\lib\index.js:10898:23)
+      at JSXParserMixin.parseMaybeAssign (D:\WebApp\Autopost Studio\node_modules\@babel\parser\lib\index.js:10848:21)
+      at D:\WebApp\Autopost Studio\node_modules\@babel\parser\lib\index.js:10817:39
+      at JSXParserMixin.allowInAnd (D:\WebApp\Autopost Studio\node_modules\@babel\parser\lib\index.js:12443:12)
+      at JSXParserMixin.parseMaybeAssignAllowIn (D:\WebApp\Autopost Studio\node_modules\@babel\parser\lib\index.js:10817:17)
+      at JSXParserMixin.parseMaybeAssignAllowInOrVoidPattern (D:\WebApp\Autopost Studio\node_modules\@babel\parser\lib\index.js:12510:17)
+      at JSXParserMixin.parseExprListItem (D:\WebApp\Autopost Studio\node_modules\@babel\parser\lib\index.js:12192:18)
+      at JSXParserMixin.parseExprList (D:\WebApp\Autopost Studio\node_modules\@babel\parser\lib\index.js:12167:22)
+      at JSXParserMixin.parseArrayLike (D:\WebApp\Autopost Studio\node_modules\@babel\parser\lib\index.js:12074:26)
+      at JSXParserMixin.parseExprAtom (D:\WebApp\Autopost Studio\node_modules\@babel\parser\lib\index.js:11352:23)
+      at JSXParserMixin.parseExprAtom (D:\WebApp\Autopost Studio\node_modules\@babel\parser\lib\index.js:4776:20)
+      at JSXParserMixin.parseExprSubscripts (D:\WebApp\Autopost Studio\node_modules\@babel\parser\lib\index.js:11098:23)
+      at JSXParserMixin.parseUpdate (D:\WebApp\Autopost Studio\node_modules\@babel\parser\lib\index.js:11083:21)
+      at JSXParserMixin.parseMaybeUnary (D:\WebApp\Autopost Studio\node_modules\@babel\parser\lib\index.js:11063:23)
+      at JSXParserMixin.parseMaybeUnaryOrPrivate (D:\WebApp\Autopost Studio\node_modules\@babel\parser\lib\index.js:10916:61)
+      at JSXParserMixin.parseExprOps (D:\WebApp\Autopost Studio\node_modules\@babel\parser\lib\index.js:10921:23)
+      at JSXParserMixin.parseMaybeConditional (D:\WebApp\Autopost Studio\node_modules\@babel\parser\lib\index.js:10898:23)
+      at JSXParserMixin.parseMaybeAssign (D:\WebApp\Autopost Studio\node_modules\@babel\parser\lib\index.js:10848:21)
+      at D:\WebApp\Autopost Studio\node_modules\@babel\parser\lib\index.js:10817:39
+      at JSXParserMixin.allowInAnd (D:\WebApp\Autopost Studio\node_modules\@babel\parser\lib\index.js:12438:16)
+      at JSXParserMixin.parseMaybeAssignAllowIn (D:\WebApp\Autopost Studio\node_modules\@babel\parser\lib\index.js:10817:17)
+      at JSXParserMixin.parseVar (D:\WebApp\Autopost Studio\node_modules\@babel\parser\lib\index.js:13401:91)
+      at JSXParserMixin.parseVarStatement (D:\WebApp\Autopost Studio\node_modules\@babel\parser\lib\index.js:13247:10)
+      at JSXParserMixin.parseStatementContent (D:\WebApp\Autopost Studio\node_modules\@babel\parser\lib\index.js:12868:23)
+      at JSXParserMixin.parseStatementLike (D:\WebApp\Autopost Studio\node_modules\@babel\parser\lib\index.js:12784:17)
