@@ -3,7 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
 const POSTS_SELECT =
-  "id, page_id, topic, content, image_prompt, image_url, status, scheduled_at, posted_at, created_at";
+  "id, page_id, topic, content, image_prompt, image_url, image_provider, image_revised_prompt, image_storage_path, image_storage_mode, status, scheduled_at, posted_at, created_at";
 const SETTINGS_SELECT =
   "id, workspace_name, business_name, brand_voice, default_topic_hint, openai_api_key, xai_api_key, facebook_app_id, facebook_app_secret, facebook_page_id, facebook_page_access_token, created_at, updated_at";
 
@@ -28,6 +28,10 @@ export function normalizePost(post) {
     content: post.content ?? "",
     image_prompt: post.image_prompt ?? "",
     image_url: post.image_url ?? "",
+    image_provider: post.image_provider ?? null,
+    image_revised_prompt: post.image_revised_prompt ?? null,
+    image_storage_path: post.image_storage_path ?? null,
+    image_storage_mode: post.image_storage_mode ?? null,
     status: post.status ?? "draft",
     scheduled_at: post.scheduled_at ?? null,
     posted_at: post.posted_at ?? null,
@@ -98,6 +102,10 @@ export async function insertRemoteDraft(draft) {
     content: draft.content,
     image_prompt: draft.image_prompt,
     image_url: draft.image_url,
+    image_provider: draft.image_provider || null,
+    image_revised_prompt: draft.image_revised_prompt || null,
+    image_storage_path: draft.image_storage_path || null,
+    image_storage_mode: draft.image_storage_mode || null,
     status: draft.status || "draft",
     scheduled_at: draft.scheduled_at || null,
     created_at: draft.created_at || new Date().toISOString(),
