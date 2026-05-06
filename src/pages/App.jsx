@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Moon, RefreshCw, Sparkles, Sun } from "lucide-react";
 import CreatePage from "./CreatePage.jsx";
 import GuidePage from "./GuidePage.jsx";
@@ -91,21 +91,27 @@ function App() {
   const [schedulerStatus, setSchedulerStatus] = useState(null);
 
   const schedulerLock = useRef(false);
+  const dataLock = useRef(false);
+  const stateRef = useRef({ remotePosts: [], settings: defaultSettings });
+
+  // Sync stateRef with state
+  useEffect(() => {
+    stateRef.current = { remotePosts, settings };
+  }, [remotePosts, settings]);
 
   // 1. Load data once on mount
   useEffect(() => {
-    void loadAllData();
+    void loadAllData(true); // Initial load with spinner
   }, []);
 
-  // 2. Setup scheduler interval (60 seconds)
-  // Separated from loadAllData to prevent infinite loop
+  // 2. Setup scheduler interval (60 seconds) - CREATED ONLY ONCE
   useEffect(() => {
     const interval = setInterval(() => {
       void handleSchedulerTick();
     }, 60000);
 
     return () => clearInterval(interval);
-  }, [remotePosts, settings]);
+  }, []); // Empty dependency array ensures this runs only once
 
   const envSnapshot = getSupabaseEnvSnapshot();
 
@@ -121,50 +127,82 @@ function App() {
     [remotePosts]
   );
 
-  async function loadAllData() {
-    setIsLoading(true);
+  async function loadAllData(showSpinner = false) {
+    if (dataLock.current) return;
+    dataLock.current = true;
+
+    if (showSpinner) setIsLoading(true);
     setConnectionError("");
     setSettingsMessage("");
 
-    const localSettings = getAppSettings();
-    setSettings(localSettings);
-    setLocalDrafts(getLocalDrafts());
+    try {
+      const localSettings = getAppSettings();
+      setLocalDrafts(getLocalDrafts());
 
-    const [postsResult, settingsResult] = await Promise.all([
-      fetchRemotePosts(),
-      fetchRemoteSettings(),
-    ]);
+      const [postsResult, settingsResult] = await Promise.all([
+        fetchRemotePosts(),
+        fetchRemoteSettings(),
+      ]);
 
-    setRemotePosts(postsResult.data);
-    setConnectionMode(postsResult.mode);
+      if (postsResult.data) {
+        setRemotePosts((current) => {
+          if (JSON.stringify(current) === JSON.stringify(postsResult.data)) return current;
+          return postsResult.data;
+        });
+      }
+      
+      if (postsResult.mode) {
+        setConnectionMode(postsResult.mode);
+      }
 
-    if (postsResult.error && postsResult.mode !== "offline") {
-      setConnectionError(postsResult.error.message);
+      if (postsResult.error && postsResult.mode !== "offline") {
+        setConnectionError(postsResult.error.message);
+      }
+
+      if (settingsResult.mode) {
+        setSettingsSyncMode(settingsResult.mode);
+      }
+
+      if (settingsResult.data) {
+        setSettings((current) => {
+          const next = { ...current, ...localSettings, ...settingsResult.data };
+          // Simple comparison of key fields to avoid loop
+          if (
+            current.openaiApiKey === next.openaiApiKey &&
+            current.facebookPageAccessToken === next.facebookPageAccessToken &&
+            current.workspaceName === next.workspaceName
+          ) {
+            return current;
+          }
+          return next;
+        });
+      } else {
+        setSettings(localSettings);
+        if (settingsResult.error && settingsResult.mode !== "offline") {
+          setSettingsMessage(settingsResult.error.message);
+        }
+      }
+    } catch (err) {
+      console.error("Critical error loading data:", err);
+      setConnectionError("Failed to fetch data from server");
+    } finally {
+      setIsLoading(false);
+      dataLock.current = false;
     }
-
-    setSettingsSyncMode(settingsResult.mode);
-
-    if (settingsResult.data) {
-      setSettings((current) => ({ ...current, ...settingsResult.data }));
-    } else if (settingsResult.error && settingsResult.mode !== "offline") {
-      setSettingsMessage(settingsResult.error.message);
-    }
-
-    setIsLoading(false);
   }
 
-  function updateForm(key, value) {
+  const updateForm = useCallback((key, value) => {
     setForm((current) => ({ ...current, [key]: value }));
-  }
+  }, []);
 
-  function resetForm() {
+  const resetForm = useCallback(() => {
     setForm(initialForm);
     setGenerationError("");
-  }
+  }, []);
 
-  function updateSettingsField(key, value) {
+  const updateSettingsField = useCallback((key, value) => {
     setSettings((current) => ({ ...current, [key]: value }));
-  }
+  }, []);
 
   async function handleGenerateContent() {
     if (!form.topic.trim()) {
@@ -305,7 +343,7 @@ function App() {
     setIsSavingSettings(false);
   }
 
-  async function handlePublishPost(postId) {
+  const handlePublishPost = useCallback(async (postId) => {
     const post = remotePosts.find((p) => p.id === postId);
     if (!post) {
       window.alert("ไม่พบโพสต์ที่ต้องการเผยแพร่");
@@ -340,16 +378,20 @@ function App() {
     } else {
       window.alert("เผยแพร่สำเร็จแล้ว แต่ไม่สามารถอัปเดตสถานะในระบบได้");
     }
-  }
+  }, [remotePosts, settings]);
 
   async function handleSchedulerTick() {
     if (schedulerLock.current) return;
-    if (!validateFacebookConfig(settings)) return;
-    if (remotePosts.length === 0) return;
+    
+    // Use state from Ref to ensure we have the latest without re-creating interval
+    const { remotePosts: currentPosts, settings: currentSettings } = stateRef.current;
+
+    if (!validateFacebookConfig(currentSettings)) return;
+    if (!currentPosts || currentPosts.length === 0) return;
 
     schedulerLock.current = true;
     try {
-      const summary = await runSchedulerTick(remotePosts, settings, {
+      const summary = await runSchedulerTick(currentPosts, currentSettings, {
         onPostPublished: (updatedPost) => {
           setRemotePosts((current) =>
             current.map((p) => (p.id === updatedPost.id ? updatedPost : p))
@@ -357,7 +399,8 @@ function App() {
         },
       });
 
-      if (summary.due > 0) {
+      // Only update status if something happened or it's been a while
+      if (summary.due > 0 || summary.published > 0 || summary.failed > 0) {
         setSchedulerStatus((prev) => {
           const hasChanged =
             !prev ||
@@ -365,7 +408,11 @@ function App() {
             prev.published !== summary.published ||
             prev.failed !== summary.failed;
 
-          if (!hasChanged) return prev;
+          if (!hasChanged && prev.lastRun) {
+            // If nothing changed, we still might want to update lastRun occasionally,
+            // but let's be conservative to prevent re-renders.
+            return prev;
+          }
 
           return {
             lastRun: new Date().toISOString(),
@@ -380,10 +427,10 @@ function App() {
     }
   }
 
-  function handleDeleteLocalDraft(id) {
+  const handleDeleteLocalDraft = useCallback((id) => {
     removeLocalDraft(id);
     setLocalDrafts((current) => current.filter((draft) => draft.id !== id));
-  }
+  }, []);
 
   const currentStatus = statusCopy[connectionMode] ?? statusCopy.error;
   const StatusIcon = currentStatus.icon;
@@ -407,7 +454,7 @@ function App() {
       <main className="mx-auto flex max-w-7xl flex-col gap-8 px-6 py-8">
         <StatusCard
           status={currentStatus}
-          onRefresh={() => void loadAllData()}
+          onRefresh={() => void loadAllData(true)}
           errorMessage={connectionError}
         />
 
