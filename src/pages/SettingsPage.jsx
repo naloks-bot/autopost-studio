@@ -43,6 +43,16 @@ function SettingsPage({
         placeholder="เช่น เป็นกันเอง น่าเชื่อถือ ชัดเจน"
       />
 
+      <div className="grid gap-4 md:grid-cols-2">
+        <SettingsField
+          label="AI Provider (openai, xai, mock)"
+          value={settings.aiProvider}
+          onChange={(event) => updateSettingsField("aiProvider", event.target.value)}
+          placeholder="openai"
+        />
+        <div className="hidden md:block"></div>
+      </div>
+
       <SettingsField
         label="หัวข้อแนะนำเริ่มต้น"
         value={settings.defaultTopicHint}
@@ -60,11 +70,23 @@ function SettingsPage({
           secret
         />
         <SettingsField
+          label="OpenAI Model"
+          value={settings.openaiModel}
+          onChange={(event) => updateSettingsField("openaiModel", event.target.value)}
+          placeholder="gpt-4o-mini"
+        />
+        <SettingsField
           label="xAI API Key"
           value={settings.xaiApiKey}
           onChange={(event) => updateSettingsField("xaiApiKey", event.target.value)}
           placeholder="xai-..."
           secret
+        />
+        <SettingsField
+          label="xAI Model"
+          value={settings.xaiModel}
+          onChange={(event) => updateSettingsField("xaiModel", event.target.value)}
+          placeholder="grok-3-mini"
         />
         <SettingsField
           label="Facebook App ID"

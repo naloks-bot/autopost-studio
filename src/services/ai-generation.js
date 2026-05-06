@@ -10,6 +10,12 @@
  * @returns {"openai" | "xai" | "mock"}
  */
 export function getAIProvider(settings) {
+  const preferred = settings?.aiProvider?.toLowerCase();
+  if (preferred === "openai" && settings.openaiApiKey) return "openai";
+  if (preferred === "xai" && settings.xaiApiKey) return "xai";
+  if (preferred === "mock") return "mock";
+
+  // Auto-detection fallback
   if (settings?.openaiApiKey && settings.openaiApiKey.startsWith("sk-")) {
     return "openai";
   }
@@ -47,7 +53,10 @@ export function buildImagePrompt(formData, settings) {
 /**
  * Real OpenAI API call for text generation
  */
-async function generateWithOpenAI(prompt, apiKey) {
+/**
+ * Real OpenAI API call for text generation
+ */
+async function generateWithOpenAI(prompt, apiKey, model = "gpt-4o-mini") {
   if (!apiKey) {
     return {
       data: null,
@@ -64,7 +73,7 @@ async function generateWithOpenAI(prompt, apiKey) {
         Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: "gpt-4o-mini",
+        model: model || "gpt-4o-mini",
         messages: [{ role: "user", content: prompt }],
         temperature: 0.7,
       }),
@@ -108,7 +117,11 @@ async function generateWithOpenAI(prompt, apiKey) {
  * Real xAI (Grok) API call for text generation
  * Compatible with OpenAI-style chat completions endpoint
  */
-async function generateWithXAI(prompt, apiKey) {
+/**
+ * Real xAI (Grok) API call for text generation
+ * Compatible with OpenAI-style chat completions endpoint
+ */
+async function generateWithXAI(prompt, apiKey, model = "grok-3-mini") {
   if (!apiKey) {
     return {
       data: null,
@@ -125,7 +138,7 @@ async function generateWithXAI(prompt, apiKey) {
         Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: "grok-3-mini",
+        model: model || "grok-3-mini",
         messages: [{ role: "user", content: prompt }],
         temperature: 0.7,
       }),
@@ -181,11 +194,11 @@ export async function generatePostContent({ formData, settings }) {
   const prompt = buildContentPrompt(formData, settings);
 
   if (provider === "openai") {
-    return generateWithOpenAI(prompt, settings.openaiApiKey);
+    return generateWithOpenAI(prompt, settings.openaiApiKey, settings.openaiModel);
   }
 
   if (provider === "xai") {
-    return generateWithXAI(prompt, settings.xaiApiKey);
+    return generateWithXAI(prompt, settings.xaiApiKey, settings.xaiModel);
   }
 
   // Fallback to Mock
