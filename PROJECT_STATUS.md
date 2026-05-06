@@ -34,8 +34,9 @@ src
 │   ├─ SettingsPage.jsx
 │   └─ StatusPage.jsx
 ├─ services/
-│   ├─ ai-generation.js (OpenAI / xAI / Mock text dispatcher)
-│   ├─ ai-image-generation.js (OpenAI / Mock image dispatcher)
+│   ├─ ai-generation.js (Text generation dispatcher)
+│   ├─ ai-image-generation.js (Image generation dispatcher)
+│   ├─ facebook.js (Facebook Graph API v23.0 wrapper)
 │   ├─ storage.js (Supabase Storage wrapper)
 │   ├─ app-settings.js  (local settings persistence)
 │   ├─ local-drafts.js  (offline draft handling)
@@ -51,22 +52,18 @@ src
 - **Phase 4 Complete**: Extraction of reusable UI components (`Header`, `StatusCard`, `SectionCard`, `TabButton`, `ActionButton`).
 - **Phase 5 Complete**: Integrated **AI Text Generation** (OpenAI & xAI).
 - **Phase 6A Complete**: Integrated **Image Generation Flow MVP**.
-    - Isolated image generation service (`ai-image-generation.js`) with OpenAI and Mock support.
-    - Real-time image generation connected to `CreatePage` with status feedback.
-    - Improved image preview state with provider info and revised prompts.
-    - Automated upload of generated images to **Supabase Storage** (`generated-images` bucket).
-    - Metadata (URL, storage path, provider) attached to draft data.
-    - Robust fallback: stays on external URL if storage upload fails.
 - **Phase 6B Complete**: Integrated **Supabase Image Metadata Persistence**.
-    - Updated `posts` table schema to store image provider, revised prompt, and storage metadata.
-    - Enabled remote draft insertion with full image metadata support.
-    - Updated Status page to display saved image previews and technical metadata.
+- **Phase 7A Complete**: Integrated **Facebook Publishing Foundation**.
+    - Isolated Facebook service (`facebook.js`) using Graph API v23.0.
+    - Manual publishing flow from the Status page for remote drafts.
+    - Automated status update (`status='posted'`) and `posted_at` timestamping after successful publish.
+    - Facebook configuration validation with visual indicators in Settings.
+    - Supports text-only and image posts (via public URL).
 
 ## Current Known Issues
 - **Supabase RLS**: write operations on the `posts` table are blocked until proper row‑level security policies are added.
 - **Missing tables**: `app_settings` and `posts` may not exist until `supabase-setup.sql` is executed.
 - **Supabase Storage**: Bucket `generated-images` must exist and be public (or have correct RLS policies) for mirroring to work.
-- **Facebook integration** is not yet implemented – only placeholders exist in the UI.
 - Offline mode stores drafts locally but does not sync automatically when connectivity is restored.
 - No TypeScript typing; linting rules are minimal.
 
@@ -78,17 +75,17 @@ src
 5. Respect the project’s incremental refactor approach: small, isolated changes.
 
 ## Current Phase
-**Phase 6B Complete: Supabase Image Metadata Persistence** – The app now fully persists AI-generated images and their technical metadata to Supabase.
+**Phase 7A Complete: Facebook Publishing Foundation** – The app can now manually publish drafted content (text and images) directly to Facebook Pages.
 
-## Recommended Next Phase
-1. **Phase 7: Facebook Posting Flow** – Add `services/facebook.js` wrapper around Graph API to publish posts.
-2. **Scheduler Integration** – implement client-side or edge-function based publishing.
-3. **Scheduler Integration** – implement client-side or edge-function based publishing.
+## Next Phase
+1. **Phase 7B: Scheduler & Automation** – Automated publishing for scheduled drafts.
+2. **Phase 8: Multi-Account & Analytics** – Support for multiple pages and performance tracking.
+3. **TypeScript Migration** – introduce TS for better maintainability.
 
 ## Current Pages / Components / Services / Constants Summary
 - **Pages**: `App.jsx`, `CreatePage.jsx`, `GuidePage.jsx`, `SettingsPage.jsx`, `StatusPage.jsx`.
 - **Components**: `Header`, `StatusCard`, `SectionCard`, `TabButton`, `ActionButton`.
-- **Services**: `ai-generation.js`, `ai-image-generation.js`, `storage.js`, `app-settings.js`, `local-drafts.js`, `supabase.js`.
+- **Services**: `ai-generation.js`, `ai-image-generation.js`, `facebook.js`, `storage.js`, `app-settings.js`, `local-drafts.js`, `supabase.js`.
 - **Constants**: `appConstants.js` – contains tabs, guide sections, default form values, status copy strings.
 
 ---

@@ -1,7 +1,8 @@
-import { CheckCircle2, KeyRound, RefreshCw } from "lucide-react";
+import { AlertCircle, CheckCircle2, KeyRound } from "lucide-react";
 import StatusCard from "../components/StatusCard.jsx";
 import SectionCard from "../components/SectionCard.jsx";
 import ActionButton from "../components/ActionButton.jsx";
+import { validateFacebookConfig } from "../services/facebook.js";
 
 function SettingsPage({
   currentSettingsStatus,
@@ -14,6 +15,8 @@ function SettingsPage({
   handleSaveSettings,
   isSavingSettings,
 }) {
+  const isFbConfigured = validateFacebookConfig(settings);
+
   return (
     <div className="space-y-6">
       <StatusCard
@@ -114,6 +117,24 @@ function SettingsPage({
           placeholder="EAAG..."
           secret
         />
+      </div>
+
+      <div className={`rounded-xl border p-4 ${isFbConfigured ? 'border-emerald-500/20 bg-emerald-500/5' : 'border-amber-500/20 bg-amber-500/5'}`}>
+        <div className="flex items-center gap-3">
+          {isFbConfigured ? (
+            <CheckCircle2 className="h-5 w-5 text-emerald-400" />
+          ) : (
+            <AlertCircle className="h-5 w-5 text-amber-400" />
+          )}
+          <div>
+            <p className={`text-sm font-medium ${isFbConfigured ? 'text-emerald-400' : 'text-amber-400'}`}>
+              {isFbConfigured ? 'Facebook ตั้งค่าครบแล้ว' : 'Facebook ยังตั้งค่าไม่ครบ'}
+            </p>
+            <p className="text-xs text-slate-500">
+              {isFbConfigured ? 'พร้อมสำหรับการโพสต์ลง Page' : 'กรุณากรอก Page ID และ Access Token เพื่อใช้งานการโพสต์'}
+            </p>
+          </div>
+        </div>
       </div>
 
       <SectionCard noPadding className="p-5">

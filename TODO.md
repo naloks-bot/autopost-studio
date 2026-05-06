@@ -10,29 +10,22 @@
 - Basic Supabase schema (`supabase-setup.sql`) and RLS policies for development.
 - Graceful offline/read‑only handling when Supabase is unavailable.
 - **Phase 4**: Extraction of reusable UI components (`Header`, `StatusCard`, `SectionCard`, `TabButton`, `ActionButton`).
-- **Phase 5**: AI Text Generation Integration.
-    - Isolated service `ai-generation.js`.
-    - OpenAI and xAI real API fetch implementations.
-    - Hybrid mock/real dispatcher with provider routing.
-    - Form validation and error state handling in `CreatePage`.
+- **Phase 5**: AI Text Generation Integration (OpenAI & xAI).
 - **Phase 6A**: Image Generation Flow MVP.
-    - New `ai-image-generation.js` service (OpenAI Images API).
-    - New `storage.js` service for Supabase Storage integration.
-    - Real-time generation and preview UI in `CreatePage`.
-    - Automated mirror-upload to `generated-images` bucket.
-    - Improved image preview state with provider and revised prompt info.
 - **Phase 6B**: Supabase Image Metadata Persistence.
-    - Updated `posts` table schema with new image metadata columns.
-    - Enabled remote draft sync for full image metadata.
-    - Updated Status page to display saved image previews and technical details.
+- **Phase 7A**: Facebook Publishing Foundation.
+    - Isolated `facebook.js` service layer (Graph API v23.0).
+    - Manual publish action in StatusPage for remote drafts.
+    - Post-publish status updates (`posted`, `posted_at`) in Supabase.
+    - Facebook config validation and visual UI indicators in Settings.
 
 ## In Progress
-- UI polish for the dashboard layout (split‑screen, scrollable sections) – see recent UI optimizations.
+- UI polish for the dashboard layout (split‑screen, scrollable sections).
 - Ongoing refactoring of constants and service abstractions.
 
 ## Next Phase
-1. **Phase 7: Facebook Posting Flow** – Add `services/facebook.js` wrapper around Graph API to publish posts.
-2. **Scheduler Integration** – implement client-side or edge-function based publishing.
+1. **Phase 7B: Scheduler & Automation** – Automated publishing for scheduled drafts using client-side polling or Edge Functions.
+2. **Phase 8: Multi-Account & Analytics** – Support for multiple Facebook pages and performance tracking.
 3. **TypeScript Migration** – introduce TS for better maintainability.
 
 ## Future Features
@@ -40,23 +33,19 @@
 - Post analytics dashboard (impressions, engagements via Facebook Insights).
 - Bulk draft import/export (CSV/JSON).
 - Internationalization (i18n) for Thai and English UI.
-- Role‑based access control for team collaboration.
 
 ## Technical Debt
 - No TypeScript typings – all files are plain JavaScript.
-- Empty `src/components/` and `src/hooks/` directories – placeholders need actual utilities.
-- Minimal unit test coverage – only manual testing performed.
-- Direct inline styles mixed with Tailwind utilities in some components.
+- Empty `src/components/` and `src/hooks/` directories.
+- Minimal unit test coverage.
 - Environment variables are read from `.env` but not validated at runtime.
 
 ## Bugs / Known Issues
 - **Supabase RLS**: write operations on `posts` are blocked until proper policies are applied.
 - **Missing tables**: `app_settings` and `posts` may not exist until `supabase-setup.sql` is run.
 - **Supabase Storage**: Bucket `generated-images` must exist and be public (or have correct RLS policies) for mirroring to work.
-- **Facebook integration** is currently only UI placeholders – no actual posting.
 - Offline drafts are not automatically synced when connectivity is restored.
 - Dark mode gradient background may cause performance issues on low‑end devices.
-- Some UI text strings are hard‑coded in Thai only.
 
 ---
 *Generated on 2026‑05‑06*

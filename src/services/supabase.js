@@ -132,6 +132,42 @@ export async function insertRemoteDraft(draft) {
   };
 }
 
+export async function updateRemotePostStatus(postId, status, extraData = {}) {
+  if (!supabase) {
+    return {
+      data: null,
+      error: new Error("Missing Supabase environment variables."),
+      mode: "offline",
+    };
+  }
+
+  const payload = {
+    status,
+    ...extraData,
+  };
+
+  const { data, error } = await supabase
+    .from("posts")
+    .update(payload)
+    .eq("id", postId)
+    .select(POSTS_SELECT)
+    .single();
+
+  if (error) {
+    return {
+      data: null,
+      error,
+      mode: classifySupabaseError(error),
+    };
+  }
+
+  return {
+    data: normalizePost({ ...data, source: "remote" }),
+    error: null,
+    mode: "connected",
+  };
+}
+
 export function normalizeSettings(record) {
   return {
     workspaceName: record.workspace_name ?? "",

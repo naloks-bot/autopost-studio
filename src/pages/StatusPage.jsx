@@ -1,6 +1,7 @@
-import { Trash2 } from "lucide-react";
+import { Facebook, Globe, Send, Trash2 } from "lucide-react";
 import SectionCard from "../components/SectionCard.jsx";
 import ActionButton from "../components/ActionButton.jsx";
+import { validateFacebookConfig } from "../services/facebook.js";
 
 function StatusPage({
   allPendingPosts,
@@ -8,7 +9,10 @@ function StatusPage({
   localDrafts,
   formatDate,
   handleDeleteLocalDraft,
+  handlePublishPost,
+  settings,
 }) {
+  const isFbConfigured = validateFacebookConfig(settings);
   return (
     <div className="space-y-6">
       <SectionCard noPadding className="p-5">
@@ -95,6 +99,22 @@ function StatusPage({
                     onClick={() => handleDeleteLocalDraft(post.id)}
                     variant="danger"
                   />
+                )}
+                {post.source === "remote" && post.status === "draft" && (
+                  <div className="flex flex-col gap-2">
+                    <ActionButton
+                      label="โพสต์ลง Facebook"
+                      icon={Send}
+                      onClick={() => handlePublishPost(post.id)}
+                      variant="emerald"
+                      disabled={!isFbConfigured}
+                    />
+                    {!isFbConfigured && (
+                      <p className="text-right text-[10px] text-rose-400">
+                        ยังไม่ได้ตั้งค่า Facebook
+                      </p>
+                    )}
+                  </div>
                 )}
               </div>
             </article>

@@ -20,6 +20,8 @@ import StatusCard from "../components/StatusCard.jsx";
 import SectionCard from "../components/SectionCard.jsx";
 import TabButton from "../components/TabButton.jsx";
 import { generateImagePrompt, generatePostContent } from "../services/ai-generation.js";
+import { publishFacebookPost, validateFacebookConfig } from "../services/facebook.js";
+import { updateRemotePostStatus } from "../services/supabase.js";
 
 function formatDate(value) {
   if (!value) return "-";
@@ -288,6 +290,43 @@ function App() {
     setIsSavingSettings(false);
   }
 
+  async function handlePublishPost(postId) {
+    const post = remotePosts.find((p) => p.id === postId);
+    if (!post) {
+      window.alert("ไม่พบโพสต์ที่ต้องการเผยแพร่");
+      return;
+    }
+
+    if (!validateFacebookConfig(settings)) {
+      window.alert("กรุณาตั้งค่า Facebook Page ID และ Access Token ก่อน");
+      return;
+    }
+
+    const confirm = window.confirm(`ยืนยันการโพสต์ "${post.topic}" ลง Facebook?`);
+    if (!confirm) return;
+
+    const result = await publishFacebookPost(post, settings);
+
+    if (result.error) {
+      window.alert(`เผยแพร่ไม่สำเร็จ: ${result.error}`);
+      return;
+    }
+
+    // Update status in Supabase
+    const update = await updateRemotePostStatus(postId, "posted", {
+      posted_at: new Date().toISOString(),
+    });
+
+    if (update.data) {
+      setRemotePosts((current) =>
+        current.map((p) => (p.id === postId ? update.data : p))
+      );
+      window.alert("เผยแพร่ลง Facebook สำเร็จ!");
+    } else {
+      window.alert("เผยแพร่สำเร็จแล้ว แต่ไม่สามารถอัปเดตสถานะในระบบได้");
+    }
+  }
+
   function handleDeleteLocalDraft(id) {
     removeLocalDraft(id);
     setLocalDrafts((current) => current.filter((draft) => draft.id !== id));
@@ -372,6 +411,8 @@ function App() {
                 localDrafts={localDrafts}
                 formatDate={formatDate}
                 handleDeleteLocalDraft={handleDeleteLocalDraft}
+                handlePublishPost={handlePublishPost}
+                settings={settings}
               />
             )}
 
