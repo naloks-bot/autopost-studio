@@ -66,6 +66,11 @@ src
     - Improved error messaging for common Facebook and Supabase Storage failures.
     - Verified cross-mode stability (online, offline, missing config).
     - Established a manual QA checklist for ongoing verification.
+- **Phase 8.5 Complete**: **Production Deployment Preparation**.
+    - Created `README.md` and `.env.example` with full setup guides.
+    - Added `APP_VERSION` and `BUILD_TIME` tracking.
+    - Verified `.gitignore` and secret safety.
+    - Established a comprehensive Deployment Checklist.
 
 ## Current Known Issues
 - **Supabase RLS**: write operations on the `posts` table are blocked until proper row‑level security policies are added.
@@ -102,3 +107,11 @@ src
 - [x] **Manual Publish**: Immediate posting to Facebook Page works.
 - [x] **Scheduled Publish**: Background automation works while the tab is open.
 - [x] **Error Handling**: Graceful warnings for missing config or network failure.
+
+## Deployment Checklist (Production Ready)
+- [ ] **Supabase**: Create project and run `supabase-setup.sql`.
+- [ ] **Storage**: Create `generated-images` bucket (Public/RLS allowed).
+- [ ] **Facebook**: Configure App ID/Secret and Page Access Token.
+- [ ] **Vercel**: Set `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`.
+- [ ] **Build**: Run `npm run build` and verify output.
+- [ ] **Verify**: Confirm end-to-end flow on production URL.

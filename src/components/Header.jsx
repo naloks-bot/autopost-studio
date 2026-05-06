@@ -1,5 +1,6 @@
 import React from "react";
 import { Moon, Sparkles, Sun } from "lucide-react";
+import { APP_VERSION, BUILD_TIME } from "../constants/appConstants.js";
 
 function Header({ workspaceName, isDark, onToggleTheme }) {
   return (
@@ -10,9 +11,14 @@ function Header({ workspaceName, isDark, onToggleTheme }) {
             <Sparkles className="h-6 w-6" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">{workspaceName}</h1>
+            <div className="flex items-center gap-2">
+              <h1 className="text-3xl font-bold tracking-tight">{workspaceName}</h1>
+              <span className="rounded-full bg-white/5 px-2 py-0.5 text-[10px] text-slate-500 border border-white/5">
+                v{APP_VERSION}
+              </span>
+            </div>
             <p className="text-sm text-slate-300/80">
-              จัดการคอนเทนต์และการตั้งค่าสำหรับเว็บแอปก่อน แล้วค่อย sync ไป Supabase
+              {import.meta.env.DEV ? `Dev Build: ${new Date(BUILD_TIME).toLocaleTimeString()}` : "จัดการคอนเทนต์และการตั้งค่า AI พร้อมระบบ Sync อัตโนมัติ"}
             </p>
           </div>
         </div>

@@ -114,3 +114,6 @@ export const appTabs = [
   { id: "status", label: "สถานะงาน", icon: Database },
   { id: "guide", label: "คู่มือ", icon: BookOpen },
 ];
+
+export const APP_VERSION = "0.1.0-mvp";
+export const BUILD_TIME = new Date().toISOString();

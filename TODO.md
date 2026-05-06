@@ -11,9 +11,10 @@
 - Facebook Publishing Foundation (Immediate & Scheduled).
 - Client-Side Scheduler (60s background polling).
 - **Phase 8**: Production Hardening & QA Pass.
-    - Centralized logging (`logger.js`).
-    - Error handling improvements.
-    - Verified cross-mode stability.
+- **Phase 8.5**: Production Deployment Preparation.
+    - README and environment documentation.
+    - Versioning and build metadata.
+    - Deployment checklist.
 
 ## In Progress
 - Final UI polish for dashboard layout.
