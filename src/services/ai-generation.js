@@ -47,10 +47,10 @@ export async function generatePostContent({ formData, settings }) {
   const prompt = buildContentPrompt(formData, settings);
   console.log("Mocking content generation with prompt:", prompt);
 
-  if (!formData.topic) {
+  if (!formData?.topic || formData.topic.trim().length < 5) {
     return {
       data: null,
-      error: "Topic is required to generate content",
+      error: "กรุณาใส่หัวข้อโพสต์อย่างน้อย 5 ตัวอักษร เพื่อให้ AI มีข้อมูลเพียงพอในการสร้างเนื้อหา",
       mode: "mock",
     };
   }
@@ -76,10 +76,10 @@ export async function generateImagePrompt({ formData, settings }) {
   const prompt = buildImagePrompt(formData, settings);
   console.log("Mocking image prompt generation with prompt:", prompt);
 
-  if (!formData.topic) {
+  if (!formData?.topic || formData.topic.trim().length < 5) {
     return {
       data: null,
-      error: "Topic is required to generate image prompt",
+      error: "กรุณาใส่หัวข้อโพสต์อย่างน้อย 5 ตัวอักษร ก่อนสร้าง Prompt รูป",
       mode: "mock",
     };
   }

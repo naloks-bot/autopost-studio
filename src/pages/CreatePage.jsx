@@ -14,9 +14,15 @@ function CreatePage({
   isGeneratingImagePrompt,
   isGeneratingImage,
   isSavingDraft,
+  generationError,
 }) {
   return (
     <div className="space-y-6">
+      {generationError && (
+        <div className="rounded-2xl border border-rose-400/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
+          {generationError}
+        </div>
+      )}
       <div>
         <label className="mb-2 block text-sm text-slate-300">หัวข้อโพสต์</label>
         <textarea

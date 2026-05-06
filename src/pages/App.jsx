@@ -84,6 +84,7 @@ function App() {
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
   const [isSavingDraft, setIsSavingDraft] = useState(false);
   const [isSavingSettings, setIsSavingSettings] = useState(false);
+  const [generationError, setGenerationError] = useState("");
 
   useEffect(() => {
     void loadAllData();
@@ -141,6 +142,7 @@ function App() {
 
   function resetForm() {
     setForm(initialForm);
+    setGenerationError("");
   }
 
   function updateSettingsField(key, value) {
@@ -154,6 +156,7 @@ function App() {
     }
 
     setIsGenerating(true);
+    setGenerationError("");
 
     const result = await generatePostContent({ formData: form, settings });
 
@@ -161,6 +164,7 @@ function App() {
       updateForm("content", result.data);
     } else if (result.error) {
       console.error("Content generation error:", result.error);
+      setGenerationError(result.error);
     }
 
     setIsGenerating(false);
@@ -173,6 +177,7 @@ function App() {
     }
 
     setIsGeneratingImagePrompt(true);
+    setGenerationError("");
 
     const result = await generateImagePrompt({ formData: form, settings });
 
@@ -180,6 +185,7 @@ function App() {
       updateForm("imagePrompt", result.data);
     } else if (result.error) {
       console.error("Image prompt generation error:", result.error);
+      setGenerationError(result.error);
     }
 
     setIsGeneratingImagePrompt(false);
@@ -337,6 +343,7 @@ function App() {
                 isGeneratingImagePrompt={isGeneratingImagePrompt}
                 isGeneratingImage={isGeneratingImage}
                 isSavingDraft={isSavingDraft}
+                generationError={generationError}
               />
             )}
 
