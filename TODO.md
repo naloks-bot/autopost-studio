@@ -14,18 +14,18 @@
 - **Phase 6A**: Image Generation Flow MVP.
 - **Phase 6B**: Supabase Image Metadata Persistence.
 - **Phase 7A**: Facebook Publishing Foundation.
-    - Isolated `facebook.js` service layer (Graph API v23.0).
-    - Manual publish action in StatusPage for remote drafts.
-    - Post-publish status updates (`posted`, `posted_at`) in Supabase.
-    - Facebook config validation and visual UI indicators in Settings.
+- **Phase 7B**: Scheduler & Automation Foundation.
+    - Background polling logic (60s intervals) in `App.jsx`.
+    - Automatic publication of due scheduled drafts via `scheduler.js`.
+    - Enhanced StatusPage with scheduler summary and timestamps.
 
 ## In Progress
 - UI polish for the dashboard layout (split‑screen, scrollable sections).
 - Ongoing refactoring of constants and service abstractions.
 
 ## Next Phase
-1. **Phase 7B: Scheduler & Automation** – Automated publishing for scheduled drafts using client-side polling or Edge Functions.
-2. **Phase 8: Multi-Account & Analytics** – Support for multiple Facebook pages and performance tracking.
+1. **Phase 8: Multi-Account & Analytics** – Support for multiple Facebook pages and basic post performance tracking.
+2. **Phase 9: Supabase Edge Scheduler** – 24/7 automation via Edge Functions.
 3. **TypeScript Migration** – introduce TS for better maintainability.
 
 ## Future Features
@@ -44,8 +44,8 @@
 - **Supabase RLS**: write operations on `posts` are blocked until proper policies are applied.
 - **Missing tables**: `app_settings` and `posts` may not exist until `supabase-setup.sql` is run.
 - **Supabase Storage**: Bucket `generated-images` must exist and be public (or have correct RLS policies) for mirroring to work.
+- **Client-Side Scheduler**: Automation only works while the browser tab is open and active.
 - Offline drafts are not automatically synced when connectivity is restored.
-- Dark mode gradient background may cause performance issues on low‑end devices.
 
 ---
 *Generated on 2026‑05‑06*

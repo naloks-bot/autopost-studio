@@ -1,4 +1,4 @@
-import { Facebook, Globe, Send, Trash2 } from "lucide-react";
+import { Calendar, Clock, Facebook, Globe, Send, Trash2 } from "lucide-react";
 import SectionCard from "../components/SectionCard.jsx";
 import ActionButton from "../components/ActionButton.jsx";
 import { validateFacebookConfig } from "../services/facebook.js";
@@ -11,6 +11,7 @@ function StatusPage({
   handleDeleteLocalDraft,
   handlePublishPost,
   settings,
+  schedulerStatus,
 }) {
   const isFbConfigured = validateFacebookConfig(settings);
   return (
@@ -33,6 +34,16 @@ function StatusPage({
             <p className="mt-2 text-3xl font-bold">{localDrafts.length}</p>
           </article>
         </div>
+
+        {schedulerStatus && (
+          <div className="mt-4 flex items-center gap-3 rounded-xl border border-cyan-500/20 bg-cyan-500/5 p-3 text-xs text-cyan-400">
+            <Clock className="h-4 w-4" />
+            <span>
+              ตัวช่วยโพสต์อัตโนมัติทำงานล่าสุดเมื่อ {formatDate(schedulerStatus.lastRun)}: 
+              สำเร็จ {schedulerStatus.published}, ล้มเหลว {schedulerStatus.failed}
+            </span>
+          </div>
+        )}
       </SectionCard>
 
       <div className="space-y-4">
@@ -88,9 +99,24 @@ function StatusPage({
                     </div>
                   )}
 
-                  <p className="mt-3 text-xs text-slate-500">
-                    สร้างเมื่อ {formatDate(post.created_at)}
-                  </p>
+                  <div className="mt-3 flex flex-wrap gap-3">
+                    <p className="flex items-center gap-1 text-xs text-slate-500">
+                      <Calendar className="h-3 w-3" />
+                      สร้างเมื่อ {formatDate(post.created_at)}
+                    </p>
+                    {post.scheduled_at && post.status === "scheduled" && (
+                      <p className="flex items-center gap-1 text-xs text-amber-400">
+                        <Clock className="h-3 w-3" />
+                        กำหนดโพสต์ {formatDate(post.scheduled_at)}
+                      </p>
+                    )}
+                    {post.posted_at && (
+                      <p className="flex items-center gap-1 text-xs text-emerald-400">
+                        <Globe className="h-3 w-3" />
+                        โพสต์แล้วเมื่อ {formatDate(post.posted_at)}
+                      </p>
+                    )}
+                  </div>
                 </div>
                 {post.source === "local" && (
                   <ActionButton

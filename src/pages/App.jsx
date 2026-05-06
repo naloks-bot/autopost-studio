@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Moon, RefreshCw, Sparkles, Sun } from "lucide-react";
 import CreatePage from "./CreatePage.jsx";
 import GuidePage from "./GuidePage.jsx";
@@ -22,6 +22,7 @@ import TabButton from "../components/TabButton.jsx";
 import { generateImagePrompt, generatePostContent } from "../services/ai-generation.js";
 import { publishFacebookPost, validateFacebookConfig } from "../services/facebook.js";
 import { updateRemotePostStatus } from "../services/supabase.js";
+import { runSchedulerTick } from "../services/scheduler.js";
 
 function formatDate(value) {
   if (!value) return "-";
@@ -87,10 +88,20 @@ function App() {
   const [isSavingDraft, setIsSavingDraft] = useState(false);
   const [isSavingSettings, setIsSavingSettings] = useState(false);
   const [generationError, setGenerationError] = useState("");
+  const [schedulerStatus, setSchedulerStatus] = useState(null);
+
+  const schedulerLock = useRef(false);
 
   useEffect(() => {
     void loadAllData();
-  }, []);
+
+    // Scheduler Interval (60 seconds)
+    const interval = setInterval(() => {
+      void handleSchedulerTick();
+    }, 60000);
+
+    return () => clearInterval(interval);
+  }, [remotePosts, settings]);
 
   const envSnapshot = getSupabaseEnvSnapshot();
 
@@ -327,6 +338,34 @@ function App() {
     }
   }
 
+  async function handleSchedulerTick() {
+    if (schedulerLock.current) return;
+    if (!validateFacebookConfig(settings)) return;
+    if (remotePosts.length === 0) return;
+
+    schedulerLock.current = true;
+    try {
+      const summary = await runSchedulerTick(remotePosts, settings, {
+        onPostPublished: (updatedPost) => {
+          setRemotePosts((current) =>
+            current.map((p) => (p.id === updatedPost.id ? updatedPost : p))
+          );
+        },
+      });
+
+      if (summary.due > 0) {
+        setSchedulerStatus({
+          lastRun: new Date().toISOString(),
+          ...summary
+        });
+      }
+    } catch (err) {
+      console.error("Scheduler tick error:", err);
+    } finally {
+      schedulerLock.current = false;
+    }
+  }
+
   function handleDeleteLocalDraft(id) {
     removeLocalDraft(id);
     setLocalDrafts((current) => current.filter((draft) => draft.id !== id));
@@ -413,6 +452,7 @@ function App() {
                 handleDeleteLocalDraft={handleDeleteLocalDraft}
                 handlePublishPost={handlePublishPost}
                 settings={settings}
+                schedulerStatus={schedulerStatus}
               />
             )}
 
