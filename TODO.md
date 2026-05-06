@@ -10,16 +10,16 @@
 - Image Generation Flow (DALL-E + Supabase Storage Mirroring).
 - Facebook Publishing Foundation (Immediate & Scheduled).
 - Client-Side Scheduler (60s background polling).
-- **Phase 9C**: Full Edge Scheduler Publish Execution.
-    - Extended Edge Function with Facebook Graph API integration.
-    - Implemented identify -> publish -> update status cycle.
-    - Per-post error handling and summary results.
+- **Phase 9D**: Cron Trigger & Edge Function Verification.
+    - Added `.github/workflows/process-scheduled-posts.yml`.
+    - Added `deno.json` and `import_map.json` for editor support.
+    - Updated `README.md` with full Production Scheduler Setup guide.
 
 ## In Progress
-- Phase 9D: Edge Function wiring (Cron trigger setup).
+- Production environment verification (secrets setup).
 
 ## Next Phase Candidates
-1. **Phase 9D: GitHub Action Cron** – Setup the external trigger to call the Edge Function.
+1. **Phase 10: Multi-Account Support** – Manage multiple Facebook pages.
 2. **Facebook Live Token Setup & App Review** – Transition from developer/mock mode.
 3. **UX Polish / Content Workflow** – Advanced text editing and multi-image post support.
 4. **Auth / Multi-User Support** – Secure team access and role management.

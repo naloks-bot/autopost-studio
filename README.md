@@ -91,9 +91,34 @@ To enable publishing, you need a Facebook Developer account and a configured App
 
 ---
 
+## 🕒 Production Scheduler (24/7 Automation)
+
+AutoPost Studio includes a Supabase Edge Function to process scheduled posts even when the browser is closed.
+
+1. **Deploy Edge Function**:
+   Use the Supabase CLI to deploy the function:
+   ```bash
+   supabase functions deploy process-scheduled-posts
+   ```
+2. **Set Supabase Secrets**:
+   Configure the required secrets in the Supabase dashboard or via CLI:
+   - `CRON_SECRET`: A long random string to secure the endpoint.
+   - `SUPABASE_URL`: Your project URL.
+   - `SUPABASE_SERVICE_ROLE_KEY`: Your service role key (found in API settings).
+3. **Configure GitHub Actions**:
+   In your GitHub Repository, go to **Settings -> Secrets and variables -> Actions** and add:
+   - `SUPABASE_FUNCTION_URL`: The URL of your deployed Edge Function.
+   - `CRON_SECRET`: The same secret you set in Supabase.
+
+The GitHub Action is configured to trigger every **30 minutes**. You can also trigger it manually from the "Actions" tab in your repository.
+
+---
+
 ## ⚠️ Important Limitations
 
-- **Client-Side Scheduler**: The automated publishing logic runs in the browser. You must keep the AutoPost Studio tab open and active for scheduled posts to trigger automatically. For 24/7 automation, consider upgrading to server-side Edge Functions.
+- **Browser-Side Scheduler**: By default, automation runs in the browser. You must keep the tab open for it to trigger.
+- **Server-Side Scheduler**: Once the Edge Function and GitHub Action are configured, automation works 24/7.
+- **Mock Mode**: Ensure `facebookPublishMode` is set to `live` in your App Settings to post real content.
 
 ---
 
