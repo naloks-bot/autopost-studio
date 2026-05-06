@@ -45,18 +45,63 @@ export function buildImagePrompt(formData, settings) {
 }
 
 /**
- * Placeholder for OpenAI API call
- * TODO: Implement real fetch in Checkpoint 5.5
+ * Real OpenAI API call for text generation
  */
 async function generateWithOpenAI(prompt, apiKey) {
-  console.log("OpenAI Provider: (Placeholder) Waiting for real integration");
-  // Simulate delay
-  await new Promise((resolve) => setTimeout(resolve, 1500));
-  return {
-    data: `[OpenAI Mock] นี่คือเนื้อหาที่จำลองว่าสร้างจาก OpenAI สำหรับหัวข้อ: ${prompt.slice(0, 50)}...`,
-    error: null,
-    mode: "openai",
-  };
+  if (!apiKey) {
+    return {
+      data: null,
+      error: "ไม่พบ OpenAI API Key ในการตั้งค่า",
+      mode: "openai",
+    };
+  }
+
+  try {
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: "gpt-4o-mini",
+        messages: [{ role: "user", content: prompt }],
+        temperature: 0.7,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      return {
+        data: null,
+        error: errorData.error?.message || `OpenAI API Error: ${response.status}`,
+        mode: "openai",
+      };
+    }
+
+    const result = await response.json();
+    const content = result.choices?.[0]?.message?.content;
+
+    if (!content) {
+      return {
+        data: null,
+        error: "OpenAI ไม่ได้ส่งเนื้อหากลับมาในรูปแบบที่ถูกต้อง",
+        mode: "openai",
+      };
+    }
+
+    return {
+      data: content.trim(),
+      error: null,
+      mode: "openai",
+    };
+  } catch (error) {
+    return {
+      data: null,
+      error: `เครือข่ายขัดข้อง: ${error.message}`,
+      mode: "openai",
+    };
+  }
 }
 
 /**
@@ -123,10 +168,14 @@ export async function generateImagePrompt({ formData, settings }) {
   const provider = getAIProvider(settings);
   const prompt = buildImagePrompt(formData, settings);
 
-  // For now, we use the same placeholders for image prompt text generation
+  // For now, we keep image prompt generation mock to save tokens as requested
   if (provider === "openai") {
-    const result = await generateWithOpenAI(prompt, settings.openaiApiKey);
-    return { ...result, data: `[OpenAI Image Prompt] ${formData.topic}, high quality visual.` };
+    await new Promise((resolve) => setTimeout(resolve, 800));
+    return {
+      data: `[Mock OpenAI Image Prompt] ${formData.topic}, high quality visual.`,
+      error: null,
+      mode: "openai",
+    };
   }
 
   if (provider === "xai") {
