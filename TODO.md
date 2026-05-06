@@ -10,17 +10,17 @@
 - Image Generation Flow (DALL-E + Supabase Storage Mirroring).
 - Facebook Publishing Foundation (Immediate & Scheduled).
 - Client-Side Scheduler (60s background polling).
-- **Phase 8.6**: Production Safety Controls & Docs Wrap-up.
-    - `facebookPublishMode` and `schedulerEnabled` switches.
-    - Critical memory leak hotfix.
-    - Updated ARCHITECTURE, PROJECT_STATUS, and TODO.
+- **Phase 9A**: Server-Side Scheduler Foundation.
+    - Decoupled `publish-processor.js` for cloud-readiness.
+    - Lightweight `scheduler.js` wrapper.
+    - Added in-memory execution locking.
 
 ## In Progress
-- *Stabilization and Monitoring.*
+- Phase 9B: Supabase Edge Function implementation.
 
 ## Next Phase Candidates
-1. **Facebook Live Token Setup & App Review** – Transition from developer/mock mode to production permissions.
-2. **Supabase Edge Scheduler** – Server-side cron jobs for 24/7 reliability (remove client-side dependency).
+1. **Phase 9B: Supabase Edge Function** – Actually migrate the polling to the server.
+2. **Facebook Live Token Setup & App Review** – Transition from developer/mock mode.
 3. **UX Polish / Content Workflow** – Advanced text editing and multi-image post support.
 4. **Auth / Multi-User Support** – Secure team access and role management.
 

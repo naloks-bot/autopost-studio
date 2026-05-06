@@ -66,16 +66,15 @@ src
     - Improved error messaging for common Facebook and Supabase Storage failures.
     - Verified cross-mode stability (online, offline, missing config).
     - Established a manual QA checklist for ongoing verification.
-- **Phase 8.6 Complete**: **Production Safety Controls & Docs Wrap-up**.
-    - Introduced `facebookPublishMode` ("mock" | "live") to prevent accidental real posts.
-    - Introduced `schedulerEnabled` switch to control background automation.
-    - Stabilized `App.jsx` scheduler and fetch loops to eliminate critical memory leaks.
-    - Standardized state update patterns to prevent infinite re-render cycles.
-    - Conducted final documentation pass to prepare for hand-off.
+- **Phase 9A Complete**: **Server-Side Scheduler Foundation**.
+    - Extracted `publish-processor.js` to decouple publishing logic from React.
+    - Standardized the "Due Post" detection and execution flow.
+    - Added in-memory locking to prevent concurrent processing.
+    - Prepared the service layer for Supabase Edge Function integration.
 
 ## Current Known Issues
 - **Supabase RLS**: write operations on the `posts` table are blocked until proper row‑level security policies are added. (Partially addressed in `supabase-setup.sql`).
-- **Client-Side Scheduler**: Automation only runs while the browser tab is open and active.
+- **Client-Side Scheduler**: Automation only runs while the browser tab is open and active. (Phase 9 objective is to resolve this).
 - Offline mode stores drafts locally but does not sync automatically when connectivity is restored.
 
 ## Current Coding Rules for AI Assistants
@@ -85,7 +84,7 @@ src
 4. Keep new code consistent with the existing ES module style.
 
 ## Current Phase
-**Phase 8.6 Complete: Production MVP deployed with safety controls** – The app is now fully production-ready, safe, and stable.
+**Phase 9A Complete: Server-Side Scheduler Foundation** – Reusable processing logic is now ready for cloud migration.
 
 ## Recommended Next Phase
 1. **Facebook Live Token Setup & App Review** – Transition from developer tokens to production-grade permissions.
