@@ -355,8 +355,10 @@ function App() {
       return;
     }
 
-    const confirm = window.confirm(`ยืนยันการโพสต์ "${post.topic}" ลง Facebook?`);
-    if (!confirm) return;
+    if (settings.facebookPublishMode === "live") {
+      const confirm = window.confirm(`ยืนยันการโพสต์ "${post.topic}" ลง Facebook จริง? (โหมด LIVE)`);
+      if (!confirm) return;
+    }
 
     const result = await publishFacebookPost(post, settings);
 
@@ -386,6 +388,7 @@ function App() {
     // Use state from Ref to ensure we have the latest without re-creating interval
     const { remotePosts: currentPosts, settings: currentSettings } = stateRef.current;
 
+    if (!currentSettings.schedulerEnabled) return;
     if (!validateFacebookConfig(currentSettings)) return;
     if (!currentPosts || currentPosts.length === 0) return;
 

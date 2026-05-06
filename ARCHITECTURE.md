@@ -48,10 +48,23 @@ src/
 └─ index.css / main.jsx
 ```
 
+## Production Safety Controls
+- **facebookPublishMode**: A toggle in Settings that defaults to `mock`.
+    - **Manual Publish**: Checks this mode; if not `live`, it simulates a successful post without calling the Facebook API.
+    - **Confirmation**: Only requires a `confirm()` popup when in `live` mode to prevent "accidental one-click" publishing.
+- **schedulerEnabled**: A master switch for background automation.
+    - Even if posts are due, the scheduler will skip processing unless this is toggled `ON`.
+- **Memory Safety**: Scheduler and fetch loops are stabilized with `useRef` locks to prevent re-render cascades and memory leaks in long-running production sessions.
+
+## Production Hosting
+- **Frontend**: Hosted on **Vercel** as a static build (`npm run build`).
+- **Database/Storage**: Powered by **Supabase**.
+- **Services**: All API integrations (Facebook, OpenAI, xAI) are handled via standard `fetch` calls from the browser.
+
 ## Design Principles
 - **Separation of Concerns** – Logic is decoupled from UI.
 - **Fail-Safe Operations** – All async calls are wrapped in try-catch blocks with standardized return shapes.
-- **Development Tracing** – Verbose logging in DEV mode for easier debugging.
+- **Stable Re-renders** – State updates are guarded with deep comparison to ensure UI performance.
 
 ---
-*Generated on 2026‑05‑06*
+*Last updated on 2026‑05‑07 (Phase 8.6)*

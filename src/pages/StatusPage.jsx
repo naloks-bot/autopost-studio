@@ -129,15 +129,20 @@ function StatusPage({
                 {post.source === "remote" && post.status === "draft" && (
                   <div className="flex flex-col gap-2">
                     <ActionButton
-                      label="โพสต์ลง Facebook"
+                      label={settings.facebookPublishMode === "live" ? "Live Publish" : "Mock Publish"}
                       icon={Send}
                       onClick={() => handlePublishPost(post.id)}
-                      variant="emerald"
+                      variant={settings.facebookPublishMode === "live" ? "emerald" : "outline"}
                       disabled={!isFbConfigured}
                     />
                     {!isFbConfigured && (
                       <p className="text-right text-[10px] text-rose-400">
                         ยังไม่ได้ตั้งค่า Facebook
+                      </p>
+                    )}
+                    {settings.facebookPublishMode === "live" && isFbConfigured && (
+                      <p className="text-right text-[10px] text-rose-400 font-bold">
+                        โหมดโพสต์จริง
                       </p>
                     )}
                   </div>

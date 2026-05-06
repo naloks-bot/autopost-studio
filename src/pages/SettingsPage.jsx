@@ -119,6 +119,71 @@ function SettingsPage({
         />
       </div>
 
+      <SectionCard noPadding className="border-cyan-500/10 p-5 bg-cyan-500/5">
+        <h3 className="mb-4 text-sm font-semibold text-cyan-400">การควบคุมความปลอดภัย (Production Safety)</h3>
+        <div className="grid gap-6 md:grid-cols-2">
+          <div>
+            <label className="mb-2 block text-sm text-slate-300">Facebook Publish Mode</label>
+            <div className="flex gap-4">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="publishMode"
+                  value="mock"
+                  checked={settings.facebookPublishMode === "mock"}
+                  onChange={() => updateSettingsField("facebookPublishMode", "mock")}
+                  className="accent-cyan-400"
+                />
+                <span className="text-sm">Mock (ทดสอบ)</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="publishMode"
+                  value="live"
+                  checked={settings.facebookPublishMode === "live"}
+                  onChange={() => updateSettingsField("facebookPublishMode", "live")}
+                  className="accent-rose-500"
+                />
+                <span className="text-sm">Live (โพสต์จริง)</span>
+              </label>
+            </div>
+            {settings.facebookPublishMode === "live" && (
+              <div className="mt-3 rounded-lg border border-rose-500/30 bg-rose-500/10 p-3">
+                <p className="text-[11px] font-bold text-rose-400">
+                  ⚠️ ระวัง: โหมด Live จะส่งข้อมูลไปที่ Facebook จริงเมื่อกดยืนยันหรือถึงเวลาที่ตั้งไว้
+                </p>
+              </div>
+            )}
+          </div>
+
+          <div>
+            <label className="mb-2 block text-sm text-slate-300">Auto Scheduler</label>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => updateSettingsField("schedulerEnabled", !settings.schedulerEnabled)}
+                className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                  settings.schedulerEnabled ? 'bg-cyan-500' : 'bg-slate-700'
+                }`}
+              >
+                <span
+                  className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                    settings.schedulerEnabled ? 'translate-x-5' : 'translate-x-0'
+                  }`}
+                />
+              </button>
+              <span className="text-sm">
+                {settings.schedulerEnabled ? 'เปิดใช้งานตัวช่วยโพสต์อัตโนมัติ' : 'ปิดใช้งานตัวช่วยโพสต์อัตโนมัติ'}
+              </span>
+            </div>
+            <p className="mt-2 text-[10px] text-slate-500 italic">
+              * Scheduler จะทำงานเฉพาะเมื่อเปิดหน้าเว็บแอปนี้ทิ้งไว้เท่านั้น
+            </p>
+          </div>
+        </div>
+      </SectionCard>
+
       <div className={`rounded-xl border p-4 ${isFbConfigured ? 'border-emerald-500/20 bg-emerald-500/5' : 'border-amber-500/20 bg-amber-500/5'}`}>
         <div className="flex items-center gap-3">
           {isFbConfigured ? (

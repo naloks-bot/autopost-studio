@@ -84,6 +84,15 @@ export async function publishFacebookPost(post, settings) {
     };
   }
 
+  if (settings.facebookPublishMode !== "live") {
+    logger.info("Facebook Publish (MOCK MODE): Simulating success...");
+    return {
+      data: { id: "mock-facebook-post-id" },
+      error: null,
+      mode: "mock",
+    };
+  }
+
   logger.info(`Publishing to Facebook Page: ${settings.facebookPageId}`);
   try {
     const payload = buildFacebookPostPayload(post);
@@ -123,6 +132,15 @@ export async function scheduleFacebookPost(post, scheduledTime, settings) {
       data: null, 
       error: "Missing Facebook Page ID or Access Token", 
       mode: "mock" 
+    };
+  }
+
+  if (settings.facebookPublishMode !== "live") {
+    logger.info("Facebook Schedule (MOCK MODE): Simulating success...");
+    return {
+      data: { id: "mock-facebook-schedule-id" },
+      error: null,
+      mode: "mock",
     };
   }
 

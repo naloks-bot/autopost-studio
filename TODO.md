@@ -10,29 +10,29 @@
 - Image Generation Flow (DALL-E + Supabase Storage Mirroring).
 - Facebook Publishing Foundation (Immediate & Scheduled).
 - Client-Side Scheduler (60s background polling).
-- **Phase 8**: Production Hardening & QA Pass.
-- **Phase 8.5**: Production Deployment Preparation.
-    - README and environment documentation.
-    - Versioning and build metadata.
-    - Deployment checklist.
+- **Phase 8.6**: Production Safety Controls & Docs Wrap-up.
+    - `facebookPublishMode` and `schedulerEnabled` switches.
+    - Critical memory leak hotfix.
+    - Updated ARCHITECTURE, PROJECT_STATUS, and TODO.
 
 ## In Progress
-- Final UI polish for dashboard layout.
+- *Stabilization and Monitoring.*
 
-## Next Phase
-1. **Phase 9: Supabase Edge Scheduler** – Server-side cron jobs for 24/7 reliability.
-2. **Phase 10: Multi-Account Support** – Manage multiple Facebook pages.
-3. **Phase 11: TypeScript Migration** – Better type safety.
+## Next Phase Candidates
+1. **Facebook Live Token Setup & App Review** – Transition from developer/mock mode to production permissions.
+2. **Supabase Edge Scheduler** – Server-side cron jobs for 24/7 reliability (remove client-side dependency).
+3. **UX Polish / Content Workflow** – Advanced text editing and multi-image post support.
+4. **Auth / Multi-User Support** – Secure team access and role management.
 
 ## Technical Debt
-- Empty `src/components/` and `src/hooks/` directories.
+- Empty `src/hooks/` directory.
 - Minimal unit test coverage.
-- Environment variables validation at runtime.
+- Need for automated E2E testing for the publishing flow.
 
-## Bugs / Known Issues
-- **Supabase RLS**: write operations on `posts` are blocked until proper policies are applied.
-- **Client-Side Scheduler**: Automation only works while the browser tab is open.
+## Known Limitations
+- **Supabase RLS**: write operations on `posts` require `supabase-setup.sql` to be executed correctly.
+- **Client-Side Scheduler**: Automation only works while the browser tab is open (until Phase 9 is implemented).
 - Offline drafts are not automatically synced when connectivity is restored.
 
 ---
-*Generated on 2026‑05‑06*
+*Last updated on 2026‑05‑07 (Phase 8.6)*

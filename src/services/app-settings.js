@@ -14,6 +14,8 @@ export const defaultSettings = {
   facebookAppSecret: "",
   facebookPageId: "",
   facebookPageAccessToken: "",
+  facebookPublishMode: "mock", // "mock" | "live"
+  schedulerEnabled: false,
 };
 
 function canUseStorage() {
