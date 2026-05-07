@@ -6,7 +6,7 @@ const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
 const POSTS_SELECT =
   "id, page_id, topic, content, image_prompt, image_url, image_provider, image_revised_prompt, image_storage_path, image_storage_mode, status, scheduled_at, posted_at, created_at";
 const SETTINGS_SELECT =
-  "id, workspace_name, business_name, brand_voice, default_topic_hint, openai_api_key, xai_api_key, facebook_app_id, facebook_app_secret, facebook_page_id, facebook_page_access_token, facebook_publish_mode, scheduler_enabled, created_at, updated_at";
+  "id, workspace_name, business_name, brand_voice, default_topic_hint, openai_api_key, gemini_api_key, facebook_app_id, facebook_app_secret, facebook_page_id, facebook_page_access_token, facebook_publish_mode, scheduler_enabled, created_at, updated_at";
 
 export const hasSupabaseConfig = Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
 
@@ -188,7 +188,7 @@ export function normalizeSettings(record) {
     brandVoice: record.brand_voice ?? "",
     defaultTopicHint: record.default_topic_hint ?? "",
     openaiApiKey: record.openai_api_key ?? "",
-    xaiApiKey: record.xai_api_key ?? "",
+    geminiApiKey: record.gemini_api_key ?? "",
     facebookAppId: record.facebook_app_id ?? "",
     facebookAppSecret: record.facebook_app_secret ?? "",
     facebookPageId: record.facebook_page_id ?? "",
@@ -244,7 +244,7 @@ export async function saveRemoteSettings(settings) {
     brand_voice: settings.brandVoice,
     default_topic_hint: settings.defaultTopicHint,
     openai_api_key: settings.openaiApiKey,
-    xai_api_key: settings.xaiApiKey,
+    gemini_api_key: settings.geminiApiKey,
     facebook_app_id: settings.facebookAppId,
     facebook_app_secret: settings.facebookAppSecret,
     facebook_page_id: settings.facebookPageId,

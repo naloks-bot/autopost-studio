@@ -2,27 +2,27 @@ import { logger } from "./logger.js";
 
 /**
  * AI Generation Service
- * Handles building prompts and calling AI models (OpenAI/xAI)
- * Phase 5.6: Real xAI text generation enabled
+ * Handles building prompts and calling AI models (OpenAI/Gemini)
+ * Updated: Replaced xAI with Google Gemini 2.5 Flash
  */
 
 /**
  * Determines the AI provider based on available settings
  * @param {Object} settings - App settings
- * @returns {"openai" | "xai" | "mock"}
+ * @returns {"openai" | "gemini" | "mock"}
  */
 export function getAIProvider(settings) {
   const preferred = settings?.aiProvider?.toLowerCase();
   if (preferred === "openai" && settings.openaiApiKey) return "openai";
-  if (preferred === "xai" && settings.xaiApiKey) return "xai";
+  if (preferred === "gemini" && settings.geminiApiKey) return "gemini";
   if (preferred === "mock") return "mock";
 
   // Auto-detection fallback
   if (settings?.openaiApiKey && settings.openaiApiKey.startsWith("sk-")) {
     return "openai";
   }
-  if (settings?.xaiApiKey && settings.xaiApiKey.startsWith("xai-")) {
-    return "xai";
+  if (settings?.geminiApiKey && settings.geminiApiKey.length > 20) {
+    return "gemini";
   }
   return "mock";
 }
@@ -52,9 +52,6 @@ export function buildImagePrompt(formData, settings) {
   return `High-quality social media visual for "${topic}". ${voice} style, clean composition, vibrant colors, premium lighting, 4k resolution, optimized for social media engagement.`;
 }
 
-/**
- * Real OpenAI API call for text generation
- */
 /**
  * Real OpenAI API call for text generation
  */
@@ -116,33 +113,32 @@ async function generateWithOpenAI(prompt, apiKey, model = "gpt-4o-mini") {
 }
 
 /**
- * Real xAI (Grok) API call for text generation
- * Compatible with OpenAI-style chat completions endpoint
+ * Real Google Gemini API call for text generation
  */
-/**
- * Real xAI (Grok) API call for text generation
- * Compatible with OpenAI-style chat completions endpoint
- */
-async function generateWithXAI(prompt, apiKey, model = "grok-3-mini") {
+async function generateWithGemini(prompt, apiKey, model = "gemini-2.5-flash") {
   if (!apiKey) {
     return {
       data: null,
-      error: "ไม่พบ xAI API Key ในการตั้งค่า",
-      mode: "xai",
+      error: "ไม่พบ Gemini API Key ในการตั้งค่า",
+      mode: "gemini",
     };
   }
 
   try {
-    const response = await fetch("https://api.x.ai/v1/chat/completions", {
+    const apiModel = model || "gemini-2.5-flash";
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${apiModel}:generateContent?key=${apiKey}`;
+
+    const response = await fetch(url, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: model || "grok-3-mini",
-        messages: [{ role: "user", content: prompt }],
-        temperature: 0.7,
+        contents: [
+          {
+            parts: [{ text: prompt }],
+          },
+        ],
       }),
     });
 
@@ -150,32 +146,32 @@ async function generateWithXAI(prompt, apiKey, model = "grok-3-mini") {
       const errorData = await response.json().catch(() => ({}));
       return {
         data: null,
-        error: errorData.error?.message || `xAI API Error: ${response.status}`,
-        mode: "xai",
+        error: errorData.error?.message || `Gemini API Error: ${response.status}`,
+        mode: "gemini",
       };
     }
 
     const result = await response.json();
-    const content = result.choices?.[0]?.message?.content;
+    const content = result.candidates?.[0]?.content?.parts?.[0]?.text;
 
     if (!content) {
       return {
         data: null,
-        error: "xAI ไม่ได้ส่งเนื้อหากลับมาในรูปแบบที่ถูกต้อง",
-        mode: "xai",
+        error: "Gemini ไม่ได้ส่งเนื้อหากลับมาในรูปแบบที่ถูกต้อง",
+        mode: "gemini",
       };
     }
 
     return {
       data: content.trim(),
       error: null,
-      mode: "xai",
+      mode: "gemini",
     };
   } catch (error) {
     return {
       data: null,
       error: `เครือข่ายขัดข้อง: ${error.message}`,
-      mode: "xai",
+      mode: "gemini",
     };
   }
 }
@@ -192,16 +188,6 @@ export async function generatePostContent({ formData, settings }) {
     };
   }
 
-  const provider = getAIProvider(settings);
-  const prompt = buildContentPrompt(formData, settings);
-
-  if (provider === "openai") {
-    return generateWithOpenAI(prompt, settings.openaiApiKey, settings.openaiModel);
-  }
-
-  if (provider === "xai") {
-    return generateWithXAI(prompt, settings.xaiApiKey, settings.xaiModel);
-  }
   try {
     const provider = getAIProvider(settings);
     const prompt = buildContentPrompt(formData, settings);
@@ -209,8 +195,8 @@ export async function generatePostContent({ formData, settings }) {
     let result;
     if (provider === "openai") {
       result = await generateWithOpenAI(prompt, settings.openaiApiKey, settings.openaiModel);
-    } else if (provider === "xai") {
-      result = await generateWithXAI(prompt, settings.xaiApiKey, settings.xaiModel);
+    } else if (provider === "gemini") {
+      result = await generateWithGemini(prompt, settings.geminiApiKey, settings.geminiModel);
     } else {
       // Fallback to Mock
       await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -241,7 +227,6 @@ export async function generateImagePrompt({ formData, settings }) {
   const provider = getAIProvider(settings);
   const prompt = buildImagePrompt(formData, settings);
 
-  // For now, we keep image prompt generation mock to save tokens as requested
   if (provider === "openai") {
     await new Promise((resolve) => setTimeout(resolve, 800));
     return {
@@ -251,13 +236,12 @@ export async function generateImagePrompt({ formData, settings }) {
     };
   }
 
-  // xAI image prompt: keep mock to save tokens (real image generation not enabled yet)
-  if (provider === "xai") {
+  if (provider === "gemini") {
     await new Promise((resolve) => setTimeout(resolve, 800));
     return {
-      data: `[Mock xAI Image Prompt] ${formData.topic}, cinematic lighting, professional style.`,
+      data: `[Mock Gemini Image Prompt] ${formData.topic}, vibrant style, professional photography.`,
       error: null,
-      mode: "xai",
+      mode: "gemini",
     };
   }
 

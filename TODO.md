@@ -10,10 +10,10 @@
 - Image Generation Flow (DALL-E + Supabase Storage Mirroring).
 - Facebook Publishing Foundation (Immediate & Scheduled).
 - Client-Side Scheduler (60s background polling).
-- **Phase 9D**: Cron Trigger & Edge Function Verification.
-    - Added `.github/workflows/process-scheduled-posts.yml`.
-    - Added `deno.json` and `import_map.json` for editor support.
-    - Updated `README.md` with full Production Scheduler Setup guide.
+- **Mini Phase**: Replace xAI with Gemini 2.5 Flash.
+    - Swapped `xaiApiKey`/`Model` for `geminiApiKey`/`Model`.
+    - Implemented Google Generative Language API integration.
+    - Updated UI and Supabase persistence layers.
 
 ## In Progress
 - Production environment verification (secrets setup).

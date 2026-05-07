@@ -48,7 +48,7 @@ function SettingsPage({
 
       <div className="grid gap-4 md:grid-cols-2">
         <SettingsField
-          label="AI Provider (openai, xai, mock)"
+          label="AI Provider (openai, gemini, mock)"
           value={settings.aiProvider}
           onChange={(event) => updateSettingsField("aiProvider", event.target.value)}
           placeholder="openai"
@@ -79,17 +79,17 @@ function SettingsPage({
           placeholder="gpt-4o-mini"
         />
         <SettingsField
-          label="xAI API Key"
-          value={settings.xaiApiKey}
-          onChange={(event) => updateSettingsField("xaiApiKey", event.target.value)}
-          placeholder="xai-..."
+          label="Gemini API Key"
+          value={settings.geminiApiKey}
+          onChange={(event) => updateSettingsField("geminiApiKey", event.target.value)}
+          placeholder="AI..."
           secret
         />
         <SettingsField
-          label="xAI Model"
-          value={settings.xaiModel}
-          onChange={(event) => updateSettingsField("xaiModel", event.target.value)}
-          placeholder="grok-3-mini"
+          label="Gemini Model"
+          value={settings.geminiModel}
+          onChange={(event) => updateSettingsField("geminiModel", event.target.value)}
+          placeholder="gemini-2.5-flash"
         />
         <SettingsField
           label="Facebook App ID"

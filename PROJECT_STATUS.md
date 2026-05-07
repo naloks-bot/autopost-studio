@@ -66,11 +66,11 @@ src
     - Improved error messaging for common Facebook and Supabase Storage failures.
     - Verified cross-mode stability (online, offline, missing config).
     - Established a manual QA checklist for ongoing verification.
-- **Phase 9D Complete**: **Cron Trigger & Edge Function Verification**.
-    - Added GitHub Actions workflow to trigger the Edge Function every 30 minutes.
-    - Implemented `deno.json` and `import_map.json` for standardized Edge Function support.
-    - Provided comprehensive setup instructions in `README.md`.
-    - Verified the end-to-end "Identify -> Publish -> Update" flow in the service layer.
+- **Mini Phase Complete**: **Replace xAI with Gemini 2.5 Flash**.
+    - Removed xAI integration from settings and services.
+    - Implemented Google Gemini (Generative Language API) integration using `fetch`.
+    - Added support for `gemini-2.5-flash` as the default Gemini model.
+    - Updated UI and persistence to handle Gemini API keys and settings.
 
 ## Current Known Issues
 - **Supabase RLS**: write operations on the `posts` table are blocked until proper row‑level security policies are applied. (Partially addressed in `supabase-setup.sql`).
@@ -84,7 +84,7 @@ src
 4. Keep new code consistent with the existing ES module style.
 
 ## Current Phase
-**Phase 9D Complete: Production Scheduler Verified** – The application is now fully autonomous and ready for live 24/7 operations.
+**Mini Phase Complete: Gemini Integration** – Google Gemini is now the secondary AI provider, replacing xAI.
 
 ## Recommended Next Phase
 1. **Facebook Live Token Setup & App Review** – Transition from developer tokens to production-grade permissions.

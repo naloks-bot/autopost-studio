@@ -24,8 +24,9 @@ The application is a **client‑side React SPA** built with **Vite**. It communi
   - `saveRemoteSettings` – Persists API keys and Page IDs.
 
 ## AI & Media Flow
-1. **Text Generation** (`services/ai-generation.js`) – Dispatcher for text models.
-2. **Image Generation** (`services/ai-image-generation.js`) – DALL-E integration.
+1. **Text Generation** (`services/ai-generation.js`) – Dispatcher for text models (OpenAI & Google Gemini).
+2. **Gemini Integration**: Uses Google Generative Language API (`gemini-2.5-flash`) via standard `fetch`.
+3. **Image Generation** (`services/ai-image-generation.js`) – DALL-E integration.
 3. **Storage** (`services/storage.js`) – Mirrors generated images to Supabase `generated-images` bucket.
 4. **Resiliency**: If Storage upload fails, the app falls back to the provider URL; if AI fails, the app uses a mock template.
 
