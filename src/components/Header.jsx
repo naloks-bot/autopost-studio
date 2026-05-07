@@ -1,12 +1,13 @@
 import React from "react";
-import { Moon, Sun, Database, Share2, BrainCircuit } from "lucide-react";
+import { Moon, Sun, Database, Share2, BrainCircuit, HelpCircle } from "lucide-react";
 
 function Header({ 
   isDark, 
   onToggleTheme, 
   connectionMode, 
   fbMode, 
-  aiProvider 
+  aiProvider,
+  onOpenGuide
 }) {
   
   // Status Chip Component
@@ -43,7 +44,7 @@ function Header({
 
   return (
     <header className="sticky top-0 z-40 flex h-16 items-center justify-between border-b border-white/10 bg-slate-950/80 px-6 backdrop-blur-md lg:pl-6">
-      {/* Mobile Branding (only visible on mobile since sidebar is hidden) */}
+      {/* Mobile Branding */}
       <div className="flex items-center gap-2 lg:hidden">
          <span className="text-sm font-bold text-white tracking-tight">AutoPost Studio</span>
       </div>
@@ -56,7 +57,16 @@ function Header({
       </div>
 
       {/* Actions */}
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-3">
+        <button
+          type="button"
+          onClick={onOpenGuide}
+          className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-slate-400 transition hover:bg-white/10 hover:text-white"
+          title="Help Guide"
+        >
+          <HelpCircle className="h-4 w-4" />
+        </button>
+
         <button
           type="button"
           onClick={onToggleTheme}

@@ -66,13 +66,13 @@ src
     - Improved error messaging for common Facebook and Supabase Storage failures.
     - Verified cross-mode stability (online, offline, missing config).
     - Established a manual QA checklist for ongoing verification.
-- **Phase 10B Complete**: **Create Page Two-Panel UI + Deno Warning Cleanup**.
-    - Redesigned the "Create Draft" page into a professional two-panel workflow.
 - **Phase 10C Complete**: **Settings and Status UI Cleanup**.
-    - Refactored Settings into a two-panel layout for easier configuration and safety monitoring.
-    - Improved Status page with high-density draft cards and integrated statistical overview.
-    - Optimized layout for wide screens to prevent excessive element stretching.
-    - Maintained premium dark dashboard aesthetic across all modified screens.
+    - Refactored Settings into a two-panel layout.
+- **Phase 10D Complete**: **Guide Modal + Final UI QA**.
+    - Replaced the standalone Guide page with a high-fidelity `GuideModal` accessible from both Header and Sidebar.
+    - Updated guide content to reflect the production-ready Gemini, Mock/Live, and Scheduler workflow.
+    - Conducted a final UI/UX audit to ensure spacing consistency, mobile responsiveness, and dark-theme premium aesthetics.
+    - Verified all core flows (Create -> Status -> Settings) under the new dashboard shell.
 
 ## Current Known Issues
 - **Supabase RLS**: write operations on the `posts` table are blocked until proper row‑level security policies are applied. (Partially addressed in `supabase-setup.sql`).
@@ -87,7 +87,7 @@ src
 4. Keep new code consistent with the existing ES module style.
 
 ## Current Phase
-**Phase 10C Complete: Dashboard UI Polish** – The application interface is now production-ready with high-density layouts for settings and content management.
+**Phase 10D Complete: Final UI Polish** – The application is now fully modernized with a sidebar-based dashboard, two-panel workflows, and on-demand modal guidance.
 
 ## Recommended Next Phase
 1. **Facebook Live Token Setup & App Review** – Transition from developer tokens to production-grade permissions.

@@ -1,11 +1,11 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import CreatePage from "./CreatePage.jsx";
-import GuidePage from "./GuidePage.jsx";
-import SettingsPage from "./SettingsPage.jsx";
 import StatusPage from "./StatusPage.jsx";
+import SettingsPage from "./SettingsPage.jsx";
 import Sidebar from "../components/Sidebar.jsx";
 import Header from "../components/Header.jsx";
-import { guideSections, initialForm, statusCopy } from "../constants/appConstants.js";
+import GuideModal from "../components/GuideModal.jsx";
+import { initialForm, statusCopy } from "../constants/appConstants.js";
 import { defaultSettings, getAppSettings, saveAppSettings } from "../services/app-settings.js";
 import { getLocalDrafts, removeLocalDraft, saveLocalDraft } from "../services/local-drafts.js";
 import {
@@ -37,11 +37,11 @@ function maskSecret(value) {
 
 function SettingsField({ label, value, onChange, placeholder, multiline = false, secret = false }) {
   const sharedClassName =
-    "w-full rounded-[1.25rem] border border-white/10 bg-slate-900/80 px-4 py-3 outline-none transition focus:border-cyan-400";
+    "w-full rounded-xl border border-white/10 bg-slate-900/80 px-4 py-3 text-sm outline-none transition focus:border-cyan-400";
 
   return (
     <label className="block">
-      <span className="mb-2 block text-sm text-slate-300">{label}</span>
+      <span className="mb-2 block text-[10px] font-bold uppercase tracking-wider text-slate-500">{label}</span>
       {multiline ? (
         <textarea
           value={value}
@@ -65,6 +65,7 @@ function SettingsField({ label, value, onChange, placeholder, multiline = false,
 function App() {
   const [activeTab, setActiveTab] = useState("create");
   const [isDark, setIsDark] = useState(true);
+  const [isGuideOpen, setIsGuideOpen] = useState(false);
   const [form, setForm] = useState(initialForm);
   const [settings, setSettings] = useState(defaultSettings);
   const [remotePosts, setRemotePosts] = useState([]);
@@ -285,7 +286,13 @@ function App() {
 
   return (
     <div className="flex h-screen overflow-hidden bg-slate-950 font-sans text-slate-200">
-      <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} workspaceName={settings.workspaceName} />
+      <Sidebar 
+        activeTab={activeTab} 
+        setActiveTab={setActiveTab} 
+        workspaceName={settings.workspaceName} 
+        onOpenGuide={() => setIsGuideOpen(true)}
+      />
+      
       <div className="flex flex-1 flex-col lg:pl-64">
         <Header 
           isDark={isDark} 
@@ -293,7 +300,9 @@ function App() {
           connectionMode={connectionMode}
           fbMode={validateFacebookConfig(settings) ? settings.facebookPublishMode : "missing"}
           aiProvider={settings.aiProvider}
+          onOpenGuide={() => setIsGuideOpen(true)}
         />
+        
         <main className="flex-1 overflow-y-auto p-6 lg:p-8">
           <div className="mx-auto max-w-5xl">
             {activeTab === "create" && (
@@ -320,10 +329,14 @@ function App() {
                 handlePublishPost={handlePublishPost} settings={settings} schedulerStatus={schedulerStatus}
               />
             )}
-            {activeTab === "guide" && <GuidePage guideSections={guideSections} />}
           </div>
         </main>
       </div>
+
+      <GuideModal 
+        isOpen={isGuideOpen} 
+        onClose={() => setIsGuideOpen(false)} 
+      />
     </div>
   );
 }

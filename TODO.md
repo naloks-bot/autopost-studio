@@ -10,10 +10,10 @@
 - Image Generation Flow (DALL-E + Supabase Storage Mirroring).
 - Facebook Publishing Foundation (Immediate & Scheduled).
 - Client-Side Scheduler (60s background polling).
-- **Phase 10C**: Settings and Status UI Cleanup.
-    - Refactored Settings into a two-panel configuration hub.
-    - Optimized Status page with compact draft cards and stats overview.
-    - Improved overall dashboard visual density and scanability.
+- **Phase 10D**: Guide Modal + Final UI QA.
+    - Replaced Guide page with an on-demand modal system.
+    - Updated help content for production workflows (Gemini, Mock/Live).
+    - Polished visual consistency and mobile responsiveness.
 
 ## In Progress
 - Production environment verification (secrets setup).

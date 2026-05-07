@@ -13,9 +13,10 @@ The application is a **client‑side React SPA** built with **Vite**. It communi
 7. **External Trigger (GitHub Actions)** – `.github/workflows/process-scheduled-posts.yml` triggers the Edge Function via `curl` on a 30-minute schedule.
 
 ## App Shell & Navigation
-- **Persistent Sidebar** (`components/Sidebar.jsx`): Centralized navigation for Create Draft, Status, Settings, and Guide.
+- **Persistent Sidebar** (`components/Sidebar.jsx`): Centralized navigation for Create Draft, Status, and Settings. Includes a global "Help & Guide" trigger.
 - **Two-Panel Dashboards**: Settings and Create pages utilize side-by-side layouts to separate form inputs from live previews and system status monitors.
-- **Compact Header** (`components/Header.jsx`): Persistent top bar with branding and live connection indicators (Supabase, Facebook, AI).
+- **Compact Header** (`components/Header.jsx`): Persistent top bar with branding, live connection indicators, and a mobile-friendly help trigger.
+- **Guide Modal** (`components/GuideModal.jsx`): An on-demand, high-fidelity modal providing contextual documentation for the production workflow.
 - **Independent Scrolling**: The main content area scrolls independently of the sidebar, maintaining viewport stability.
 
 ## Supabase Integration Flow

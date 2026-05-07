@@ -1,12 +1,11 @@
 import React from "react";
-import { PlusCircle, ListTodo, Settings, BookOpen, Sparkles, ChevronRight } from "lucide-react";
+import { PlusCircle, ListTodo, Settings, Sparkles, ChevronRight, HelpCircle } from "lucide-react";
 
-function Sidebar({ activeTab, setActiveTab, workspaceName }) {
+function Sidebar({ activeTab, setActiveTab, workspaceName, onOpenGuide }) {
   const menuItems = [
     { id: "create", label: "Create Draft", icon: PlusCircle },
     { id: "status", label: "Status", icon: ListTodo },
     { id: "settings", label: "Settings", icon: Settings },
-    { id: "guide", label: "Guide", icon: BookOpen },
   ];
 
   return (
@@ -47,12 +46,20 @@ function Sidebar({ activeTab, setActiveTab, workspaceName }) {
       </nav>
 
       {/* Sidebar Footer */}
-      <div className="border-t border-white/10 p-4">
+      <div className="border-t border-white/10 p-4 space-y-3">
+        <button 
+          onClick={onOpenGuide}
+          className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-slate-400 transition-all hover:bg-white/5 hover:text-slate-200"
+        >
+          <HelpCircle className="h-5 w-5 text-slate-500" />
+          <span>Help & Guide</span>
+        </button>
+
         <div className="rounded-xl bg-white/5 p-4">
-          <p className="text-[10px] uppercase tracking-wider text-slate-500">AutoPost Studio Pro</p>
+          <p className="text-[10px] uppercase tracking-wider text-slate-500 font-bold">AutoPost Studio v0.2.0</p>
           <div className="mt-2 flex items-center justify-between">
-            <span className="text-xs text-slate-300">Ready for release</span>
-            <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
+            <span className="text-xs text-slate-400">Ready for release</span>
+            <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]"></div>
           </div>
         </div>
       </div>
