@@ -542,8 +542,8 @@ function App() {
                   <p className="mt-1">{maskSecret(settings.openaiApiKey)}</p>
                 </div>
                 <div className="rounded-xl bg-white/5 p-4">
-                  <p className="text-slate-500">xAI API Key</p>
-                  <p className="mt-1">{maskSecret(settings.xaiApiKey)}</p>
+                  <p className="text-slate-500">Gemini API Key</p>
+                  <p className="mt-1">{maskSecret(settings.geminiApiKey)}</p>
                 </div>
                 <div className="rounded-xl bg-white/5 p-4">
                   <p className="text-slate-500">Facebook Page ID</p>
