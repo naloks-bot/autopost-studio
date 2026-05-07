@@ -66,17 +66,17 @@ src
     - Improved error messaging for common Facebook and Supabase Storage failures.
     - Verified cross-mode stability (online, offline, missing config).
     - Established a manual QA checklist for ongoing verification.
-- **Phase 10A Complete**: **App Shell + Sidebar UI Restructure**.
-    - Implemented a persistent left sidebar for professional dashboard-style navigation.
-    - Refactored the app into a viewport-height shell with independent scrolling content.
-    - Replaced large global status banners with compact connection indicators (chips) in the top header.
-    - Removed redundant global info panels to reduce clutter and focus on content.
-    - Improved theme visual clarity and layout behavior.
+- **Phase 10B Complete**: **Create Page Two-Panel UI + Deno Warning Cleanup**.
+    - Redesigned the "Create Draft" page into a professional two-panel workflow (Inputs vs. Preview).
+    - Optimized mobile responsiveness for the two-panel layout.
+    - Cleaned up Deno/TypeScript editor warnings in the Edge Function by utilizing `import_map.json` aliases.
+    - Verified that server-side logic and client-side generation flows remain fully compatible.
 
 ## Current Known Issues
 - **Supabase RLS**: write operations on the `posts` table are blocked until proper row‑level security policies are applied. (Partially addressed in `supabase-setup.sql`).
 - **Production Verification**: Real-world 24/7 automation requires setting GitHub/Supabase secrets (CRON_SECRET, etc.).
 - Offline mode stores drafts locally but does not sync automatically when connectivity is restored.
+- **Edge Function Warnings**: Some editor environments might still show false positive warnings for `Deno` global namespace despite correct `deno.json` configuration; these do not affect deployment.
 
 ## Current Coding Rules for AI Assistants
 1. **Never modify UI layout or visual styling** unless explicitly requested.
@@ -85,7 +85,7 @@ src
 4. Keep new code consistent with the existing ES module style.
 
 ## Current Phase
-**Phase 10A Complete: App Shell Restructure** – The application now features a professional dashboard-style UI with sidebar navigation and compact status indicators.
+**Phase 10B Complete: Create Workflow Redesign** – The content creation experience is now optimized with a side-by-side editing and preview interface.
 
 ## Recommended Next Phase
 1. **Facebook Live Token Setup & App Review** – Transition from developer tokens to production-grade permissions.

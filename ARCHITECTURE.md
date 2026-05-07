@@ -27,8 +27,10 @@ The application is a **client‑side React SPA** built with **Vite**. It communi
 
 ## AI & Media Flow
 1. **Text Generation** (`services/ai-generation.js`) – Dispatcher for text models (OpenAI & Google Gemini).
-2. **Gemini Integration**: Uses Google Generative Language API (`gemini-2.5-flash`) via standard `fetch`.
-3. **Image Generation** (`services/ai-image-generation.js`) – DALL-E integration.
+2. **Two-Panel Create Workflow** (`pages/CreatePage.jsx`) – Side-by-side interface for input/controls and live preview/editing.
+3. **Gemini Integration**: Uses Google Generative Language API (`gemini-2.5-flash`) via standard `fetch`.
+4. **Image Generation** (`services/ai-image-generation.js`) – DALL-E integration.
+5. **Deno Runtime Config** (`supabase/functions/deno.json`) – Uses `import_map.json` for aliasing dependencies in Edge Functions.
 3. **Storage** (`services/storage.js`) – Mirrors generated images to Supabase `generated-images` bucket.
 4. **Resiliency**: If Storage upload fails, the app falls back to the provider URL; if AI fails, the app uses a mock template.
 

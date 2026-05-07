@@ -10,10 +10,10 @@
 - Image Generation Flow (DALL-E + Supabase Storage Mirroring).
 - Facebook Publishing Foundation (Immediate & Scheduled).
 - Client-Side Scheduler (60s background polling).
-- **Phase 10A**: App Shell + Sidebar UI Restructure.
-    - Implemented left sidebar navigation.
-    - Added compact status header with connectivity chips.
-    - Optimized layout for independent content scrolling.
+- **Phase 10B**: Create Page Two-Panel UI + Deno Warning Cleanup.
+    - Redesigned Create page into a side-by-side workflow.
+    - Cleaned up Edge Function imports via `import_map.json`.
+    - Maintained full compatibility with existing AI/Media services.
 
 ## In Progress
 - Production environment verification (secrets setup).
