@@ -1,38 +1,244 @@
-# TODO List
+# TODO Roadmap
 
-## Completed
-- Core SPA setup with React 19, Vite 7, and Tailwind CSS 4.
-- Dark/Light theme toggle with gradient backgrounds.
-- Settings persistence via `services/app-settings.js` and Supabase sync.
-- Draft creation, local storage fallback, and remote draft insertion.
-- Status page showing remote and local drafts.
-- AI Text Generation Integration (OpenAI & xAI).
-- Image Generation Flow (DALL-E + Supabase Storage Mirroring).
-- Facebook Publishing Foundation (Immediate & Scheduled).
-- Client-Side Scheduler (60s background polling).
-- **Phase 10D**: Guide Modal + Final UI QA.
-    - Replaced Guide page with an on-demand modal system.
-    - Updated help content for production workflows (Gemini, Mock/Live).
-    - Polished visual consistency and mobile responsiveness.
+# CURRENT STABLE PHASE
 
-## In Progress
-- Production environment verification (secrets setup).
+✅ Phase 10D — Guide Modal + Final UI QA
 
-## Next Phase Candidates
-1. **Phase 10: Multi-Account Support** – Manage multiple Facebook pages.
-2. **Facebook Live Token Setup & App Review** – Transition from developer/mock mode.
-3. **UX Polish / Content Workflow** – Advanced text editing and multi-image post support.
-4. **Auth / Multi-User Support** – Secure team access and role management.
-
-## Technical Debt
-- Empty `src/hooks/` directory.
-- Minimal unit test coverage.
-- Need for automated E2E testing for the publishing flow.
-
-## Known Limitations
-- **Supabase RLS**: write operations on `posts` require `supabase-setup.sql` to be executed correctly.
-- **Client-Side Scheduler**: Automation only works while the browser tab is open (until Phase 9 is implemented).
-- Offline drafts are not automatically synced when connectivity is restored.
+The dashboard UI foundation is now stable.
 
 ---
-*Last updated on 2026‑05‑07 (Phase 8.6)*
+
+# NEXT MAJOR ROADMAP
+
+# STAGE 1 — FOUNDATION RESTRUCTURE
+
+Goal:
+Prepare the application for:
+
+* Multi-page architecture
+* Multi-provider AI routing
+* Production-safe scalability
+
+---
+
+## PHASE 11A — AI Provider System V2
+
+Priority: CRITICAL
+
+### Goals
+
+* Add provider visibility
+* Add runtime provider indicators
+* Add Codex CLI support
+* Improve AI configuration UX
+* Add model selection controls
+
+### Tasks
+
+* AI provider dropdowns
+* Text/image provider separation
+* Provider badges
+* Codex CLI status detection
+* Runtime AI information display
+* API validation buttons
+* Provider testing tools
+
+---
+
+## PHASE 11B — Multi-Page Workspace Foundation
+
+Priority: CRITICAL
+
+### Goals
+
+* Support multiple Facebook pages
+* Add page selector system
+* Create per-page AI memory
+
+### Tasks
+
+* pages table
+* page selector dropdown
+* page configuration UI
+* access token management
+* page profile system
+* page-based settings storage
+
+---
+
+## PHASE 11C — Content Data Model V2
+
+Priority: HIGH
+
+### Goals
+
+* Stabilize content structure
+* Support multi-page metadata
+* Prepare for queue architecture
+
+### Tasks
+
+* Content metadata redesign
+* Provider metadata
+* Image metadata
+* Queue metadata
+* Page relationships
+
+---
+
+# STAGE 2 — CONTENT CREATION SYSTEM
+
+---
+
+## PHASE 12A — Content Creation Workflow V2
+
+Priority: HIGH
+
+### Planned Features
+
+* Content type selector
+* Tone selector
+* Content length selector
+* CTA controls
+* Hashtag controls
+* Link controls
+
+---
+
+## PHASE 12B — AI Image System V2
+
+Priority: HIGH
+
+### Planned Features
+
+* Image provider selector
+* Aspect ratio selector
+* Style presets
+* Prompt assist
+* Auto prompt generation
+* Text overlay support
+* Image regeneration
+
+---
+
+## PHASE 12C — Preview Studio
+
+Priority: MEDIUM
+
+### Planned Features
+
+* Mobile preview
+* Desktop preview
+* Final publish preview
+* Crop preview
+
+---
+
+# STAGE 3 — SCHEDULER SYSTEM V2
+
+---
+
+## PHASE 13A — Queue-Based Scheduler
+
+Priority: HIGH
+
+### Planned Features
+
+* Multi-page scheduling
+* Queue overview
+* Posting slots
+* Retry system
+* Failure recovery
+* Publish tracking
+
+---
+
+## PHASE 13B — Scheduler UI Dashboard
+
+Priority: MEDIUM
+
+### Planned Features
+
+* Per-page queue stats
+* Daily post planning
+* Timeline controls
+* Queue visibility
+
+---
+
+# STAGE 4 — AI LIBRARY + LOGS
+
+---
+
+## PHASE 14A — AI Library
+
+Priority: MEDIUM
+
+### Planned Features
+
+* Generated image library
+* Saved prompts
+* Saved captions
+* Search & filtering
+* Reusable templates
+
+---
+
+## PHASE 14B — Logs System
+
+Priority: MEDIUM
+
+### Planned Features
+
+* App logs
+* AI logs
+* Scheduler logs
+* Publish logs
+* Error tracking
+* Copy/export tools
+
+---
+
+# STAGE 5 — ANALYTICS
+
+---
+
+## PHASE 15A — Analytics Foundation
+
+Priority: LOW
+
+### Planned Features
+
+* Post statistics
+* AI generation statistics
+* Queue performance
+* Publish success metrics
+
+---
+
+# FUTURE / LONG-TERM
+
+## Multi-user Auth
+
+Deferred until workflow stabilization.
+
+## SaaS Architecture
+
+Deferred until system maturity.
+
+## Billing System
+
+Deferred until stable multi-user architecture exists.
+
+---
+
+# DEVELOPMENT RULES
+
+1. Minimal safe changes only
+2. Preserve stable backend behavior
+3. Never break mock mode
+4. Build test every phase
+5. Update docs every phase
+6. Commit & push every phase
+7. Avoid technical debt accumulation
+8. Prioritize workflow quality over feature quantity

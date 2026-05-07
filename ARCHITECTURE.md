@@ -1,87 +1,259 @@
 # Architecture Overview
 
-## Overall Architecture
-The application is a **client‑side React SPA** built with **Vite**. It communicates directly with **Supabase** (PostgreSQL + Storage + Edge Functions) via the Supabase JavaScript client. All business logic lives in the **service layer** (`src/services/`). UI components are organized under `src/pages/` and future reusable widgets will reside in `src/components/`.
+## System Direction
 
-## Frontend Flow
-1. **App Shell** – `App.jsx` implements a viewport-height dashboard with a persistent left `Sidebar.jsx`.
-2. **App Initialization** – `main.jsx` mounts the shell.
-3. **Settings Load** – Local settings are read from `localStorage` (`services/app-settings.js`). If a Supabase `app_settings` row exists, it is fetched and merged.
-4. **Data Fetching** – `fetchRemotePosts` & `fetchRemoteSettings` populate the UI with existing drafts and configuration.
-5. **Navigation** – Sidebar controls the `activeTab` state to switch between pages without full-page reloads.
-6. **Scheduler Polling (Client)** – `services/scheduler.js` runs every 60s while the app is active to process due scheduled posts.
-7. **External Trigger (GitHub Actions)** – `.github/workflows/process-scheduled-posts.yml` triggers the Edge Function via `curl` on a 30-minute schedule.
+AutoPost Studio is evolving into a:
 
-## App Shell & Navigation
-- **Persistent Sidebar** (`components/Sidebar.jsx`): Centralized navigation for Create Draft, Status, and Settings. Includes a global "Help & Guide" trigger.
-- **Two-Panel Dashboards**: Settings and Create pages utilize side-by-side layouts to separate form inputs from live previews and system status monitors.
-- **Compact Header** (`components/Header.jsx`): Persistent top bar with branding, live connection indicators, and a mobile-friendly help trigger.
-- **Guide Modal** (`components/GuideModal.jsx`): An on-demand, high-fidelity modal providing contextual documentation for the production workflow.
-- **Independent Scrolling**: The main content area scrolls independently of the sidebar, maintaining viewport stability.
+AI-powered Facebook Content Operating System
 
-## Supabase Integration Flow
-- **Environment Snapshot** – `getSupabaseEnvSnapshot` pulls the `SUPABASE_URL` and `SUPABASE_ANON_KEY` from `.env`.
-- **CRUD Services** (`services/supabase.js`)
-  - `fetchRemotePosts` – SELECT from `public.posts` with full image metadata.
-  - `insertRemoteDraft` – INSERT a new draft row.
-  - `updateRemotePostStatus` – Updates status to `posted` after publishing.
-  - `saveRemoteSettings` – Persists API keys and Page IDs.
+The system architecture is designed around:
 
-## AI & Media Flow
-1. **Text Generation** (`services/ai-generation.js`) – Dispatcher for text models (OpenAI & Google Gemini).
-2. **Two-Panel Create Workflow** (`pages/CreatePage.jsx`) – Side-by-side interface for input/controls and live preview/editing.
-3. **Gemini Integration**: Uses Google Generative Language API (`gemini-2.5-flash`) via standard `fetch`.
-4. **Image Generation** (`services/ai-image-generation.js`) – DALL-E integration.
-5. **Deno Runtime Config** (`supabase/functions/deno.json`) – Uses `import_map.json` for aliasing dependencies in Edge Functions.
-3. **Storage** (`services/storage.js`) – Mirrors generated images to Supabase `generated-images` bucket.
-4. **Resiliency**: If Storage upload fails, the app falls back to the provider URL; if AI fails, the app uses a mock template.
-
-## Facebook Posting Flow
-1. **Centralized Processor** (`services/publish-processor.js`) – Core logic for client-side detection and execution.
-2. **Edge Function** (`supabase/functions/process-scheduled-posts`) – Server-side mirror of the publishing logic.
-    - **Identity**: Identifies `status: scheduled` posts due for publication.
-    - **Execution**: Calls Facebook Graph API v23.0 (`/${pageId}/feed`) using server-side secrets.
-    - **Status**: Updates `status: posted` and `posted_at` in Supabase after success.
-3. **Safety Controls**: Respects `facebookPublishMode` and `schedulerEnabled` with `CRON_SECRET` protection.
-4. **Error Handling**: Detailed per-post error reporting in response payloads.
-
-## Folder Structure
-```
-src/
-├─ components/          # Reusable UI widgets
-├─ constants/          # Static data
-├─ pages/              # Route‑level screens
-├─ services/           # Service Layer
-│   ├─ ai-generation.js
-│   ├─ ai-image-generation.js
-│   ├─ facebook.js
-│   ├─ logger.js        # Centralized dev-logging
-│   ├─ scheduler.js
-│   ├─ storage.js
-│   ├─ app-settings.js
-│   ├─ local-drafts.js
-│   └─ supabase.js
-└─ index.css / main.jsx
-```
-
-## Production Safety Controls
-- **facebookPublishMode**: A toggle in Settings that defaults to `mock`.
-    - **Manual Publish**: Checks this mode; if not `live`, it simulates a successful post without calling the Facebook API.
-    - **Confirmation**: Only requires a `confirm()` popup when in `live` mode to prevent "accidental one-click" publishing.
-- **schedulerEnabled**: A master switch for background automation.
-    - Even if posts are due, the scheduler will skip processing unless this is toggled `ON`.
-- **Memory Safety**: Scheduler and fetch loops are stabilized with `useRef` locks to prevent re-render cascades and memory leaks in long-running production sessions.
-
-## Production Hosting
-- **Frontend**: Hosted on **Vercel** as a static build (`npm run build`).
-- **Database/Storage**: Powered by **Supabase**.
-- **Services**: All API integrations (Facebook, OpenAI, xAI) are handled via standard `fetch` calls from the browser.
-
-## Design Principles
-- **Separation of Concerns** – Logic is decoupled from UI.
-- **Fail-Safe Operations** – All async calls are wrapped in try-catch blocks with standardized return shapes.
-- **Dashboard-First Layout** – Optimized for content management with persistent navigation.
-- **Stable Re-renders** – State updates are guarded with deep comparison to ensure UI performance.
+* Low-cost AI operations
+* Multi-page management
+* AI-assisted content generation
+* Automated publishing workflows
+* Persistent cloud-backed operations
+* Future scalability
 
 ---
-*Last updated on 2026‑05‑07 (Phase 8.6)*
+
+# Core Architecture Layers
+
+## 1. AI Layer
+
+Responsible for:
+
+* Text generation
+* Prompt generation
+* Image generation
+* AI routing
+* Model selection
+* Provider failover
+* AI memory systems
+
+### Current Providers
+
+* Mock
+* Gemini API
+* OpenAI API
+
+### Planned Providers
+
+* Codex CLI
+* Local models
+* Additional image providers
+
+---
+
+## 2. Content Operations Layer
+
+Responsible for:
+
+* Draft management
+* Scheduling
+* Queue processing
+* Publishing
+* Retry systems
+* Logs
+* Automation workflows
+
+---
+
+## 3. Workspace Layer
+
+Responsible for:
+
+* Multi-page support
+* Facebook page management
+* Page-specific AI memory
+* Per-page configurations
+* Per-page automation rules
+
+---
+
+# Frontend Architecture
+
+## App Shell
+
+* Persistent sidebar
+* Compact header
+* Two-panel workflows
+* Independent scroll regions
+* Modal-based guidance system
+
+## Current Pages
+
+* Create Draft
+* Status
+* Settings
+* Guide Modal
+
+## Planned Pages
+
+* My Pages
+* Scheduler
+* AI Library
+* Logs
+* Analytics
+
+---
+
+# AI Provider System V2 (PLANNED)
+
+## Goals
+
+* Low-cost AI routing
+* Runtime provider visibility
+* Flexible provider switching
+* Future-proof architecture
+
+---
+
+## Text Generation Flow
+
+Planned supported providers:
+
+* Mock
+* Gemini API
+* OpenAI API
+* Codex CLI
+
+The generation service will:
+
+* Detect provider availability
+* Route generation requests
+* Validate provider configuration
+* Return standardized responses
+
+---
+
+## Image Generation Flow
+
+Planned supported providers:
+
+* Mock
+* GPT Image
+* DALL·E
+* Future providers
+
+Features:
+
+* Aspect ratio routing
+* Style presets
+* Prompt assist
+* Prompt memory
+* Image regeneration
+
+---
+
+# Multi-Page Workspace Architecture (PLANNED)
+
+Each workspace page will contain:
+
+* Page identity
+* Facebook token
+* Brand tone
+* Audience profile
+* Storytelling style
+* Visual style memory
+* Scheduling rules
+
+The content system must always know:
+
+* Which page is targeted
+* Which AI provider generated content
+* Which visual style belongs to the page
+
+---
+
+# Scheduler Architecture V2 (PLANNED)
+
+The scheduler system will evolve into:
+
+* Queue-driven architecture
+* Multi-page publishing
+* Time-slot management
+* Retry handling
+* Publish tracking
+
+---
+
+# Planned Scheduler Flow
+
+1. Content enters queue
+2. Queue assigned to page
+3. Scheduler validates timing
+4. Publish processor executes post
+5. Logs stored
+6. Analytics updated
+
+---
+
+# Supabase Usage
+
+Supabase remains the operational backbone.
+
+## Current Usage
+
+* Draft storage
+* Settings storage
+* Metadata persistence
+* Generated image tracking
+
+## Planned Usage
+
+* Multi-page data
+* Scheduler queues
+* AI libraries
+* Logs
+* Analytics
+* Cleanup jobs
+
+---
+
+# Storage Optimization Strategy
+
+Because the system targets low-cost/free operation:
+
+* Old successful posts will auto-clean after 7 days
+* Logs may auto-expire
+* AI image cache may be configurable
+* Supabase free-tier limits must always be respected
+
+---
+
+# Safety Architecture
+
+The system is intentionally designed to default to safe operation.
+
+## Safety Features
+
+* Mock publish mode
+* Scheduler enable toggle
+* Manual publish confirmation
+* Provider validation
+* Fail-safe fallbacks
+
+---
+
+# Design Principles
+
+1. Minimal-cost operation
+2. Fail-safe publishing
+3. Provider flexibility
+4. Multi-page scalability
+5. Modular AI architecture
+6. Workflow-first UX
+7. Stable production behavior
+
+---
+
+# Long-Term Vision
+
+The long-term vision is:
+
+* A centralized AI content operating dashboard
+* Capable of managing multiple Facebook pages
+* With AI-assisted automation
+* While maintaining extremely low operational cost
+* And remaining accessible to non-technical users

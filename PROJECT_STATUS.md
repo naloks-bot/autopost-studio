@@ -1,119 +1,297 @@
 # Project Status
 
 ## Current Project Status
-- The application runs as a **React** SPA built with **Vite** and styled with **Tailwind CSS**.
-- Core features (Create, Settings, Status, Guide) are functional.
-- Supabase integration works for reading posts and saving drafts when the required tables and RLS policies are present.
-- Offline / read‑only fallback paths are implemented.
-- Dark / light theme toggle is stable.
 
-## Current Tech Stack
-- **React 19** (JSX, hooks)
-- **Vite 7** (dev server & build)
-- **Tailwind CSS 4** (utility‑first styling)
-- **Supabase JS 2** (auth‑less client, CRUD, env snapshot)
-- **Lucide‑react** (icon set)
-- **JavaScript (ESM)** – no TypeScript yet.
+AutoPost Studio is transitioning from a simple Facebook posting dashboard into a full AI-powered Facebook Content Operating System focused on:
 
-## Current `src` Structure
-```
-src
-├─ components/
-│   ├─ ActionButton.jsx
-│   ├─ Header.jsx
-│   ├─ SectionCard.jsx
-│   ├─ StatusCard.jsx
-│   └─ TabButton.jsx
-├─ constants/
-│   └─ appConstants.js
-├─ hooks/               (empty)
-├─ pages/
-│   ├─ App.jsx
-│   ├─ CreatePage.jsx
-│   ├─ GuidePage.jsx
-│   ├─ SettingsPage.jsx
-│   └─ StatusPage.jsx
-├─ services/
-│   ├─ ai-generation.js (Text generation dispatcher)
-│   ├─ ai-image-generation.js (Image generation dispatcher)
-│   ├─ facebook.js (Facebook Graph API wrapper)
-│   ├─ scheduler.js (Client-side automation logic)
-│   ├─ storage.js (Supabase Storage wrapper)
-│   ├─ app-settings.js  (local settings persistence)
-│   ├─ local-drafts.js  (offline draft handling)
-│   └─ supabase.js      (Supabase API wrapper)
-└─ index.css / main.jsx
-```
+* Low-cost AI-assisted automation
+* Multi-page Facebook management
+* AI-generated text and images
+* Automated scheduling
+* Production-safe publishing workflows
+* Long-running Supabase-backed operations
 
-## What Has Been Refactored Already
-- Extraction of **settings**, **draft** handling, and **Supabase** calls into the `services/` layer.
-- Centralised constants (`appConstants.js`) for tabs, guide sections, and default form data.
-- Added dark‑mode toggle with a gradient background.
-- Implemented graceful fallback when Supabase is unavailable (offline/read‑only modes).
-- **Phase 4 Complete**: Extraction of reusable UI components (`Header`, `StatusCard`, `SectionCard`, `TabButton`, `ActionButton`).
-- **Phase 5 Complete**: Integrated **AI Text Generation** (OpenAI & xAI).
-- **Phase 6A Complete**: Integrated **Image Generation Flow MVP**.
-- **Phase 6B Complete**: Integrated **Supabase Image Metadata Persistence**.
-- **Phase 7A Complete**: Integrated **Facebook Publishing Foundation**.
-- **Phase 7B Complete**: Integrated **Scheduler & Automation Foundation**.
-    - Isolated scheduler service (`scheduler.js`) for client-side task management.
-    - Automated background polling (every 60s) while the app is open.
-    - Automatic detection and publication of "due" scheduled posts.
-    - Status page visibility for scheduled/posted timestamps and scheduler activity.
-- **Phase 8 Complete**: **Production Hardening & QA Pass**.
-    - Introduced a centralized `logger.js` for development-only tracing.
-    - Added defensive validation and error extraction across all services.
-    - Improved error messaging for common Facebook and Supabase Storage failures.
-    - Verified cross-mode stability (online, offline, missing config).
-    - Established a manual QA checklist for ongoing verification.
-- **Phase 10C Complete**: **Settings and Status UI Cleanup**.
-    - Refactored Settings into a two-panel layout.
-- **Phase 10D Complete**: **Guide Modal + Final UI QA**.
-    - Replaced the standalone Guide page with a high-fidelity `GuideModal` accessible from both Header and Sidebar.
-    - Updated guide content to reflect the production-ready Gemini, Mock/Live, and Scheduler workflow.
-    - Conducted a final UI/UX audit to ensure spacing consistency, mobile responsiveness, and dark-theme premium aesthetics.
-    - Verified all core flows (Create -> Status -> Settings) under the new dashboard shell.
+The project is currently in a **stable Production V1 state** with:
 
-## Current Known Issues
-- **Supabase RLS**: write operations on the `posts` table are blocked until proper row‑level security policies are applied. (Partially addressed in `supabase-setup.sql`).
-- **Production Verification**: Real-world 24/7 automation requires setting GitHub/Supabase secrets (CRON_SECRET, etc.).
-- Offline mode stores drafts locally but does not sync automatically when connectivity is restored.
-- **Edge Function Warnings**: Some editor environments might still show false positive warnings for `Deno` global namespace despite correct `deno.json` configuration; these do not affect deployment.
+* Stable dashboard architecture
+* Stable Supabase integration
+* Stable publishing workflow
+* Stable draft system
+* Stable scheduler fallback
+* Mock/live publishing safety controls
+* Gemini integration
+* Initial AI image generation support
 
-## Current Coding Rules for AI Assistants
-1. **Never modify UI layout or visual styling** unless explicitly requested.
-2. **Do not change existing logic** – only add documentation or new files.
-3. Preserve all existing comments and docstrings.
-4. Keep new code consistent with the existing ES module style.
+The application is now entering a major restructuring roadmap focused on:
 
-## Current Phase
-**Phase 10D Complete: Final UI Polish** – The application is now fully modernized with a sidebar-based dashboard, two-panel workflows, and on-demand modal guidance.
+* Multi-page architecture
+* AI Provider System V2
+* Content Workflow V2
+* Scheduler System V2
+* AI Library & Logs
+* Analytics foundation
 
-## Recommended Next Phase
-1. **Facebook Live Token Setup & App Review** – Transition from developer tokens to production-grade permissions.
-2. **Supabase Edge Scheduler** – Migrate client-side polling to a server-side cron job for 24/7 reliability.
-3. **UX Polish / Content Workflow** – Improvements to text editing and multi-image support.
-4. **Auth / Multi-User Support** – Secure the dashboard for multiple team members.
+---
 
-## Current Pages / Components / Services / Constants Summary
-- **Pages**: `App.jsx`, `CreatePage.jsx`, `GuidePage.jsx`, `SettingsPage.jsx`, `StatusPage.jsx`.
-- **Components**: `Header`, `StatusCard`, `SectionCard`, `TabButton`, `ActionButton`.
-- **Services**: `ai-generation.js`, `ai-image-generation.js`, `facebook.js`, `logger.js`, `scheduler.js`, `storage.js`, `app-settings.js`, `local-drafts.js`, `supabase.js`.
-- **Constants**: `appConstants.js` – contains tabs, guide sections, default form values, status copy strings.
+# Current Stable Features
 
-## QA Checklist (Verified)
-- [x] **Memory Stability**: Verified zero RAM leak during long-running sessions.
-- [x] **Safety Controls**: Mock mode prevents real Facebook API calls even when config is present.
-- [x] **Create Text**: AI successfully generates Thai/English content.
-- [x] **Generate Image**: AI generates images and mirrors them to Supabase Storage.
-- [x] **Save Draft**: Drafts persist with full image metadata.
-- [x] **Status View**: Persisted metadata and previews render correctly.
-- [x] **Manual Publish**: Immediate posting to Facebook Page works (in Live mode).
-- [x] **Scheduled Publish**: Background automation works while the tab is open (when enabled).
+## Dashboard System
 
-## Deployment Status
-- [x] **Vercel**: Production deploy complete.
-- [x] **Supabase**: Project created and `supabase-setup.sql` executed.
-- [x] **Storage**: `generated-images` bucket created and functional.
-- [x] **Facebook**: Page access configured (currently in developer/mock mode).
-- [x] **Build**: `npm run build` verified.
+* Sidebar navigation
+* Responsive dashboard layout
+* Two-panel workflow UI
+* Guide modal system
+* Compact dashboard cards
+* Mobile-friendly layouts
+
+## AI Text Generation
+
+Currently supports:
+
+* Mock mode
+* OpenAI API
+* Gemini API
+
+## AI Image Generation
+
+Currently supports:
+
+* Mock generation
+* DALL·E / OpenAI image generation flow
+* Supabase image storage mirroring
+
+## Publishing System
+
+* Facebook page publishing
+* Scheduled posting
+* Draft save system
+* Manual publish
+* Mock/live publish protection
+* Scheduler enable/disable control
+
+## Supabase Integration
+
+* Draft persistence
+* Settings persistence
+* Generated image metadata
+* Scheduler state support
+
+---
+
+# Current Architecture Direction (IMPORTANT)
+
+The project is no longer designed as:
+
+* single-page
+* single-provider
+* single-workflow
+
+The new architecture direction is:
+
+* Multi-page workspace system
+* Multi-provider AI routing
+* Production-safe automation workflows
+* Persistent AI memory per page
+* Queue-driven scheduling system
+* Centralized content operations
+
+This direction MUST be preserved in all future phases.
+
+---
+
+# Upcoming Architecture Goals
+
+## AI Provider System V2
+
+Planned provider routing system supporting:
+
+### Text Providers
+
+* Mock
+* Gemini API
+* OpenAI API
+* Codex CLI
+* Future local models
+
+### Image Providers
+
+* Mock
+* GPT Image
+* DALL·E
+* Future providers
+
+### Planned Features
+
+* Provider visibility
+* Runtime status badges
+* API validation
+* Cost-aware routing
+* Codex CLI status detection
+* AI model selection
+* Provider failover support
+
+---
+
+# Multi-Page Workspace System (PLANNED)
+
+The system will support:
+
+* Multiple Facebook pages
+* Page selector dropdown
+* Per-page AI memory
+* Per-page posting strategy
+* Per-page visual style
+* Per-page scheduling queues
+
+Each page will contain:
+
+* page_id
+* page_name
+* page_access_token
+* target audience
+* storytelling style
+* content tone
+* hashtags preset
+* visual identity
+* posting strategy
+
+---
+
+# Content Workflow V2 (PLANNED)
+
+The Create Content page will evolve into a full AI content pipeline.
+
+## Planned Content Controls
+
+* Content type dropdown
+* Tone selector
+* Content length selector
+* CTA selector
+* Hashtag controls
+* Link controls
+
+## Planned Image Controls
+
+* Upload image
+* AI image generation
+* Model selection
+* Aspect ratio selection
+* Style presets
+* Text overlay generation
+* Prompt assist
+* Auto prompt generation
+
+## Planned Preview Studio
+
+* Mobile preview
+* Desktop preview
+* Crop preview
+* Final publish preview
+
+---
+
+# Scheduler System V2 (PLANNED)
+
+The scheduler system will evolve into a queue-based publishing engine.
+
+## Planned Features
+
+* Multi-page queue management
+* Posting slot configuration
+* Retry system
+* Failure recovery
+* Publish history
+* Queue overview
+* Timezone support
+* Auto spacing logic
+
+---
+
+# AI Library System (PLANNED)
+
+Planned centralized asset management:
+
+* Generated images
+* Saved prompts
+* Generated captions
+* Successful posts
+* Reusable templates
+
+Features:
+
+* Search
+* Filtering
+* Regeneration
+* Reuse workflow
+
+---
+
+# Logs System (PLANNED)
+
+Centralized operational logs:
+
+* App logs
+* Scheduler logs
+* AI generation logs
+* Publish logs
+* Error logs
+
+Features:
+
+* Clear logs
+* Copy error
+* Export logs
+* Filtering
+
+---
+
+# Analytics System (PLANNED)
+
+Analytics will be implemented only after:
+
+* Workflow stabilization
+* Multi-page support
+* Scheduler V2 completion
+
+---
+
+# Current Development Priority
+
+## HIGH PRIORITY
+
+1. AI Provider System V2
+2. Multi-page workspace architecture
+3. Content Workflow V2
+4. Scheduler System V2
+
+## MEDIUM PRIORITY
+
+5. AI Library
+6. Logs system
+
+## LOW PRIORITY
+
+7. Analytics
+8. Multi-user auth
+9. SaaS architecture
+
+---
+
+# Current Development Rules
+
+1. Minimal safe changes only
+2. Never break stable publishing logic
+3. Never modify backend architecture without planning
+4. Preserve mock mode for low-cost testing
+5. Prioritize workflow clarity over feature quantity
+6. Maintain production-safe operation defaults
+
+---
+
+# Current Stable Phase
+
+Phase 10D Complete — Guide Modal + Final UI QA
+
+The application is now visually stable and ready for major architectural evolution.
+
+The application is now visually stable and ready for major architectural evolution.
