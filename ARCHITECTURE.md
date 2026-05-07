@@ -14,6 +14,7 @@ The application is a **client‑side React SPA** built with **Vite**. It communi
 
 ## App Shell & Navigation
 - **Persistent Sidebar** (`components/Sidebar.jsx`): Centralized navigation for Create Draft, Status, Settings, and Guide.
+- **Two-Panel Dashboards**: Settings and Create pages utilize side-by-side layouts to separate form inputs from live previews and system status monitors.
 - **Compact Header** (`components/Header.jsx`): Persistent top bar with branding and live connection indicators (Supabase, Facebook, AI).
 - **Independent Scrolling**: The main content area scrolls independently of the sidebar, maintaining viewport stability.
 
