@@ -1,10 +1,11 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Moon, RefreshCw, Sparkles, Sun } from "lucide-react";
 import CreatePage from "./CreatePage.jsx";
 import GuidePage from "./GuidePage.jsx";
 import SettingsPage from "./SettingsPage.jsx";
 import StatusPage from "./StatusPage.jsx";
-import { appTabs, guideSections, initialForm, statusCopy } from "../constants/appConstants.js";
+import Sidebar from "../components/Sidebar.jsx";
+import Header from "../components/Header.jsx";
+import { guideSections, initialForm, statusCopy } from "../constants/appConstants.js";
 import { defaultSettings, getAppSettings, saveAppSettings } from "../services/app-settings.js";
 import { getLocalDrafts, removeLocalDraft, saveLocalDraft } from "../services/local-drafts.js";
 import {
@@ -14,19 +15,14 @@ import {
   hasSupabaseConfig,
   insertRemoteDraft,
   saveRemoteSettings,
+  updateRemotePostStatus,
 } from "../services/supabase.js";
-import Header from "../components/Header.jsx";
-import StatusCard from "../components/StatusCard.jsx";
-import SectionCard from "../components/SectionCard.jsx";
-import TabButton from "../components/TabButton.jsx";
 import { generateImagePrompt, generatePostContent } from "../services/ai-generation.js";
 import { publishFacebookPost, validateFacebookConfig } from "../services/facebook.js";
-import { updateRemotePostStatus } from "../services/supabase.js";
 import { runSchedulerTick } from "../services/scheduler.js";
 
 function formatDate(value) {
   if (!value) return "-";
-
   return new Intl.DateTimeFormat("th-TH", {
     dateStyle: "medium",
     timeStyle: "short",
@@ -94,24 +90,20 @@ function App() {
   const dataLock = useRef(false);
   const stateRef = useRef({ remotePosts: [], settings: defaultSettings });
 
-  // Sync stateRef with state
   useEffect(() => {
     stateRef.current = { remotePosts, settings };
   }, [remotePosts, settings]);
 
-  // 1. Load data once on mount
   useEffect(() => {
-    void loadAllData(true); // Initial load with spinner
+    void loadAllData(true);
   }, []);
 
-  // 2. Setup scheduler interval (60 seconds) - CREATED ONLY ONCE
   useEffect(() => {
     const interval = setInterval(() => {
       void handleSchedulerTick();
     }, 60000);
-
     return () => clearInterval(interval);
-  }, []); // Empty dependency array ensures this runs only once
+  }, []);
 
   const envSnapshot = getSupabaseEnvSnapshot();
 
@@ -122,65 +114,29 @@ function App() {
     );
   }, [localDrafts, remotePosts]);
 
-  const completedPosts = useMemo(
-    () => remotePosts.filter((post) => post.status === "posted"),
-    [remotePosts]
-  );
-
   async function loadAllData(showSpinner = false) {
     if (dataLock.current) return;
     dataLock.current = true;
-
     if (showSpinner) setIsLoading(true);
     setConnectionError("");
     setSettingsMessage("");
-
     try {
       const localSettings = getAppSettings();
       setLocalDrafts(getLocalDrafts());
-
       const [postsResult, settingsResult] = await Promise.all([
         fetchRemotePosts(),
         fetchRemoteSettings(),
       ]);
-
       if (postsResult.data) {
-        setRemotePosts((current) => {
-          if (JSON.stringify(current) === JSON.stringify(postsResult.data)) return current;
-          return postsResult.data;
-        });
+        setRemotePosts(postsResult.data);
       }
-      
-      if (postsResult.mode) {
-        setConnectionMode(postsResult.mode);
-      }
-
-      if (postsResult.error && postsResult.mode !== "offline") {
-        setConnectionError(postsResult.error.message);
-      }
-
-      if (settingsResult.mode) {
-        setSettingsSyncMode(settingsResult.mode);
-      }
-
+      if (postsResult.mode) setConnectionMode(postsResult.mode);
+      if (postsResult.error && postsResult.mode !== "offline") setConnectionError(postsResult.error.message);
+      if (settingsResult.mode) setSettingsSyncMode(settingsResult.mode);
       if (settingsResult.data) {
-        setSettings((current) => {
-          const next = { ...current, ...localSettings, ...settingsResult.data };
-          // Simple comparison of key fields to avoid loop
-          if (
-            current.openaiApiKey === next.openaiApiKey &&
-            current.facebookPageAccessToken === next.facebookPageAccessToken &&
-            current.workspaceName === next.workspaceName
-          ) {
-            return current;
-          }
-          return next;
-        });
+        setSettings({ ...localSettings, ...settingsResult.data });
       } else {
         setSettings(localSettings);
-        if (settingsResult.error && settingsResult.mode !== "offline") {
-          setSettingsMessage(settingsResult.error.message);
-        }
       }
     } catch (err) {
       console.error("Critical error loading data:", err);
@@ -205,114 +161,62 @@ function App() {
   }, []);
 
   async function handleGenerateContent() {
-    if (!form.topic.trim()) {
-      window.alert("กรุณาใส่หัวข้อก่อน");
-      return;
-    }
-
+    if (!form.topic.trim()) return window.alert("กรุณาใส่หัวข้อก่อน");
     setIsGenerating(true);
     setGenerationError("");
-
     const result = await generatePostContent({ formData: form, settings });
-
-    if (result.data) {
-      updateForm("content", result.data);
-    } else if (result.error) {
-      console.error("Content generation error:", result.error);
-      setGenerationError(result.error);
-    }
-
+    if (result.data) updateForm("content", result.data);
+    else if (result.error) setGenerationError(result.error);
     setIsGenerating(false);
   }
 
   async function handleGenerateImagePrompt() {
-    if (!form.topic.trim()) {
-      window.alert("กรุณาใส่หัวข้อก่อน");
-      return;
-    }
-
+    if (!form.topic.trim()) return window.alert("กรุณาใส่หัวข้อก่อน");
     setIsGeneratingImagePrompt(true);
     setGenerationError("");
-
     const result = await generateImagePrompt({ formData: form, settings });
-
-    if (result.data) {
-      updateForm("imagePrompt", result.data);
-    } else if (result.error) {
-      console.error("Image prompt generation error:", result.error);
-      setGenerationError(result.error);
-    }
-
+    if (result.data) updateForm("imagePrompt", result.data);
+    else if (result.error) setGenerationError(result.error);
     setIsGeneratingImagePrompt(false);
   }
 
   function handleGenerateImagePreview() {
-    if (!form.imagePrompt.trim()) {
-      window.alert("กรุณาสร้าง prompt รูปก่อน");
-      return;
-    }
-
+    if (!form.imagePrompt.trim()) return window.alert("กรุณาสร้าง prompt รูปก่อน");
     setIsGeneratingImage(true);
-
     window.setTimeout(() => {
-      updateForm(
-        "imageUrl",
-        `https://picsum.photos/seed/${encodeURIComponent(form.topic || "autopost")}/1200/1200`
-      );
+      updateForm("imageUrl", `https://picsum.photos/seed/${encodeURIComponent(form.topic || "autopost")}/1200/1200`);
       setIsGeneratingImage(false);
     }, 900);
   }
 
   async function handleSaveDraft(extraData = {}) {
-    if (!form.topic.trim() || !form.content.trim()) {
-      window.alert("ต้องมีทั้งหัวข้อและเนื้อหาก่อนบันทึก");
-      return;
-    }
-
+    if (!form.topic.trim() || !form.content.trim()) return window.alert("ต้องมีทั้งหัวข้อและเนื้อหาก่อนบันทึก");
     setIsSavingDraft(true);
-
     const draft = {
       topic: form.topic.trim(),
       content: form.content.trim(),
       image_prompt: extraData.image_prompt || form.imagePrompt.trim(),
       image_url: extraData.image_url || form.imageUrl.trim(),
       image_provider: extraData.image_provider || null,
-      image_revised_prompt: extraData.image_revised_prompt || null,
-      image_storage_path: extraData.image_storage_path || null,
-      image_storage_mode: extraData.image_storage_mode || null,
       status: "draft",
       created_at: new Date().toISOString(),
     };
-
     const remote = await insertRemoteDraft(draft);
-
     if (remote.data) {
       setRemotePosts((current) => [remote.data, ...current]);
-      setConnectionMode(remote.mode);
-      setConnectionError("");
       resetForm();
       setIsSavingDraft(false);
       window.alert("บันทึก draft ลง Supabase สำเร็จ");
       return;
     }
-
-    if (
-      remote.mode === "read-only" ||
-      remote.mode === "offline" ||
-      remote.mode === "missing-table"
-    ) {
+    if (["read-only", "offline", "missing-table"].includes(remote.mode)) {
       const localEntry = saveLocalDraft(draft);
-      setLocalDrafts((current) => (localEntry ? [localEntry, ...current] : current));
-      setConnectionMode(remote.mode);
-      setConnectionError(remote.error?.message ?? "");
+      setLocalDrafts((current) => localEntry ? [localEntry, ...current] : current);
       resetForm();
       setIsSavingDraft(false);
       window.alert("บันทึกลง Supabase ไม่ได้ จึงเก็บ draft ไว้ในเครื่องก่อน");
       return;
     }
-
-    setConnectionMode(remote.mode);
-    setConnectionError(remote.error?.message ?? "Unknown error");
     setIsSavingDraft(false);
     window.alert(`บันทึกไม่สำเร็จ: ${remote.error?.message ?? "Unknown error"}`);
   }
@@ -320,62 +224,30 @@ function App() {
   async function handleSaveSettings() {
     setIsSavingSettings(true);
     const stored = saveAppSettings(settings);
-    setSettings(stored);
-
     const remote = await saveRemoteSettings(stored);
-
     if (remote.data) {
       setSettings(remote.data);
       setSettingsSyncMode(remote.mode);
       setSettingsMessage("บันทึกการตั้งค่าลง Supabase สำเร็จ");
-      setIsSavingSettings(false);
-      return;
+    } else {
+      setSettingsSyncMode(remote.mode);
+      setSettingsMessage(remote.error?.message ?? "บันทึกลง local สำเร็จ แต่ sync ไป Supabase ไม่ได้");
     }
-
-    setSettingsSyncMode(remote.mode);
-    setSettingsMessage(
-      remote.mode === "read-only"
-        ? "บันทึกลงเว็บแอปแล้ว แต่ Supabase ยังเขียนไม่ได้เพราะ RLS"
-        : remote.mode === "missing-table"
-          ? "บันทึกลงเว็บแอปแล้ว แต่ยังไม่มีตาราง app_settings ใน Supabase"
-          : remote.error?.message ?? "บันทึกลง local สำเร็จ แต่ sync ไป Supabase ไม่ได้"
-    );
     setIsSavingSettings(false);
   }
 
   const handlePublishPost = useCallback(async (postId) => {
     const post = remotePosts.find((p) => p.id === postId);
-    if (!post) {
-      window.alert("ไม่พบโพสต์ที่ต้องการเผยแพร่");
-      return;
-    }
-
-    if (!validateFacebookConfig(settings)) {
-      window.alert("กรุณาตั้งค่า Facebook Page ID และ Access Token ก่อน");
-      return;
-    }
-
+    if (!post) return window.alert("ไม่พบโพสต์ที่ต้องการเผยแพร่");
+    if (!validateFacebookConfig(settings)) return window.alert("กรุณาตั้งค่า Facebook Page ID และ Access Token ก่อน");
     if (settings.facebookPublishMode === "live") {
-      const confirm = window.confirm(`ยืนยันการโพสต์ "${post.topic}" ลง Facebook จริง? (โหมด LIVE)`);
-      if (!confirm) return;
+      if (!window.confirm(`ยืนยันการโพสต์ "${post.topic}" ลง Facebook จริง? (โหมด LIVE)`)) return;
     }
-
     const result = await publishFacebookPost(post, settings);
-
-    if (result.error) {
-      window.alert(`เผยแพร่ไม่สำเร็จ: ${result.error}`);
-      return;
-    }
-
-    // Update status in Supabase
-    const update = await updateRemotePostStatus(postId, "posted", {
-      posted_at: new Date().toISOString(),
-    });
-
+    if (result.error) return window.alert(`เผยแพร่ไม่สำเร็จ: ${result.error}`);
+    const update = await updateRemotePostStatus(postId, "posted", { posted_at: new Date().toISOString() });
     if (update.data) {
-      setRemotePosts((current) =>
-        current.map((p) => (p.id === postId ? update.data : p))
-      );
+      setRemotePosts((current) => current.map((p) => (p.id === postId ? update.data : p)));
       window.alert("เผยแพร่ลง Facebook สำเร็จ!");
     } else {
       window.alert("เผยแพร่สำเร็จแล้ว แต่ไม่สามารถอัปเดตสถานะในระบบได้");
@@ -384,44 +256,17 @@ function App() {
 
   async function handleSchedulerTick() {
     if (schedulerLock.current) return;
-    
-    // Use state from Ref to ensure we have the latest without re-creating interval
     const { remotePosts: currentPosts, settings: currentSettings } = stateRef.current;
-
-    if (!currentSettings.schedulerEnabled) return;
-    if (!validateFacebookConfig(currentSettings)) return;
-    if (!currentPosts || currentPosts.length === 0) return;
-
+    if (!currentSettings.schedulerEnabled || !validateFacebookConfig(currentSettings) || !currentPosts?.length) return;
     schedulerLock.current = true;
     try {
       const summary = await runSchedulerTick(currentPosts, currentSettings, {
         onPostPublished: (updatedPost) => {
-          setRemotePosts((current) =>
-            current.map((p) => (p.id === updatedPost.id ? updatedPost : p))
-          );
+          setRemotePosts((current) => current.map((p) => (p.id === updatedPost.id ? updatedPost : p)));
         },
       });
-
-      // Only update status if something happened or it's been a while
       if (summary.due > 0 || summary.published > 0 || summary.failed > 0) {
-        setSchedulerStatus((prev) => {
-          const hasChanged =
-            !prev ||
-            prev.due !== summary.due ||
-            prev.published !== summary.published ||
-            prev.failed !== summary.failed;
-
-          if (!hasChanged && prev.lastRun) {
-            // If nothing changed, we still might want to update lastRun occasionally,
-            // but let's be conservative to prevent re-renders.
-            return prev;
-          }
-
-          return {
-            lastRun: new Date().toISOString(),
-            ...summary,
-          };
-        });
+        setSchedulerStatus({ lastRun: new Date().toISOString(), ...summary });
       }
     } catch (err) {
       console.error("Scheduler tick error:", err);
@@ -435,148 +280,50 @@ function App() {
     setLocalDrafts((current) => current.filter((draft) => draft.id !== id));
   }, []);
 
-  const currentStatus = statusCopy[connectionMode] ?? statusCopy.error;
-  const StatusIcon = currentStatus.icon;
   const currentSettingsStatus = statusCopy[settingsSyncMode] ?? statusCopy.error;
   const SettingsStatusIcon = currentSettingsStatus.icon;
 
   return (
-    <div
-      className={`min-h-screen ${
-        isDark
-          ? "bg-[radial-gradient(circle_at_top,_#17314f,_#020617_55%)] text-white"
-          : "bg-[linear-gradient(180deg,_#f7f4ed,_#e7ecf3)] text-slate-900"
-      }`}
-    >
-      <Header
-        workspaceName={settings.workspaceName}
-        isDark={isDark}
-        onToggleTheme={() => setIsDark((current) => !current)}
-      />
-
-      <main className="mx-auto flex max-w-7xl flex-col gap-8 px-6 py-8">
-        <StatusCard
-          status={currentStatus}
-          onRefresh={() => void loadAllData(true)}
-          errorMessage={connectionError}
+    <div className="flex h-screen overflow-hidden bg-slate-950 font-sans text-slate-200">
+      <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} workspaceName={settings.workspaceName} />
+      <div className="flex flex-1 flex-col lg:pl-64">
+        <Header 
+          isDark={isDark} 
+          onToggleTheme={() => setIsDark(!isDark)}
+          connectionMode={connectionMode}
+          fbMode={validateFacebookConfig(settings) ? settings.facebookPublishMode : "missing"}
+          aiProvider={settings.aiProvider}
         />
-
-        <section className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
-          <SectionCard className="p-8">
-            <div className="mb-8 grid gap-2 rounded-2xl border border-white/10 bg-white/5 p-2 sm:grid-cols-4">
-              {appTabs.map((tab) => (
-                <TabButton
-                  key={tab.id}
-                  id={tab.id}
-                  label={tab.label}
-                  icon={tab.icon}
-                  isActive={activeTab === tab.id}
-                  onClick={setActiveTab}
-                />
-              ))}
-            </div>
-
+        <main className="flex-1 overflow-y-auto p-6 lg:p-8">
+          <div className="mx-auto max-w-5xl">
             {activeTab === "create" && (
               <CreatePage
-                form={form}
-                settings={settings}
-                updateForm={updateForm}
-                handleGenerateContent={handleGenerateContent}
-                handleGenerateImagePrompt={handleGenerateImagePrompt}
-                handleGenerateImagePreview={handleGenerateImagePreview}
-                handleSaveDraft={handleSaveDraft}
-                isGenerating={isGenerating}
-                isGeneratingImagePrompt={isGeneratingImagePrompt}
-                isGeneratingImage={isGeneratingImage}
-                isSavingDraft={isSavingDraft}
-                generationError={generationError}
+                form={form} settings={settings} updateForm={updateForm}
+                handleGenerateContent={handleGenerateContent} handleGenerateImagePrompt={handleGenerateImagePrompt}
+                handleGenerateImagePreview={handleGenerateImagePreview} handleSaveDraft={handleSaveDraft}
+                isGenerating={isGenerating} isGeneratingImagePrompt={isGeneratingImagePrompt}
+                isGeneratingImage={isGeneratingImage} isSavingDraft={isSavingDraft} generationError={generationError}
               />
             )}
-
             {activeTab === "settings" && (
               <SettingsPage
-                currentSettingsStatus={currentSettingsStatus}
-                SettingsStatusIcon={SettingsStatusIcon}
-                settingsMessage={settingsMessage}
-                SettingsField={SettingsField}
-                settings={settings}
-                updateSettingsField={updateSettingsField}
-                envSnapshot={envSnapshot}
-                handleSaveSettings={handleSaveSettings}
-                isSavingSettings={isSavingSettings}
+                currentSettingsStatus={currentSettingsStatus} SettingsStatusIcon={SettingsStatusIcon}
+                settingsMessage={settingsMessage} SettingsField={SettingsField} settings={settings}
+                updateSettingsField={updateSettingsField} envSnapshot={envSnapshot}
+                handleSaveSettings={handleSaveSettings} isSavingSettings={isSavingSettings}
               />
             )}
-
             {activeTab === "status" && (
               <StatusPage
-                allPendingPosts={allPendingPosts}
-                remotePosts={remotePosts}
-                localDrafts={localDrafts}
-                formatDate={formatDate}
-                handleDeleteLocalDraft={handleDeleteLocalDraft}
-                handlePublishPost={handlePublishPost}
-                settings={settings}
-                schedulerStatus={schedulerStatus}
+                allPendingPosts={allPendingPosts} remotePosts={remotePosts} localDrafts={localDrafts}
+                formatDate={formatDate} handleDeleteLocalDraft={handleDeleteLocalDraft}
+                handlePublishPost={handlePublishPost} settings={settings} schedulerStatus={schedulerStatus}
               />
             )}
-
             {activeTab === "guide" && <GuidePage guideSections={guideSections} />}
-          </SectionCard>
-
-          <aside className="space-y-6">
-            <SectionCard title="สถานะสิทธิ์จริงของโปรเจกต์">
-              <ul className="mt-4 space-y-3 text-sm text-slate-300">
-                <li>ตาราง `posts` อ่านได้จริงผ่าน anon key</li>
-                <li>การเขียน `posts` ยังติด RLS จึงยังไม่สมบูรณ์จากฝั่ง Supabase</li>
-                <li>
-                  ตาราง `app_settings` จะพร้อมเมื่อรัน [supabase-setup.sql](D:/WebApp/Autopost%20Studio/supabase-setup.sql)
-                </li>
-                <li>ตั้งค่าในเว็บแอปได้ทันที และจะ sync ไป Supabase เมื่อสิทธิ์พร้อม</li>
-              </ul>
-            </SectionCard>
-
-            <SectionCard title="ข้อมูลตั้งค่าปัจจุบัน">
-              <div className="mt-4 space-y-3 text-sm text-slate-300">
-                <div className="rounded-xl bg-white/5 p-4">
-                  <p className="text-slate-500">OpenAI API Key</p>
-                  <p className="mt-1">{maskSecret(settings.openaiApiKey)}</p>
-                </div>
-                <div className="rounded-xl bg-white/5 p-4">
-                  <p className="text-slate-500">Gemini API Key</p>
-                  <p className="mt-1">{maskSecret(settings.geminiApiKey)}</p>
-                </div>
-                <div className="rounded-xl bg-white/5 p-4">
-                  <p className="text-slate-500">Facebook Page ID</p>
-                  <p className="mt-1">{settings.facebookPageId || "ยังไม่ได้กรอก"}</p>
-                </div>
-                <div className="rounded-xl bg-white/5 p-4">
-                  <p className="text-slate-500">Facebook Page Access Token</p>
-                  <p className="mt-1">{maskSecret(settings.facebookPageAccessToken)}</p>
-                </div>
-              </div>
-            </SectionCard>
-
-            <SectionCard title="โพสต์ที่สำเร็จแล้ว">
-              <div className="mt-4 space-y-3">
-                {isLoading ? (
-                  <p className="text-sm text-slate-400">กำลังโหลด...</p>
-                ) : completedPosts.length === 0 ? (
-                  <p className="text-sm text-slate-400">ยังไม่มีโพสต์สถานะ posted</p>
-                ) : (
-                  completedPosts.map((post) => (
-                    <article key={post.id} className="rounded-2xl bg-slate-900/80 p-4">
-                      <h3 className="font-medium">{post.topic || "ไม่มีหัวข้อ"}</h3>
-                      <p className="mt-1 text-sm text-slate-400">
-                        โพสต์เมื่อ {formatDate(post.posted_at || post.created_at)}
-                      </p>
-                    </article>
-                  ))
-                )}
-              </div>
-            </SectionCard>
-          </aside>
-        </section>
-      </main>
+          </div>
+        </main>
+      </div>
     </div>
   );
 }

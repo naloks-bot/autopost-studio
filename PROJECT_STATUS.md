@@ -66,11 +66,12 @@ src
     - Improved error messaging for common Facebook and Supabase Storage failures.
     - Verified cross-mode stability (online, offline, missing config).
     - Established a manual QA checklist for ongoing verification.
-- **Mini Phase Complete**: **Replace xAI with Gemini 2.5 Flash**.
-    - Removed xAI integration from settings and services.
-    - Implemented Google Gemini (Generative Language API) integration using `fetch`.
-    - Added support for `gemini-2.5-flash` as the default Gemini model.
-    - Updated UI and persistence to handle Gemini API keys and settings.
+- **Phase 10A Complete**: **App Shell + Sidebar UI Restructure**.
+    - Implemented a persistent left sidebar for professional dashboard-style navigation.
+    - Refactored the app into a viewport-height shell with independent scrolling content.
+    - Replaced large global status banners with compact connection indicators (chips) in the top header.
+    - Removed redundant global info panels to reduce clutter and focus on content.
+    - Improved theme visual clarity and layout behavior.
 
 ## Current Known Issues
 - **Supabase RLS**: write operations on the `posts` table are blocked until proper row‑level security policies are applied. (Partially addressed in `supabase-setup.sql`).
@@ -84,7 +85,7 @@ src
 4. Keep new code consistent with the existing ES module style.
 
 ## Current Phase
-**Mini Phase Complete: Gemini Integration** – Google Gemini is now the secondary AI provider, replacing xAI.
+**Phase 10A Complete: App Shell Restructure** – The application now features a professional dashboard-style UI with sidebar navigation and compact status indicators.
 
 ## Recommended Next Phase
 1. **Facebook Live Token Setup & App Review** – Transition from developer tokens to production-grade permissions.

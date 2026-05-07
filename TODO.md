@@ -10,10 +10,10 @@
 - Image Generation Flow (DALL-E + Supabase Storage Mirroring).
 - Facebook Publishing Foundation (Immediate & Scheduled).
 - Client-Side Scheduler (60s background polling).
-- **Mini Phase**: Replace xAI with Gemini 2.5 Flash.
-    - Swapped `xaiApiKey`/`Model` for `geminiApiKey`/`Model`.
-    - Implemented Google Generative Language API integration.
-    - Updated UI and Supabase persistence layers.
+- **Phase 10A**: App Shell + Sidebar UI Restructure.
+    - Implemented left sidebar navigation.
+    - Added compact status header with connectivity chips.
+    - Optimized layout for independent content scrolling.
 
 ## In Progress
 - Production environment verification (secrets setup).

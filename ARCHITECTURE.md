@@ -4,16 +4,18 @@
 The application is a **client‑side React SPA** built with **Vite**. It communicates directly with **Supabase** (PostgreSQL + Storage + Edge Functions) via the Supabase JavaScript client. All business logic lives in the **service layer** (`src/services/`). UI components are organized under `src/pages/` and future reusable widgets will reside in `src/components/`.
 
 ## Frontend Flow
-1. **App Initialization** – `main.jsx` mounts `App.jsx`.
-2. **Settings Load** – Local settings are read from `localStorage` (`services/app-settings.js`). If a Supabase `app_settings` row exists, it is fetched and merged.
-3. **Logging & Diagnostics** – `services/logger.js` provides development-only tracing for all core operations.
+1. **App Shell** – `App.jsx` implements a viewport-height dashboard with a persistent left `Sidebar.jsx`.
+2. **App Initialization** – `main.jsx` mounts the shell.
+3. **Settings Load** – Local settings are read from `localStorage` (`services/app-settings.js`). If a Supabase `app_settings` row exists, it is fetched and merged.
 4. **Data Fetching** – `fetchRemotePosts` & `fetchRemoteSettings` populate the UI with existing drafts and configuration.
-5. **Scheduler Polling (Client)** – `services/scheduler.js` runs every 60s while the app is active to process due scheduled posts.
-6. **Scheduler Polling (Server)** – Supabase Edge Function `process-scheduled-posts` provides a server-side entry point.
-7. **External Trigger (GitHub Actions)** – `.github/workflows/process-scheduled-posts.yml` triggers the Edge Function via `curl`.
-    - **Schedule**: Every 30 minutes.
-    - **Security**: Validates `CRON_SECRET` via custom header.
-    - **Observability**: Logs results in GitHub Actions console and Supabase dashboard.
+5. **Navigation** – Sidebar controls the `activeTab` state to switch between pages without full-page reloads.
+6. **Scheduler Polling (Client)** – `services/scheduler.js` runs every 60s while the app is active to process due scheduled posts.
+7. **External Trigger (GitHub Actions)** – `.github/workflows/process-scheduled-posts.yml` triggers the Edge Function via `curl` on a 30-minute schedule.
+
+## App Shell & Navigation
+- **Persistent Sidebar** (`components/Sidebar.jsx`): Centralized navigation for Create Draft, Status, Settings, and Guide.
+- **Compact Header** (`components/Header.jsx`): Persistent top bar with branding and live connection indicators (Supabase, Facebook, AI).
+- **Independent Scrolling**: The main content area scrolls independently of the sidebar, maintaining viewport stability.
 
 ## Supabase Integration Flow
 - **Environment Snapshot** – `getSupabaseEnvSnapshot` pulls the `SUPABASE_URL` and `SUPABASE_ANON_KEY` from `.env`.
@@ -74,6 +76,7 @@ src/
 ## Design Principles
 - **Separation of Concerns** – Logic is decoupled from UI.
 - **Fail-Safe Operations** – All async calls are wrapped in try-catch blocks with standardized return shapes.
+- **Dashboard-First Layout** – Optimized for content management with persistent navigation.
 - **Stable Re-renders** – State updates are guarded with deep comparison to ensure UI performance.
 
 ---

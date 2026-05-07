@@ -1,37 +1,69 @@
 import React from "react";
-import { Moon, Sparkles, Sun } from "lucide-react";
-import { APP_VERSION, BUILD_TIME } from "../constants/appConstants.js";
+import { Moon, Sun, Database, Share2, BrainCircuit } from "lucide-react";
 
-function Header({ workspaceName, isDark, onToggleTheme }) {
-  const buildTimeDisplay = React.useMemo(() => {
-    if (!import.meta.env.DEV) return "จัดการคอนเทนต์และการตั้งค่า AI พร้อมระบบ Sync อัตโนมัติ";
-    return `Dev Build: ${new Date(BUILD_TIME).toLocaleTimeString()}`;
-  }, []);
+function Header({ 
+  isDark, 
+  onToggleTheme, 
+  connectionMode, 
+  fbMode, 
+  aiProvider 
+}) {
+  
+  // Status Chip Component
+  const StatusChip = ({ icon: Icon, label, colorClass }) => (
+    <div className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-semibold border ${colorClass}`}>
+      <Icon className="h-3 w-3" />
+      <span>{label}</span>
+    </div>
+  );
+
+  const getSupabaseConfig = () => {
+    switch (connectionMode) {
+      case "connected": return { label: "Supabase Live", color: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" };
+      case "offline": return { label: "Offline Mode", color: "bg-slate-500/10 text-slate-400 border-slate-500/20" };
+      case "read-only": return { label: "Read-Only", color: "bg-amber-500/10 text-amber-400 border-amber-500/20" };
+      default: return { label: "Error", color: "bg-rose-500/10 text-rose-400 border-rose-500/20" };
+    }
+  };
+
+  const getFbConfig = () => {
+    if (fbMode === "live") return { label: "FB: Live", color: "bg-rose-500/10 text-rose-400 border-rose-500/20" };
+    if (fbMode === "mock") return { label: "FB: Mock", color: "bg-cyan-500/10 text-cyan-400 border-cyan-500/20" };
+    return { label: "FB: Missing", color: "bg-amber-500/10 text-amber-400 border-amber-500/20" };
+  };
+
+  const getAiConfig = () => {
+    const label = aiProvider === "openai" ? "AI: OpenAI" : aiProvider === "gemini" ? "AI: Gemini" : "AI: Mock";
+    return { label, color: "bg-violet-500/10 text-violet-400 border-violet-500/20" };
+  };
+
+  const db = getSupabaseConfig();
+  const fb = getFbConfig();
+  const ai = getAiConfig();
 
   return (
-    <header className="sticky top-0 z-50 border-b border-white/10 bg-slate-950/75 backdrop-blur-xl">
-      <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5">
-        <div className="flex items-center gap-4">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-cyan-300 via-sky-400 to-blue-600 shadow-lg shadow-sky-900/40">
-            <Sparkles className="h-6 w-6" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-3xl font-bold tracking-tight">{workspaceName}</h1>
-              <span className="rounded-full bg-white/5 px-2 py-0.5 text-[10px] text-slate-500 border border-white/5">
-                v{APP_VERSION}
-              </span>
-            </div>
-            <p className="text-sm text-slate-300/80">{buildTimeDisplay}</p>
-          </div>
-        </div>
+    <header className="sticky top-0 z-40 flex h-16 items-center justify-between border-b border-white/10 bg-slate-950/80 px-6 backdrop-blur-md lg:pl-6">
+      {/* Mobile Branding (only visible on mobile since sidebar is hidden) */}
+      <div className="flex items-center gap-2 lg:hidden">
+         <span className="text-sm font-bold text-white tracking-tight">AutoPost Studio</span>
+      </div>
 
+      {/* Connection Indicators (Desktop) */}
+      <div className="hidden items-center gap-2 md:flex">
+        <StatusChip icon={Database} label={db.label} colorClass={db.color} />
+        <StatusChip icon={Share2} label={fb.label} colorClass={fb.color} />
+        <StatusChip icon={BrainCircuit} label={ai.label} colorClass={ai.color} />
+      </div>
+
+      {/* Actions */}
+      <div className="flex items-center gap-4">
         <button
           type="button"
           onClick={onToggleTheme}
-          className="rounded-2xl border border-white/10 bg-white/5 p-3 transition hover:bg-white/10"
+          className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-slate-400 transition hover:bg-white/10 hover:text-white"
+          title="Toggle Theme"
         >
-          {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+          {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
         </button>
       </div>
     </header>
