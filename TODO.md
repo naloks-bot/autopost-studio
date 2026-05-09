@@ -1,256 +1,85 @@
-# Roadmap Consolidation
+# AutoPost Studio — MVP Production Activation Plan
 
-The roadmap has been consolidated into larger safe batches to reduce command overhead and ensure UI/UX consistency across related features.
+## Foundation Status: ✅ STABLE
 
-### Batch Execution Plan — Tonight's Session Complete ✅
-*   **Batch 1**: Content + Image Workflow V2 + Preview Studio UI — ✅ Complete
-*   **Batch 2**: Scheduler + Queue UI Foundation — ✅ Complete
-*   **Batch 3**: AI Library + Logs UI Foundation — ✅ Complete
-*   **Batch 4**: Final QA + Docs Stabilization — ✅ Complete
+UI Foundation work is complete (Batches 1–4). No backend, publishing, or scheduler logic was changed during the UI foundation phase. Mock mode remains the default. Production publishing uses the existing stable V1 flow.
 
 ---
 
-# NEXT MAJOR ROADMAP
+## UI Foundation — Completed (Batches 1–4)
 
-# STAGE 1 — FOUNDATION RESTRUCTURE
-
-Goal:
-Prepare the application for:
-
-* Multi-page architecture
-* Multi-provider AI routing
-* Production-safe scalability
-
----
-
-## PHASE 11A — AI Provider System V2
-
-Priority: CRITICAL
-
-✅ Phase 11A Complete — AI Provider System V2 UI Foundation
-* ✅ AI provider dropdowns
-* ✅ Text/image provider separation
-* ✅ Provider badges
-* ✅ Provider helper text
-* ✅ Runtime AI status visibility (Create Page)
-* ✅ Provider validation UI (Test buttons)
-
-### Next Steps (Phase 11A-2 / Future)
-
-* Codex CLI status detection
-* Runtime AI information display (detailed logs)
-* Backend routing logic implementation
-* Real provider testing tools
+| Area | Status |
+|---|---|
+| AI Provider System V2 UI (dropdowns, badges, status) | ✅ Complete |
+| Multi-Page Workspace UI (selector, context card, settings) | ✅ Complete |
+| Content Metadata UI (Type, Tone, Length, CTA) | ✅ Complete |
+| Prompt Assist (brief generator, copy button) | ✅ Complete |
+| AI Image Studio UI (aspect ratio, style presets) | ✅ Complete |
+| Preview Studio UI (mobile/desktop post preview) | ✅ Complete |
+| Scheduler / Queue UI (dashboard, slots, status badges) | ✅ Complete |
+| AI Library UI (images, prompts, captions, templates) | ✅ Complete |
+| System Logs Viewer UI (terminal, categories, filters) | ✅ Complete |
+| Production UI QA Pass | ✅ Complete |
 
 ---
 
-## PHASE 11B — Multi-Page Workspace Foundation
+## MVP Production Activation Plan
 
-Priority: CRITICAL
+### Batch 5 — Real AI Routing MVP
+> Connect existing provider selectors to real generation services.
 
-✅ Phase 11B Complete — Multi-Page Workspace UI Foundation
-* ✅ Page selector dropdown (Header)
-* ✅ Workspace context card (Create Page)
-* ✅ Workspace settings section
-* ✅ Local active page state persistence
+- Route text generation to Gemini API (when key is present)
+- Route text generation to OpenAI API (when key is present)
+- Mock fallback when no key is configured
+- Use existing `ai-generation.js` service; no new services yet
+- **No Codex CLI execution yet**
+- **No provider failover engine yet**
 
-### Next Steps (Phase 11B-2 / Future)
+### Batch 6 — Real Image + End-to-End Publish QA
+> Wire image provider selector into existing image generation flow.
 
-* pages table in Supabase
-* Per-page configuration UI
-* Per-page access token management
-* Page profile system (AI context)
-* Page-based settings storage
+- Connect image provider selector to current image generation service
+- Align GPT Image / DALL·E naming if supported by existing service
+- Full end-to-end QA: Generate → Preview → Save Draft → Schedule → Publish
+- Keep existing scheduler backend unchanged
 
----
+### Batch 7 — Production Activation + Safety Hardening
+> Final safety checks before calling the system production-ready.
 
-## PHASE 11C — Content Data Model V2 UI Foundation
-
-Priority: CRITICAL
-
-✅ Phase 11C Complete — Content Data Model V2 UI Metadata Foundation
-* ✅ Content Metadata card (Type, Tone, Length, CTA)
-* ✅ Preview metadata visibility tags
-* ✅ Metadata local state tracking
-* ✅ Provider-aware metadata display
-
-### Next Steps (Phase 11C-2 / Future)
-
-* Database schema update for metadata
-* AI prompt generation using metadata
-* Dynamic model selection based on content type
-* Advanced CTA insertion logic
+- Settings validation (API key presence checks with clear error messages)
+- Mock / Live mode safety review
+- Final build, git tag, and docs
 
 ---
 
-# STAGE 2 — CONTENT CREATION SYSTEM
+## Deferred / Post-MVP
+
+> ⚠️ Do NOT start the following without a dedicated controlled phase.
+
+- Supabase `pages` table + per-page token routing
+- Scheduler queue processor V2 (Edge Functions)
+- Real persistent logging system
+- AI Library database storage
+- Analytics system
+- Auth / SaaS / Billing infrastructure
+- Codex CLI real execution
+- Advanced provider failover engine
 
 ---
 
-## PHASE 12A — Content Creation Workflow V2
-
-Priority: HIGH
-
-✅ Phase 12A Complete — Content Workflow V2 Prompt Assist UI
-* ✅ Content type selector
-* ✅ Tone selector
-* ✅ Content length selector
-* ✅ CTA controls
-* ✅ Prompt Assist card
-* ✅ Copy Prompt Brief functionality
-
-### Next Steps (Phase 12A-2 / Future)
-* Hashtag controls
-* Link controls
-* AI prompt routing integration
-* Dynamic generation using Briefs
-
----
-
-## PHASE 12B — AI Image Studio & Preview Foundation
-
-Priority: HIGH
-
-✅ Batch 1 Complete — Content + Image Workflow V2 UI Foundation
-* ✅ AI Image Studio card
-* ✅ Aspect ratio & Style presets
-* ✅ Preview Studio (Mobile/Desktop)
-* ✅ Integrated Workflow V2 UI
-
-### Next Steps (Batch 2 / Future)
-* Image generation API routing
-* Auto-generation of image prompts from content
-* Image variation system
-* Advanced Studio filters
-* Text overlay support
-* Image regeneration
-
----
-
-## PHASE 13 — Analytics & Reporting (PLANNED)
-
-Priority: MEDIUM
-
-* Post performance tracking
-* Page growth metrics
-* Best time to post recommendations
-* Content performance by type/tone
-
----
-
-## PHASE 13A — Queue-Based Scheduler Foundation
-
-Priority: HIGH
-
-✅ Batch 2 Complete — Scheduler + Queue UI Foundation
-* ✅ Scheduler Dashboard Page
-* ✅ Queue Planning UI (Mock)
-* ✅ Posting Slot Controls UI
-* ✅ Timezone & Status visibility
-
-### Next Steps (Batch 3 / Future)
-* Supabase `queue` table
-* Background processor V2 (Edge Functions)
-* Automated retry logic
-* Posting slot persistence
-* Real-time queue syncing
-
----
-
-## PHASE 13B — Scheduler UI Dashboard
-
-Priority: MEDIUM
-
-### Planned Features
-
-* Per-page queue stats
-* Daily post planning
-* Timeline controls
-* Queue visibility
-
----
-
-# STAGE 4 — AI LIBRARY + LOGS FOUNDATION
-
----
-
-## PHASE 14A — AI Library & Logs Foundation
-
-Priority: MEDIUM
-
-✅ Batch 3 Complete — AI Library + Logs UI Foundation
-* ✅ AI Library Dashboard UI
-* ✅ Asset categories (Images, Prompts, etc.)
-* ✅ System Logs Viewer UI
-* ✅ Log filtering & export UI placeholders
-* ✅ Full Navigation integration
-
-### Next Steps (Batch 4 / Future)
-* Supabase `library` table
-* Persistent logging service
-* Asset search & filtering logic
-* Template persistence
-* Log export functionality
-
----
-
-# STAGE 5 — ANALYTICS
-
----
-
-## PHASE 15A — Analytics Foundation
-
-Priority: LOW
-
-### Planned Features
-
-* Post statistics
-* AI generation statistics
-* Queue performance
-* Publish success metrics
-
----
-
-# FUTURE / LONG-TERM
-
-## Multi-user Auth
-
-Deferred until workflow stabilization.
-
-## SaaS Architecture
-
-Deferred until system maturity.
-
-## Billing System
-
-Deferred until stable multi-user architecture exists.
-
----
-
-# DEVELOPMENT RULES
+## Development Rules
 
 1. Minimal safe changes only
 2. Preserve stable backend behavior
 3. Never break mock mode
-4. Build test every phase
-5. Update docs every phase
-6. Commit & push every phase
-7. Avoid technical debt accumulation
-8. Prioritize workflow quality over feature quantity
-9. **Prefer large safe UI batches over tiny fragmented phases**
-10. **Backend/database/API changes must be done in dedicated controlled phases only**
+4. Build test every batch
+5. Update docs every batch
+6. Commit & push every batch
+7. Prefer large safe UI batches over tiny fragmented phases
+8. Backend/database/API changes must be done in dedicated controlled phases only
 
 ---
 
-# DEFERRED / FUTURE WORK
+## Architecture Freeze Note
 
-> ⚠️ **Architecture Freeze Note**: Do NOT start any of the following while tired or without a dedicated controlled phase.
-
-- Real provider routing (Gemini / OpenAI / GPT Image / DALL·E)
-- Codex CLI local execution integration
-- Supabase `pages` table + per-page token management
-- Scheduler queue processor V2 (Edge Functions)
-- Real persistent logging system
-- AI Library database storage layer
-- Analytics system
-- Auth / SaaS / Billing infrastructure
+> ⚠️ Do not start backend or database routing work without a dedicated controlled phase. Mock mode and production safety are the default.

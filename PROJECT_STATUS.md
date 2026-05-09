@@ -1,35 +1,14 @@
 # Project Status
 
-## Current Project Status
+## Current State: Foundation Version Stable ✅
 
-AutoPost Studio is transitioning from a simple Facebook posting dashboard into a full AI-powered Facebook Content Operating System focused on:
+AutoPost Studio has completed its **UI Foundation phase** (Batches 1–4). The application now has a full studio-grade frontend for AI content creation, multi-page workspace planning, scheduling, library management, and system logging.
 
-* Low-cost AI-assisted automation
-* Multi-page Facebook management
-* AI-generated text and images
-* Automated scheduling
-* Production-safe publishing workflows
-* Long-running Supabase-backed operations
+**No backend, publishing, or scheduler logic was changed during the UI foundation phase.**
+Mock mode remains the default. Production publishing uses the existing stable V1 flow.
 
-The project is currently in a **stable Production V1 state** with:
-
-* Stable dashboard architecture
-* Stable Supabase integration
-* Stable publishing workflow
-* Stable draft system
-* Stable scheduler fallback
-* Mock/live publishing safety controls
-* Gemini integration
-* Initial AI image generation support
-
-The application is now entering a major restructuring roadmap focused on:
-
-* Multi-page architecture
-* AI Provider System V2
-* Content Workflow V2
-* Scheduler System V2
-* AI Library & Logs
-* Analytics foundation
+### Next: MVP Production Activation (Batches 5–7)
+Connect the UI foundations to real backend services in controlled, safe phases.
 
 ---
 
@@ -288,44 +267,44 @@ Analytics will be implemented only after:
 
 ---
 
-# Current Stable Phase
+# Foundation Complete — MVP Production Activation Plan
 
-# Roadmap Consolidation
+## UI Foundations Complete (Batches 1–4) ✅
 
-The roadmap has been consolidated into larger safe batches to reduce command overhead.
+All UI-only, no backend changes made.
 
-### Batch Execution Plan — Tonight's Session Complete ✅
-- **Batch 1: Content + Image Workflow V2 + Preview Studio UI** — ✅ Complete
-- **Batch 2: Scheduler + Queue UI Foundation** — ✅ Complete
-- **Batch 3: AI Library + Logs UI Foundation** — ✅ Complete
-- **Batch 4: Final QA + Docs Stabilization** — ✅ Complete
+| Batch | Content | Status |
+|---|---|---|
+| 1 | Content + Image Workflow V2 + Preview Studio | ✅ |
+| 2 | Scheduler + Queue UI | ✅ |
+| 3 | AI Library + Logs UI | ✅ |
+| 4 | Final QA + Docs Stabilization | ✅ |
 
----
+## Next: MVP Production Activation (Batches 5–7)
 
-# Current Stable Phase
+**Batch 5 — Real AI Routing MVP**
+- Connect provider selectors to existing generation services
+- Gemini text routing (key-gated)
+- OpenAI text routing (key-gated)
+- Mock fallback default
 
-**FOUNDATION VERSION STABLE — Production QA Complete**
+**Batch 6 — Real Image + End-to-End Publish QA**
+- Wire image provider selector to existing image service
+- Full flow QA: Generate → Preview → Draft → Schedule → Publish
 
-### Completed UI Foundations (All UI-Only, No Backend Changes)
-- ✅ AI Provider System V2 UI
-- ✅ Multi-Page Workspace UI
-- ✅ Content Metadata UI (Type, Tone, Length, CTA)
-- ✅ Prompt Assist UI (Brief generation + copy)
-- ✅ AI Image Studio UI (Aspect ratio + style presets)
-- ✅ Preview Studio UI (Mobile/Desktop preview)
-- ✅ Scheduler / Queue UI (Dashboard + slots)
-- ✅ AI Library UI (Images, prompts, captions, templates)
-- ✅ Logs Viewer UI (Terminal + categories)
-- ✅ Production UI QA Pass
+**Batch 7 — Production Activation + Safety Hardening**
+- API key validation, error messages, mock/live safety review
+- Final build, git tag, docs
 
-### Deferred / Future (Do NOT start without a dedicated phase)
-- ❌ Real provider routing (Gemini/OpenAI/GPT Image/DALL·E)
-- ❌ Codex CLI integration
-- ❌ Supabase `pages` table + per-page token routing
-- ❌ Scheduler queue processor V2 (Edge Functions)
-- ❌ Real logs persistence layer
-- ❌ AI Library database storage
-- ❌ Analytics system
-- ❌ Auth / SaaS / Billing
+## Deferred / Post-MVP
 
-> ⚠️ **Architecture Freeze Note**: Do not start backend/database routing work while tired or without a dedicated controlled phase. Mock mode and production safety remain the default.
+> ⚠️ Do not start without a dedicated controlled phase.
+
+- Supabase `pages` table + per-page token routing
+- Scheduler queue processor V2 (Edge Functions)
+- Real logs persistence
+- AI Library database storage
+- Analytics, Auth, SaaS, Billing
+- Codex CLI execution
+- Advanced provider failover
+
