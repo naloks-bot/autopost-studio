@@ -1,5 +1,5 @@
-import React from "react";
-import { Moon, Sun, Database, Share2, BrainCircuit, HelpCircle } from "lucide-react";
+import { Moon, Sun, Database, Share2, BrainCircuit, HelpCircle, Layers } from "lucide-react";
+import { WORKSPACE_PAGES } from "../constants/appConstants";
 
 function Header({ 
   isDark, 
@@ -7,7 +7,9 @@ function Header({
   connectionMode, 
   fbMode, 
   aiProvider,
-  onOpenGuide
+  onOpenGuide,
+  settings,
+  onPageChange
 }) {
   
   // Status Chip Component
@@ -49,11 +51,27 @@ function Header({
          <span className="text-sm font-bold text-white tracking-tight">AutoPost Studio</span>
       </div>
 
-      {/* Connection Indicators (Desktop) */}
-      <div className="hidden items-center gap-2 md:flex">
-        <StatusChip icon={Database} label={db.label} colorClass={db.color} />
-        <StatusChip icon={Share2} label={fb.label} colorClass={fb.color} />
-        <StatusChip icon={BrainCircuit} label={ai.label} colorClass={ai.color} />
+      <div className="flex items-center gap-4">
+        {/* Page Selector (Foundation) */}
+        <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-xl border border-white/10 bg-white/5">
+           <Layers className="h-3 w-3 text-slate-500" />
+           <select 
+             value={settings?.activePageId || "default"}
+             onChange={(e) => onPageChange(e.target.value)}
+             className="bg-transparent text-[11px] font-bold text-slate-300 outline-none cursor-pointer uppercase tracking-tight"
+           >
+             {WORKSPACE_PAGES.map(p => (
+               <option key={p.id} value={p.id} className="bg-slate-900 text-white">{p.label}</option>
+             ))}
+           </select>
+        </div>
+
+        {/* Connection Indicators (Desktop) */}
+        <div className="hidden items-center gap-2 md:flex border-l border-white/10 pl-4">
+          <StatusChip icon={Database} label={db.label} colorClass={db.color} />
+          <StatusChip icon={Share2} label={fb.label} colorClass={fb.color} />
+          <StatusChip icon={BrainCircuit} label={ai.label} colorClass={ai.color} />
+        </div>
       </div>
 
       {/* Actions */}

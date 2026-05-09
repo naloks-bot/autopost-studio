@@ -4,6 +4,7 @@ import { generateImage } from "../services/ai-image-generation.js";
 import { uploadImageFromUrl } from "../services/storage.js";
 import ActionButton from "../components/ActionButton.jsx";
 import ProviderStatusCard from "../components/ProviderStatusCard.jsx";
+import WorkspaceContextCard from "../components/WorkspaceContextCard.jsx";
 
 function CreatePage({
   form,
@@ -83,6 +84,7 @@ function CreatePage({
       {/* Left Panel: Inputs & Controls */}
       <div className="space-y-6">
         <ProviderStatusCard settings={settings} />
+        <WorkspaceContextCard settings={settings} />
         <div className="rounded-2xl border border-white/5 bg-slate-900/40 p-6 shadow-sm">
           <h3 className="mb-4 text-sm font-semibold text-cyan-400 uppercase tracking-wider">1. Input Topic</h3>
           <textarea

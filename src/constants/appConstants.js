@@ -110,3 +110,8 @@ export const IMAGE_PROVIDERS = [
   { id: "gpt-image", label: "GPT Image", description: "DALL-E 3 via GPT-4o", safety: "API Cost" },
   { id: "dalle", label: "DALL·E API", description: "Native OpenAI image generation", safety: "API Cost" },
 ];
+
+export const WORKSPACE_PAGES = [
+  { id: "default", label: "Default Page", description: "Current stable Facebook settings" },
+  { id: "demo-mock", label: "Demo / Mock Page", description: "Simulation for workspace testing" },
+];

@@ -1,5 +1,5 @@
 import React from "react";
-import { AlertCircle, CheckCircle2, KeyRound, ShieldCheck, Zap, Database, Facebook as FbIcon, Settings as SettingsIcon } from "lucide-react";
+import { AlertCircle, CheckCircle2, KeyRound, ShieldCheck, Zap, Database, Facebook as FbIcon, Settings as SettingsIcon, Layers } from "lucide-react";
 import SectionCard from "../components/SectionCard.jsx";
 import ActionButton from "../components/ActionButton.jsx";
 import { validateFacebookConfig } from "../services/facebook.js";
@@ -194,6 +194,51 @@ function SettingsPage({
                   placeholder="gemini-2.5-flash"
                 />
              </div>
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-white/5 bg-slate-900/40 p-6 shadow-sm">
+          <div className="mb-6 flex items-center gap-2 border-b border-white/5 pb-4">
+             <Layers className="h-5 w-5 text-emerald-400" />
+             <h3 className="text-sm font-semibold text-white uppercase tracking-wider">Workspace / Page Settings</h3>
+          </div>
+          <div className="space-y-4">
+             <div className="grid gap-4 md:grid-cols-2">
+                <SettingsField
+                  label="Active Workspace Page"
+                  value={settings.activePageId}
+                  onChange={(event) => updateSettingsField("activePageId", event.target.value)}
+                  type="select"
+                  options={[
+                    { value: "default", label: "Default Page (Stable)" },
+                    { value: "demo-mock", label: "Demo / Mock Page" },
+                  ]}
+                />
+                <SettingsField
+                  label="Page Display Name"
+                  value={settings.activePageId === 'default' ? settings.workspaceName : "Demo Page"}
+                  placeholder="Page Name"
+                  onChange={() => {}} // UI only
+                />
+             </div>
+             <div className="grid gap-4 md:grid-cols-2 border-t border-white/5 pt-4">
+                <div className="flex flex-col gap-1">
+                   <span className="text-[10px] font-bold uppercase text-slate-500 tracking-wider">Token Context</span>
+                   <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-950/50 border border-white/5">
+                      <div className="h-1.5 w-1.5 rounded-full bg-emerald-500"></div>
+                      <span className="text-xs text-slate-400">Using Global FB Settings</span>
+                   </div>
+                </div>
+                <div className="flex flex-col gap-1">
+                   <span className="text-[10px] font-bold uppercase text-slate-500 tracking-wider">Workspace Mode</span>
+                   <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-950/50 border border-white/5">
+                      <span className="text-xs text-slate-400">Single-Page Compatibility</span>
+                   </div>
+                </div>
+             </div>
+             <p className="text-[10px] text-slate-500 italic">
+               Note: Publishing currently uses the stable Facebook configuration. Multi-page routing is in foundation stage.
+             </p>
           </div>
         </div>
 

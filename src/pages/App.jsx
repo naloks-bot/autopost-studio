@@ -320,6 +320,8 @@ function App() {
           fbMode={validateFacebookConfig(settings) ? settings.facebookPublishMode : "missing"}
           aiProvider={settings.aiProvider}
           onOpenGuide={() => setIsGuideOpen(true)}
+          settings={settings}
+          onPageChange={(val) => updateSettingsField("activePageId", val)}
         />
         
         <main className="flex-1 overflow-y-auto p-6 lg:p-8">
