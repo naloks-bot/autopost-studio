@@ -1,4 +1,4 @@
-import { PlusCircle, ListTodo, Settings, Sparkles, ChevronRight, HelpCircle, Calendar, BookOpen, Terminal } from "lucide-react";
+import { PlusCircle, ListTodo, Settings, ChevronRight, HelpCircle, Calendar, BookOpen, Terminal } from "lucide-react";
 
 function Sidebar({ activeTab, setActiveTab, workspaceName, onOpenGuide }) {
   const menuItems = [
@@ -58,9 +58,9 @@ function Sidebar({ activeTab, setActiveTab, workspaceName, onOpenGuide }) {
         </button>
 
         <div className="rounded-xl bg-white/5 p-4">
-          <p className="text-[10px] uppercase tracking-wider text-slate-500 font-bold">AutoPost Studio v0.2.0</p>
+          <p className="text-[10px] uppercase tracking-wider text-slate-500 font-bold">AutoPost Studio v0.3.0</p>
           <div className="mt-2 flex items-center justify-between">
-            <span className="text-xs text-slate-400">Ready for release</span>
+            <span className="text-xs text-slate-400">Foundation Stable</span>
             <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]"></div>
           </div>
         </div>

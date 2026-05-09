@@ -2,11 +2,11 @@
 
 The roadmap has been consolidated into larger safe batches to reduce command overhead and ensure UI/UX consistency across related features.
 
-### Batch Execution Plan
+### Batch Execution Plan — Tonight's Session Complete ✅
 *   **Batch 1**: Content + Image Workflow V2 + Preview Studio UI — ✅ Complete
 *   **Batch 2**: Scheduler + Queue UI Foundation — ✅ Complete
 *   **Batch 3**: AI Library + Logs UI Foundation — ✅ Complete
-*   **Batch 4**: Final QA + Docs Stabilization — ⏳ Next
+*   **Batch 4**: Final QA + Docs Stabilization — ✅ Complete
 
 ---
 
@@ -237,3 +237,20 @@ Deferred until stable multi-user architecture exists.
 6. Commit & push every phase
 7. Avoid technical debt accumulation
 8. Prioritize workflow quality over feature quantity
+9. **Prefer large safe UI batches over tiny fragmented phases**
+10. **Backend/database/API changes must be done in dedicated controlled phases only**
+
+---
+
+# DEFERRED / FUTURE WORK
+
+> ⚠️ **Architecture Freeze Note**: Do NOT start any of the following while tired or without a dedicated controlled phase.
+
+- Real provider routing (Gemini / OpenAI / GPT Image / DALL·E)
+- Codex CLI local execution integration
+- Supabase `pages` table + per-page token management
+- Scheduler queue processor V2 (Edge Functions)
+- Real persistent logging system
+- AI Library database storage layer
+- Analytics system
+- Auth / SaaS / Billing infrastructure

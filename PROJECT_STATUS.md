@@ -292,23 +292,40 @@ Analytics will be implemented only after:
 
 # Roadmap Consolidation
 
-The roadmap has been consolidated into larger safe batches to reduce command overhead and ensure UI/UX consistency across related features.
+The roadmap has been consolidated into larger safe batches to reduce command overhead.
 
-### Batch Execution Plan
+### Batch Execution Plan — Tonight's Session Complete ✅
 - **Batch 1: Content + Image Workflow V2 + Preview Studio UI** — ✅ Complete
 - **Batch 2: Scheduler + Queue UI Foundation** — ✅ Complete
 - **Batch 3: AI Library + Logs UI Foundation** — ✅ Complete
-- **Batch 4: Final QA + Docs Stabilization** — ⏳ Next
+- **Batch 4: Final QA + Docs Stabilization** — ✅ Complete
 
 ---
 
 # Current Stable Phase
 
-Batch 3 Complete — AI Library + Logs UI Foundation
+**FOUNDATION VERSION STABLE — Production QA Complete**
 
-The system now includes the complete frontend architectural foundation for Stage 2:
-- **AI Library Dashboard**: Foundation UI for managing images, prompts, and templates.
-- **System Logs Viewer**: Session-based log visualizer for AI, Scheduler, and Publishing activity.
-- **Full Navigation**: Integrated sidebar and routing for the entire V2 studio ecosystem.
+### Completed UI Foundations (All UI-Only, No Backend Changes)
+- ✅ AI Provider System V2 UI
+- ✅ Multi-Page Workspace UI
+- ✅ Content Metadata UI (Type, Tone, Length, CTA)
+- ✅ Prompt Assist UI (Brief generation + copy)
+- ✅ AI Image Studio UI (Aspect ratio + style presets)
+- ✅ Preview Studio UI (Mobile/Desktop preview)
+- ✅ Scheduler / Queue UI (Dashboard + slots)
+- ✅ AI Library UI (Images, prompts, captions, templates)
+- ✅ Logs Viewer UI (Terminal + categories)
+- ✅ Production UI QA Pass
 
-All new pages are UI-only foundations; backend persistence and real API routing remain stable on V1. Mock mode and production safety remain the default.
+### Deferred / Future (Do NOT start without a dedicated phase)
+- ❌ Real provider routing (Gemini/OpenAI/GPT Image/DALL·E)
+- ❌ Codex CLI integration
+- ❌ Supabase `pages` table + per-page token routing
+- ❌ Scheduler queue processor V2 (Edge Functions)
+- ❌ Real logs persistence layer
+- ❌ AI Library database storage
+- ❌ Analytics system
+- ❌ Auth / SaaS / Billing
+
+> ⚠️ **Architecture Freeze Note**: Do not start backend/database routing work while tired or without a dedicated controlled phase. Mock mode and production safety remain the default.
