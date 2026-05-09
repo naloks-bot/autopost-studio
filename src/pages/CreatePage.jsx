@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { CheckCircle2, Image as ImageIcon, RefreshCw, Sparkles, X } from "lucide-react";
+import { CheckCircle2, Image as ImageIcon, RefreshCw, Sparkles, X, FileText, Info } from "lucide-react";
+import { CONTENT_TYPES, CONTENT_TONES, CONTENT_LENGTHS, CONTENT_CTAS } from "../constants/appConstants";
 import { generateImage } from "../services/ai-image-generation.js";
 import { uploadImageFromUrl } from "../services/storage.js";
 import ActionButton from "../components/ActionButton.jsx";
@@ -23,6 +24,15 @@ function CreatePage({
   const [generatedImage, setGeneratedImage] = useState(null);
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
   const [imageGenerationError, setImageGenerationError] = useState(null);
+
+  const [metadata, setMetadata] = useState({
+    type: "general",
+    tone: "friendly",
+    length: "medium",
+    cta: "none",
+  });
+
+  const updateMetadata = (key, value) => setMetadata(prev => ({ ...prev, [key]: value }));
 
   async function handleGenerateImage() {
     if (isGeneratingImage) return;
@@ -83,8 +93,63 @@ function CreatePage({
     <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
       {/* Left Panel: Inputs & Controls */}
       <div className="space-y-6">
-        <ProviderStatusCard settings={settings} />
-        <WorkspaceContextCard settings={settings} />
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-1">
+          <ProviderStatusCard settings={settings} />
+          <WorkspaceContextCard settings={settings} />
+        </div>
+
+        <div className="rounded-2xl border border-white/5 bg-slate-900/40 p-6 shadow-sm">
+          <div className="mb-4 flex items-center gap-2 border-b border-white/5 pb-2">
+            <FileText className="h-4 w-4 text-amber-400" />
+            <h3 className="text-sm font-semibold text-white uppercase tracking-wider">Content Metadata</h3>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold text-slate-500 uppercase">Type</label>
+              <select 
+                value={metadata.type}
+                onChange={(e) => updateMetadata("type", e.target.value)}
+                className="w-full rounded-lg border border-white/10 bg-slate-950/50 px-2 py-1.5 text-xs text-slate-300 outline-none focus:border-amber-400"
+              >
+                {CONTENT_TYPES.map(t => <option key={t.id} value={t.id} className="bg-slate-900">{t.label}</option>)}
+              </select>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold text-slate-500 uppercase">Tone</label>
+              <select 
+                value={metadata.tone}
+                onChange={(e) => updateMetadata("tone", e.target.value)}
+                className="w-full rounded-lg border border-white/10 bg-slate-950/50 px-2 py-1.5 text-xs text-slate-300 outline-none focus:border-amber-400"
+              >
+                {CONTENT_TONES.map(t => <option key={t.id} value={t.id} className="bg-slate-900">{t.label}</option>)}
+              </select>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold text-slate-500 uppercase">Length</label>
+              <select 
+                value={metadata.length}
+                onChange={(e) => updateMetadata("length", e.target.value)}
+                className="w-full rounded-lg border border-white/10 bg-slate-950/50 px-2 py-1.5 text-xs text-slate-300 outline-none focus:border-amber-400"
+              >
+                {CONTENT_LENGTHS.map(l => <option key={l.id} value={l.id} className="bg-slate-900">{l.label}</option>)}
+              </select>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold text-slate-500 uppercase">CTA</label>
+              <select 
+                value={metadata.cta}
+                onChange={(e) => updateMetadata("cta", e.target.value)}
+                className="w-full rounded-lg border border-white/10 bg-slate-950/50 px-2 py-1.5 text-xs text-slate-300 outline-none focus:border-amber-400"
+              >
+                {CONTENT_CTAS.map(c => <option key={c.id} value={c.id} className="bg-slate-900">{c.label}</option>)}
+              </select>
+            </div>
+          </div>
+          <div className="mt-4 flex items-center gap-1.5 text-slate-500">
+             <Info className="h-3 w-3" />
+             <p className="text-[9px] italic">Metadata is UI-only for workflow planning.</p>
+          </div>
+        </div>
         <div className="rounded-2xl border border-white/5 bg-slate-900/40 p-6 shadow-sm">
           <h3 className="mb-4 text-sm font-semibold text-cyan-400 uppercase tracking-wider">1. Input Topic</h3>
           <textarea
@@ -160,11 +225,19 @@ function CreatePage({
               )}
 
               <div className="relative group">
-                <div className="mb-2 flex items-center justify-between">
-                  <label className="block text-[10px] font-bold uppercase text-slate-500 tracking-widest">Generated Content</label>
-                  <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-white/5 border border-white/5">
-                    <span className="text-[9px] font-bold text-slate-400 uppercase">Provider:</span>
-                    <span className="text-[9px] font-bold text-cyan-400 uppercase">{settings.textProvider}</span>
+                <div className="mb-2 flex flex-col gap-2">
+                  <div className="flex items-center justify-between">
+                    <label className="block text-[10px] font-bold uppercase text-slate-500 tracking-widest">Generated Content</label>
+                    <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-white/5 border border-white/5">
+                      <span className="text-[9px] font-bold text-slate-400 uppercase">Provider:</span>
+                      <span className="text-[9px] font-bold text-cyan-400 uppercase">{settings.textProvider}</span>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <span className="rounded bg-slate-800 px-1.5 py-0.5 text-[8px] font-bold text-slate-400 uppercase">Type: {metadata.type}</span>
+                    <span className="rounded bg-slate-800 px-1.5 py-0.5 text-[8px] font-bold text-slate-400 uppercase">Tone: {metadata.tone}</span>
+                    <span className="rounded bg-slate-800 px-1.5 py-0.5 text-[8px] font-bold text-slate-400 uppercase">Len: {metadata.length}</span>
+                    <span className="rounded bg-slate-800 px-1.5 py-0.5 text-[8px] font-bold text-slate-400 uppercase">CTA: {metadata.cta}</span>
                   </div>
                 </div>
                 <textarea

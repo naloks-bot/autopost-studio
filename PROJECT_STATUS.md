@@ -290,12 +290,12 @@ Analytics will be implemented only after:
 
 # Current Stable Phase
 
-Phase 11B Complete — Multi-Page Workspace UI Foundation
+Phase 11C Complete — Content Data Model V2 UI Metadata Foundation
 
-The application now has a frontend foundation for multi-page workspace support, including:
-- Page selector dropdown in Header
-- Workspace context card in Create page
-- Dedicated Workspace settings section
-- Seamless single-page compatibility with existing Facebook settings
+The application now supports manual metadata selection during content creation:
+- New "Content Metadata" card with Type, Tone, Length, and CTA controls
+- Metadata visibility tags in the generated content preview area
+- UI-only local state tracking for workflow planning
+- No changes to Supabase schema or draft persistence yet
 
-No backend or publishing routing changes were made in this phase.
+This prepares the system for future AI-driven model orchestration.

@@ -190,6 +190,17 @@ The scheduler system will evolve into:
 5. Logs stored
 6. Analytics updated
 
+# Content Data Model V2 (UI FOUNDATION COMPLETE)
+
+The new model supports granular control over content structure:
+
+* **Content Type**: General Post, Promo, Storytelling, Engagement Question, Announcement
+* **Tone**: Friendly, Professional, Funny, Emotional, Bold
+* **Length**: Short, Medium, Long
+* **CTA**: None, Comment, Share, Inbox, Visit Link
+
+The UI foundation is now implemented with metadata controls and preview visibility tags.
+
 ---
 
 # Supabase Usage

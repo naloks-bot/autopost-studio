@@ -115,3 +115,33 @@ export const WORKSPACE_PAGES = [
   { id: "default", label: "Default Page", description: "Current stable Facebook settings" },
   { id: "demo-mock", label: "Demo / Mock Page", description: "Simulation for workspace testing" },
 ];
+
+export const CONTENT_TYPES = [
+  { id: "general", label: "General Post" },
+  { id: "promo", label: "Promo" },
+  { id: "story", label: "Storytelling" },
+  { id: "engagement", label: "Engagement Question" },
+  { id: "announcement", label: "Announcement" },
+];
+
+export const CONTENT_TONES = [
+  { id: "friendly", label: "Friendly" },
+  { id: "professional", label: "Professional" },
+  { id: "funny", label: "Funny" },
+  { id: "emotional", label: "Emotional" },
+  { id: "bold", label: "Bold" },
+];
+
+export const CONTENT_LENGTHS = [
+  { id: "short", label: "Short" },
+  { id: "medium", label: "Medium" },
+  { id: "long", label: "Long" },
+];
+
+export const CONTENT_CTAS = [
+  { id: "none", label: "None" },
+  { id: "comment", label: "Comment" },
+  { id: "share", label: "Share" },
+  { id: "inbox", label: "Inbox" },
+  { id: "link", label: "Visit Link" },
+];
