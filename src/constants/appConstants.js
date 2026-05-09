@@ -97,3 +97,16 @@ export const appTabs = [
 
 export const APP_VERSION = "0.2.0-dashboard";
 export const BUILD_TIME = new Date().toISOString();
+
+export const TEXT_PROVIDERS = [
+  { id: "mock", label: "Mock Mode", description: "Safe and free for testing", safety: "Safe / Free" },
+  { id: "gemini", label: "Gemini API", description: "High performance, cost-effective", safety: "API Cost" },
+  { id: "openai", label: "OpenAI API", description: "Standard high-quality generation", safety: "API Cost" },
+  { id: "codex", label: "Codex CLI", description: "Local workflow (Planned)", safety: "Local" },
+];
+
+export const IMAGE_PROVIDERS = [
+  { id: "mock", label: "Mock Mode", description: "Safe and free for testing", safety: "Safe / Free" },
+  { id: "gpt-image", label: "GPT Image", description: "DALL-E 3 via GPT-4o", safety: "API Cost" },
+  { id: "dalle", label: "DALL·E API", description: "Native OpenAI image generation", safety: "API Cost" },
+];

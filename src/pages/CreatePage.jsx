@@ -3,6 +3,7 @@ import { CheckCircle2, Image as ImageIcon, RefreshCw, Sparkles, X } from "lucide
 import { generateImage } from "../services/ai-image-generation.js";
 import { uploadImageFromUrl } from "../services/storage.js";
 import ActionButton from "../components/ActionButton.jsx";
+import ProviderStatusCard from "../components/ProviderStatusCard.jsx";
 
 function CreatePage({
   form,
@@ -81,6 +82,7 @@ function CreatePage({
     <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
       {/* Left Panel: Inputs & Controls */}
       <div className="space-y-6">
+        <ProviderStatusCard settings={settings} />
         <div className="rounded-2xl border border-white/5 bg-slate-900/40 p-6 shadow-sm">
           <h3 className="mb-4 text-sm font-semibold text-cyan-400 uppercase tracking-wider">1. Input Topic</h3>
           <textarea
@@ -155,8 +157,14 @@ function CreatePage({
                 </div>
               )}
 
-              <div>
-                <label className="mb-2 block text-[10px] font-bold uppercase text-slate-500 tracking-widest">Generated Content</label>
+              <div className="relative group">
+                <div className="mb-2 flex items-center justify-between">
+                  <label className="block text-[10px] font-bold uppercase text-slate-500 tracking-widest">Generated Content</label>
+                  <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-white/5 border border-white/5">
+                    <span className="text-[9px] font-bold text-slate-400 uppercase">Provider:</span>
+                    <span className="text-[9px] font-bold text-cyan-400 uppercase">{settings.textProvider}</span>
+                  </div>
+                </div>
                 <textarea
                   value={form.content}
                   onChange={(event) => updateForm("content", event.target.value)}

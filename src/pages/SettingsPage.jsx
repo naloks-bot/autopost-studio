@@ -102,7 +102,21 @@ function SettingsPage({
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Text Generation Provider</span>
-                    <ProviderBadge provider={settings.textProvider} settings={settings} />
+                    <div className="flex items-center gap-2">
+                      <button 
+                        onClick={() => {
+                          const status = settings.textProvider === 'mock' ? 'Success: Mock is ready' :
+                                         settings.textProvider === 'codex' ? 'Local workflow planned' :
+                                         (settings.textProvider === 'openai' ? settings.openaiApiKey : settings.geminiApiKey) ? 'Success: API Key found' : 
+                                         'Error: Missing API Key';
+                          window.alert(status);
+                        }}
+                        className="text-[9px] font-bold text-cyan-500 uppercase hover:underline"
+                      >
+                        Test
+                      </button>
+                      <ProviderBadge provider={settings.textProvider} settings={settings} />
+                    </div>
                   </div>
                   <SettingsField
                     value={settings.textProvider}
@@ -121,7 +135,20 @@ function SettingsPage({
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Image Generation Provider</span>
-                    <ProviderBadge provider={settings.imageProvider} settings={settings} />
+                    <div className="flex items-center gap-2">
+                      <button 
+                         onClick={() => {
+                           const status = settings.imageProvider === 'mock' ? 'Success: Mock is ready' :
+                                          settings.openaiApiKey ? 'Success: OpenAI API Key found' : 
+                                          'Error: Missing OpenAI API Key';
+                           window.alert(status);
+                         }}
+                         className="text-[9px] font-bold text-cyan-500 uppercase hover:underline"
+                      >
+                        Test
+                      </button>
+                      <ProviderBadge provider={settings.imageProvider} settings={settings} />
+                    </div>
                   </div>
                   <SettingsField
                     value={settings.imageProvider}

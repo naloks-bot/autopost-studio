@@ -98,14 +98,15 @@ Responsible for:
 
 ---
 
-# AI Provider System V2 (FOUNDATION IMPLEMENTED)
+# AI Provider System V2 (UI FOUNDATION COMPLETE)
 
 ## Goals
 
-* Low-cost AI routing (Foundation in place)
-* Runtime provider visibility (Implemented in Settings)
-* Flexible provider switching (Implemented in Settings)
-* Future-proof architecture
+* Low-cost AI routing (UI Foundation implemented)
+* Runtime provider visibility (Implemented in Create/Settings)
+* Flexible provider switching (UI implemented)
+* Provider validation UI (Implemented in Settings)
+* Future-proof architecture (Constants & Helpers in place)
 
 ---
 

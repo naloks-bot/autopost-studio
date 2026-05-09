@@ -290,6 +290,12 @@ Analytics will be implemented only after:
 
 # Current Stable Phase
 
-Phase 11A-1 Complete — AI Provider System V2 Foundation (UI/UX)
+Phase 11A Complete — AI Provider System V2 UI Foundation
 
-The application now has a modernized AI provider selection system in the Settings UI, preparing for multi-provider routing.
+The application now has a full UI foundation for the AI Provider System V2, including:
+- Runtime provider visibility in the Create page
+- Provider-specific status badges (Ready, Requires API Key, Local)
+- UI-only provider validation (Test buttons in Settings)
+- Provider-aware helper text and metadata display
+
+The core backend routing logic remains stable on V1 until the next phase.
