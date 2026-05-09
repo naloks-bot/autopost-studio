@@ -4,6 +4,47 @@ import SectionCard from "../components/SectionCard.jsx";
 import ActionButton from "../components/ActionButton.jsx";
 import { validateFacebookConfig } from "../services/facebook.js";
 
+function maskSecret(value) {
+  if (!value) return "ยังไม่ได้กรอก";
+  if (value.length <= 10) return "ตั้งค่าแล้ว";
+  return `${value.slice(0, 4)}...${value.slice(-4)}`;
+}
+
+function ProviderBadge({ provider, settings }) {
+  let status = { label: "Unknown", color: "text-slate-400 bg-slate-400/10" };
+  
+  if (provider === "mock") {
+    status = { label: "Ready", color: "text-emerald-400 bg-emerald-400/10" };
+  } else if (provider === "codex") {
+    status = { label: "Local workflow", color: "text-amber-400 bg-amber-400/10" };
+  } else {
+    const hasKey = (provider === "openai" || provider === "gpt-image" || provider === "dalle") 
+      ? settings.openaiApiKey 
+      : (provider === "gemini" ? settings.geminiApiKey : false);
+      
+    if (hasKey) {
+      status = { label: "Ready", color: "text-emerald-400 bg-emerald-400/10" };
+    } else {
+      status = { label: "Requires API key", color: "text-rose-400 bg-rose-400/10" };
+    }
+  }
+
+  return (
+    <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider ${status.color}`}>
+      {status.label}
+    </span>
+  );
+}
+
+function ProviderHelper({ provider }) {
+  let text = "";
+  if (provider === "mock") text = "Mock is safe and free (recommended for testing)";
+  else if (provider === "codex") text = "Codex CLI is planned for local/ChatGPT Plus workflow";
+  else text = "API providers may cost money per generation";
+
+  return <p className="text-[10px] text-slate-500 italic px-1">{text}</p>;
+}
+
 function SettingsPage({
   currentSettingsStatus,
   SettingsStatusIcon,
@@ -16,12 +57,6 @@ function SettingsPage({
   isSavingSettings,
 }) {
   const isFbConfigured = validateFacebookConfig(settings);
-
-  function maskSecret(value) {
-    if (!value) return "ยังไม่ได้กรอก";
-    if (value.length <= 10) return "ตั้งค่าแล้ว";
-    return `${value.slice(0, 4)}...${value.slice(-4)}`;
-  }
 
   return (
     <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1.5fr_1fr]">
@@ -60,18 +95,49 @@ function SettingsPage({
         <div className="rounded-2xl border border-white/5 bg-slate-900/40 p-6 shadow-sm">
           <div className="mb-6 flex items-center gap-2 border-b border-white/5 pb-4">
              <Zap className="h-5 w-5 text-violet-400" />
-             <h3 className="text-sm font-semibold text-white uppercase tracking-wider">AI Provider Settings</h3>
+             <h3 className="text-sm font-semibold text-white uppercase tracking-wider">AI Provider System V2</h3>
           </div>
-          <div className="space-y-4">
-             <div className="grid gap-4 md:grid-cols-2">
-                <SettingsField
-                  label="Provider (openai, gemini, mock)"
-                  value={settings.aiProvider}
-                  onChange={(event) => updateSettingsField("aiProvider", event.target.value)}
-                  placeholder="openai"
-                />
+          <div className="space-y-6">
+             <div className="grid gap-6 md:grid-cols-2">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Text Generation Provider</span>
+                    <ProviderBadge provider={settings.textProvider} settings={settings} />
+                  </div>
+                  <SettingsField
+                    value={settings.textProvider}
+                    onChange={(event) => updateSettingsField("textProvider", event.target.value)}
+                    type="select"
+                    options={[
+                      { value: "mock", label: "Mock Mode (Default)" },
+                      { value: "gemini", label: "Gemini API" },
+                      { value: "openai", label: "OpenAI API" },
+                      { value: "codex", label: "Codex CLI (Local)" },
+                    ]}
+                  />
+                  <ProviderHelper provider={settings.textProvider} />
+                </div>
+
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Image Generation Provider</span>
+                    <ProviderBadge provider={settings.imageProvider} settings={settings} />
+                  </div>
+                  <SettingsField
+                    value={settings.imageProvider}
+                    onChange={(event) => updateSettingsField("imageProvider", event.target.value)}
+                    type="select"
+                    options={[
+                      { value: "mock", label: "Mock Mode (Default)" },
+                      { value: "gpt-image", label: "GPT Image" },
+                      { value: "dalle", label: "DALL·E" },
+                    ]}
+                  />
+                  <ProviderHelper provider={settings.imageProvider} />
+                </div>
              </div>
-             <div className="grid gap-4 md:grid-cols-2">
+
+             <div className="grid gap-4 md:grid-cols-2 border-t border-white/5 pt-6">
                 <SettingsField
                   label="OpenAI API Key"
                   value={settings.openaiApiKey}

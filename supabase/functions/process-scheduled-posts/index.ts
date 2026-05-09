@@ -42,7 +42,7 @@ serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
-    
+
     if (!supabaseUrl || !supabaseServiceKey) {
       throw new Error("Missing Supabase environment variables.");
     }
@@ -90,7 +90,7 @@ serve(async (req) => {
     }
 
     console.log(`Found ${duePosts.length} due posts. Processing...`);
-    
+
     const results = [];
     const publishMode = settings.facebook_publish_mode || "mock";
     const pageId = settings.facebook_page_id;
@@ -99,7 +99,7 @@ serve(async (req) => {
     // 3. Process Each Post
     for (const post of duePosts) {
       const postResult = { id: post.id, topic: post.topic, action: "skip", success: false };
-      
+
       try {
         if (publishMode === "live") {
           if (!pageId || !accessToken) {
@@ -107,7 +107,7 @@ serve(async (req) => {
           }
 
           console.log(`Live publishing post: ${post.id} (${post.topic})`);
-          
+
           const payload = new URLSearchParams();
           payload.append("message", post.content || post.topic || "");
           if (post.image_url) {
@@ -145,7 +145,7 @@ serve(async (req) => {
           .eq("id", post.id);
 
         if (updateError) throw updateError;
-        
+
         postResult.success = true;
         console.log(`Post updated successfully: ${post.id}`);
 

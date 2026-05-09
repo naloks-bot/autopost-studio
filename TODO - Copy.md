@@ -25,19 +25,23 @@ Prepare the application for:
 
 Priority: CRITICAL
 
-✅ Phase 11A-1 — AI Provider System V2 Foundation (UI/UX)
-* ✅ AI provider dropdowns
-* ✅ Text/image provider separation
-* ✅ Provider badges
-* ✅ Provider helper text
+### Goals
 
-### Remaining Tasks
+* Add provider visibility
+* Add runtime provider indicators
+* Add Codex CLI support
+* Improve AI configuration UX
+* Add model selection controls
 
+### Tasks
+
+* AI provider dropdowns
+* Text/image provider separation
+* Provider badges
 * Codex CLI status detection
 * Runtime AI information display
 * API validation buttons
 * Provider testing tools
-* Backend routing logic
 
 ---
 

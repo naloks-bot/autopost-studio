@@ -35,14 +35,33 @@ function maskSecret(value) {
   return `${value.slice(0, 4)}...${value.slice(-4)}`;
 }
 
-function SettingsField({ label, value, onChange, placeholder, multiline = false, secret = false }) {
+function SettingsField({ label, value, onChange, placeholder, multiline = false, secret = false, type = "text", options = [] }) {
   const sharedClassName =
-    "w-full rounded-xl border border-white/10 bg-slate-900/80 px-4 py-3 text-sm outline-none transition focus:border-cyan-400";
+    "w-full rounded-xl border border-white/10 bg-slate-900/80 px-4 py-3 text-sm outline-none transition focus:border-cyan-400 appearance-none";
 
   return (
     <label className="block">
       <span className="mb-2 block text-[10px] font-bold uppercase tracking-wider text-slate-500">{label}</span>
-      {multiline ? (
+      {type === "select" ? (
+        <div className="relative">
+          <select
+            value={value}
+            onChange={onChange}
+            className={sharedClassName}
+          >
+            {options.map((opt) => (
+              <option key={opt.value} value={opt.value} className="bg-slate-900 text-white">
+                {opt.label}
+              </option>
+            ))}
+          </select>
+          <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-500">
+            <svg className="h-4 w-4 fill-current" viewBox="0 0 20 20">
+              <path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" />
+            </svg>
+          </div>
+        </div>
+      ) : multiline ? (
         <textarea
           value={value}
           onChange={onChange}

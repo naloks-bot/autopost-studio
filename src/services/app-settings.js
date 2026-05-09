@@ -6,6 +6,8 @@ export const defaultSettings = {
   brandVoice: "มืออาชีพ ชัดเจน และกระชับ",
   defaultTopicHint: "",
   aiProvider: "mock",
+  textProvider: "mock",
+  imageProvider: "mock",
   openaiApiKey: "",
   openaiModel: "gpt-4o-mini",
   geminiApiKey: "",
