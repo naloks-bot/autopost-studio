@@ -290,12 +290,12 @@ Analytics will be implemented only after:
 
 # Current Stable Phase
 
-Batch 1 Complete — Content + Image Workflow V2 UI Foundation
+Batch 2 Complete — Scheduler + Queue UI Foundation
 
-The system now features a fully modernized, studio-grade creation workflow:
-- **AI Image Studio**: Foundation UI for aspect ratio selection, style presets, and prompt planning.
-- **Preview Studio**: Multi-device (Mobile/Desktop) Facebook post visualization.
-- **Workflow Polish**: Clean, multi-card layout for metadata, prompt assist, and runtime status.
-- **Metadata Context**: Visible labels and studio-grade preview tags for workflow planning.
+The system now has a dedicated scheduler management layer:
+- **Scheduler Dashboard**: New dedicated page for managing automated publishing.
+- **Queue Planning UI**: Visual overview of today's and upcoming scheduled posts (mocked).
+- **Posting Slot Controls**: UI foundation for configuring posting frequency and timeframes.
+- **Failure Recovery Info**: Visibility for planned retry systems and alert mechanisms.
 
-All new features are UI-only foundation; real AI routing and publishing logic remain stable on V1.
+Existing scheduler background logic remains stable on V1; Batch 2 is a UI-only architectural bridge.

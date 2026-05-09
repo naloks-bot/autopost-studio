@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import CreatePage from "./CreatePage.jsx";
 import StatusPage from "./StatusPage.jsx";
+import SchedulerPage from "./SchedulerPage.jsx";
 import SettingsPage from "./SettingsPage.jsx";
 import Sidebar from "../components/Sidebar.jsx";
 import Header from "../components/Header.jsx";
@@ -341,6 +342,11 @@ function App() {
                 settingsMessage={settingsMessage} SettingsField={SettingsField} settings={settings}
                 updateSettingsField={updateSettingsField} envSnapshot={envSnapshot}
                 handleSaveSettings={handleSaveSettings} isSavingSettings={isSavingSettings}
+              />
+            )}
+            {activeTab === "scheduler" && (
+              <SchedulerPage 
+                settings={settings}
               />
             )}
             {activeTab === "status" && (

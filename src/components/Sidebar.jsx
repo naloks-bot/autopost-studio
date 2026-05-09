@@ -1,10 +1,10 @@
-import React from "react";
-import { PlusCircle, ListTodo, Settings, Sparkles, ChevronRight, HelpCircle } from "lucide-react";
+import { PlusCircle, ListTodo, Settings, Sparkles, ChevronRight, HelpCircle, Calendar } from "lucide-react";
 
 function Sidebar({ activeTab, setActiveTab, workspaceName, onOpenGuide }) {
   const menuItems = [
     { id: "create", label: "Create Draft", icon: PlusCircle },
     { id: "status", label: "Status", icon: ListTodo },
+    { id: "scheduler", label: "Scheduler", icon: Calendar },
     { id: "settings", label: "Settings", icon: Settings },
   ];
 

@@ -160,3 +160,11 @@ export const IMAGE_STYLE_PRESETS = [
   { id: "minimal", label: "Minimal" },
   { id: "meme", label: "Fun / Meme" },
 ];
+
+export const QUEUE_STATUSES = [
+  { id: "draft", label: "Draft", color: "bg-slate-500/10 text-slate-400" },
+  { id: "queued", label: "Queued", color: "bg-blue-500/10 text-blue-400" },
+  { id: "scheduled", label: "Scheduled", color: "bg-amber-500/10 text-amber-400" },
+  { id: "published", label: "Published", color: "bg-emerald-500/10 text-emerald-400" },
+  { id: "failed", label: "Failed", color: "bg-rose-500/10 text-rose-400" },
+];

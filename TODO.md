@@ -136,22 +136,22 @@ Priority: MEDIUM
 
 ---
 
-# STAGE 3 — SCHEDULER SYSTEM V2
-
----
-
-## PHASE 13A — Queue-Based Scheduler
+## PHASE 13A — Queue-Based Scheduler Foundation
 
 Priority: HIGH
 
-### Planned Features
+✅ Batch 2 Complete — Scheduler + Queue UI Foundation
+* ✅ Scheduler Dashboard Page
+* ✅ Queue Planning UI (Mock)
+* ✅ Posting Slot Controls UI
+* ✅ Timezone & Status visibility
 
-* Multi-page scheduling
-* Queue overview
-* Posting slots
-* Retry system
-* Failure recovery
-* Publish tracking
+### Next Steps (Batch 3 / Future)
+* Supabase `queue` table
+* Background processor V2 (Edge Functions)
+* Automated retry logic
+* Posting slot persistence
+* Real-time queue syncing
 
 ---
 

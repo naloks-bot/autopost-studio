@@ -166,7 +166,7 @@ The UI foundation is now in place with a global page selector and workspace cont
 
 ---
 
-# Scheduler Architecture V2 (PLANNED)
+# Scheduler Architecture V2 (UI FOUNDATION COMPLETE)
 
 The scheduler system will evolve into:
 
@@ -175,6 +175,8 @@ The scheduler system will evolve into:
 * Time-slot management
 * Retry handling
 * Publish tracking
+
+The UI foundation is now implemented with a dedicated Scheduler Dashboard and Queue Planning visibility.
 
 ---
 
