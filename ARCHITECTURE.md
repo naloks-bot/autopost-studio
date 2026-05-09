@@ -1,3 +1,15 @@
+# Roadmap Consolidation
+
+The roadmap has been consolidated into larger safe batches to reduce command overhead and ensure UI/UX consistency across related features.
+
+### Batch Execution Plan
+*   **Batch 1**: Content + Image Workflow V2 + Preview Studio UI — ✅ Complete
+*   **Batch 2**: Scheduler + Queue UI Foundation — ✅ Complete
+*   **Batch 3**: AI Library + Logs UI Foundation — ✅ Complete
+*   **Batch 4**: Final QA + Docs Stabilization — ⏳ Next
+
+---
+
 # Architecture Overview
 
 ## System Direction

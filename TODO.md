@@ -1,10 +1,12 @@
-# TODO Roadmap
+# Roadmap Consolidation
 
-# CURRENT STABLE PHASE
+The roadmap has been consolidated into larger safe batches to reduce command overhead and ensure UI/UX consistency across related features.
 
-✅ Phase 10D — Guide Modal + Final UI QA
-
-The dashboard UI foundation is now stable.
+### Batch Execution Plan
+*   **Batch 1**: Content + Image Workflow V2 + Preview Studio UI — ✅ Complete
+*   **Batch 2**: Scheduler + Queue UI Foundation — ✅ Complete
+*   **Batch 3**: AI Library + Logs UI Foundation — ✅ Complete
+*   **Batch 4**: Final QA + Docs Stabilization — ⏳ Next
 
 ---
 
@@ -168,36 +170,27 @@ Priority: MEDIUM
 
 ---
 
-# STAGE 4 — AI LIBRARY + LOGS
+# STAGE 4 — AI LIBRARY + LOGS FOUNDATION
 
 ---
 
-## PHASE 14A — AI Library
+## PHASE 14A — AI Library & Logs Foundation
 
 Priority: MEDIUM
 
-### Planned Features
+✅ Batch 3 Complete — AI Library + Logs UI Foundation
+* ✅ AI Library Dashboard UI
+* ✅ Asset categories (Images, Prompts, etc.)
+* ✅ System Logs Viewer UI
+* ✅ Log filtering & export UI placeholders
+* ✅ Full Navigation integration
 
-* Generated image library
-* Saved prompts
-* Saved captions
-* Search & filtering
-* Reusable templates
-
----
-
-## PHASE 14B — Logs System
-
-Priority: MEDIUM
-
-### Planned Features
-
-* App logs
-* AI logs
-* Scheduler logs
-* Publish logs
-* Error tracking
-* Copy/export tools
+### Next Steps (Batch 4 / Future)
+* Supabase `library` table
+* Persistent logging service
+* Asset search & filtering logic
+* Template persistence
+* Log export functionality
 
 ---
 

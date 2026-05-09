@@ -2,6 +2,8 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import CreatePage from "./CreatePage.jsx";
 import StatusPage from "./StatusPage.jsx";
 import SchedulerPage from "./SchedulerPage.jsx";
+import LibraryPage from "./LibraryPage.jsx";
+import LogsPage from "./LogsPage.jsx";
 import SettingsPage from "./SettingsPage.jsx";
 import Sidebar from "../components/Sidebar.jsx";
 import Header from "../components/Header.jsx";
@@ -348,6 +350,12 @@ function App() {
               <SchedulerPage 
                 settings={settings}
               />
+            )}
+            {activeTab === "library" && (
+              <LibraryPage />
+            )}
+            {activeTab === "logs" && (
+              <LogsPage />
             )}
             {activeTab === "status" && (
               <StatusPage

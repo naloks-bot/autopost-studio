@@ -290,12 +290,25 @@ Analytics will be implemented only after:
 
 # Current Stable Phase
 
-Batch 2 Complete — Scheduler + Queue UI Foundation
+# Roadmap Consolidation
 
-The system now has a dedicated scheduler management layer:
-- **Scheduler Dashboard**: New dedicated page for managing automated publishing.
-- **Queue Planning UI**: Visual overview of today's and upcoming scheduled posts (mocked).
-- **Posting Slot Controls**: UI foundation for configuring posting frequency and timeframes.
-- **Failure Recovery Info**: Visibility for planned retry systems and alert mechanisms.
+The roadmap has been consolidated into larger safe batches to reduce command overhead and ensure UI/UX consistency across related features.
 
-Existing scheduler background logic remains stable on V1; Batch 2 is a UI-only architectural bridge.
+### Batch Execution Plan
+- **Batch 1: Content + Image Workflow V2 + Preview Studio UI** — ✅ Complete
+- **Batch 2: Scheduler + Queue UI Foundation** — ✅ Complete
+- **Batch 3: AI Library + Logs UI Foundation** — ✅ Complete
+- **Batch 4: Final QA + Docs Stabilization** — ⏳ Next
+
+---
+
+# Current Stable Phase
+
+Batch 3 Complete — AI Library + Logs UI Foundation
+
+The system now includes the complete frontend architectural foundation for Stage 2:
+- **AI Library Dashboard**: Foundation UI for managing images, prompts, and templates.
+- **System Logs Viewer**: Session-based log visualizer for AI, Scheduler, and Publishing activity.
+- **Full Navigation**: Integrated sidebar and routing for the entire V2 studio ecosystem.
+
+All new pages are UI-only foundations; backend persistence and real API routing remain stable on V1. Mock mode and production safety remain the default.
