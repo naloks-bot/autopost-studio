@@ -250,6 +250,18 @@ The system is intentionally designed to default to safe operation.
 
 ---
 
+# Content Workflow V2 (UI FOUNDATION COMPLETE)
+
+The workflow now includes a "Prompt Assist" layer that:
+
+*   **Summarizes Context**: Combines Workspace, Provider, and Content Metadata.
+*   **Generates Briefs**: Creates human-readable summaries of the desired content.
+*   **Enables Manual Flow**: Allows users to copy briefs for manual AI assistance while the automated routing is being built.
+
+This ensures a smooth transition to full AI orchestration in later phases.
+
+---
+
 # Design Principles
 
 1. Minimal-cost operation

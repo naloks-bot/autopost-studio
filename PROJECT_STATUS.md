@@ -290,12 +290,12 @@ Analytics will be implemented only after:
 
 # Current Stable Phase
 
-Phase 11C Complete — Content Data Model V2 UI Metadata Foundation
+Phase 12A Complete — Content Workflow V2 Prompt Assist UI
 
-The application now supports manual metadata selection during content creation:
-- New "Content Metadata" card with Type, Tone, Length, and CTA controls
-- Metadata visibility tags in the generated content preview area
-- UI-only local state tracking for workflow planning
-- No changes to Supabase schema or draft persistence yet
+The Create Draft workflow is now more intelligent with:
+- "Prompt Assist" card that summarizes workspace, provider, and content metadata
+- Auto-generated "Prompt Brief" preview based on user selections
+- Copy-to-clipboard functionality for the prompt brief
+- Clear UI-only status to prevent accidental API costs
 
-This prepares the system for future AI-driven model orchestration.
+This provides a bridge between manual metadata selection and future automated AI routing.

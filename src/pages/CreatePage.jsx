@@ -6,6 +6,7 @@ import { uploadImageFromUrl } from "../services/storage.js";
 import ActionButton from "../components/ActionButton.jsx";
 import ProviderStatusCard from "../components/ProviderStatusCard.jsx";
 import WorkspaceContextCard from "../components/WorkspaceContextCard.jsx";
+import PromptAssistCard from "../components/PromptAssistCard.jsx";
 
 function CreatePage({
   form,
@@ -150,6 +151,8 @@ function CreatePage({
              <p className="text-[9px] italic">Metadata is UI-only for workflow planning.</p>
           </div>
         </div>
+
+        <PromptAssistCard settings={settings} metadata={metadata} />
         <div className="rounded-2xl border border-white/5 bg-slate-900/40 p-6 shadow-sm">
           <h3 className="mb-4 text-sm font-semibold text-cyan-400 uppercase tracking-wider">1. Input Topic</h3>
           <textarea
