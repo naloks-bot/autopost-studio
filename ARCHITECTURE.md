@@ -130,19 +130,16 @@ The generation service will:
 
 ## Image Generation Flow
 
-Planned supported providers:
+# AI Image Studio (UI FOUNDATION COMPLETE)
 
-* Mock
-* GPT Image
-* DALL·E
-* Future providers
+The Image Studio provides a controlled environment for visual content creation:
 
-Features:
+*   **Aspect Ratio Support**: 1:1, 4:5, 9:16, 16:9
+*   **Style Presets**: Realistic, Cinematic, Product Promo, Minimal, Fun / Meme
+*   **Prompt Assist**: Integrated metadata-aware briefing.
+*   **Preview Studio**: Real-time visualization of image/content relationship.
 
-* Aspect ratio routing
-* Style presets
-* Prompt assist
-* Prompt memory
+The UI foundation is now in place for future multi-provider routing.
 * Image regeneration
 
 ---

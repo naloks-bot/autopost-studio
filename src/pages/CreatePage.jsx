@@ -7,6 +7,8 @@ import ActionButton from "../components/ActionButton.jsx";
 import ProviderStatusCard from "../components/ProviderStatusCard.jsx";
 import WorkspaceContextCard from "../components/WorkspaceContextCard.jsx";
 import PromptAssistCard from "../components/PromptAssistCard.jsx";
+import ImageStudioCard from "../components/ImageStudioCard.jsx";
+import PreviewStudioCard from "../components/PreviewStudioCard.jsx";
 
 function CreatePage({
   form,
@@ -33,7 +35,14 @@ function CreatePage({
     cta: "none",
   });
 
+  const [imageForm, setImageForm] = useState({
+    aspectRatio: "1:1",
+    style: "realistic",
+    prompt: "",
+  });
+
   const updateMetadata = (key, value) => setMetadata(prev => ({ ...prev, [key]: value }));
+  const updateImageForm = (key, value) => setImageForm(prev => ({ ...prev, [key]: value }));
 
   async function handleGenerateImage() {
     if (isGeneratingImage) return;
@@ -146,150 +155,54 @@ function CreatePage({
               </select>
             </div>
           </div>
-          <div className="mt-4 flex items-center gap-1.5 text-slate-500">
-             <Info className="h-3 w-3" />
-             <p className="text-[9px] italic">Metadata is UI-only for workflow planning.</p>
-          </div>
         </div>
 
         <PromptAssistCard settings={settings} metadata={metadata} />
+
         <div className="rounded-2xl border border-white/5 bg-slate-900/40 p-6 shadow-sm">
-          <h3 className="mb-4 text-sm font-semibold text-cyan-400 uppercase tracking-wider">1. Input Topic</h3>
+          <div className="mb-4 flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-cyan-400 uppercase tracking-wider">Topic & Content</h3>
+            <div className="flex items-center gap-2">
+               <span className="text-[9px] font-bold text-slate-500 uppercase">Provider: {settings.textProvider}</span>
+            </div>
+          </div>
           <textarea
             value={form.topic}
             onChange={(event) => updateForm("topic", event.target.value)}
-            placeholder={settings.defaultTopicHint || "เช่น โปรโมตบริการออกแบบเว็บไซต์สำหรับธุรกิจขนาดเล็ก"}
-            className="h-28 w-full rounded-xl border border-white/10 bg-slate-950/50 px-4 py-3 text-sm outline-none transition focus:border-cyan-400"
+            placeholder={settings.defaultTopicHint || "Describe what you want to write about..."}
+            className="h-28 w-full rounded-xl border border-white/10 bg-slate-950/50 px-4 py-3 text-sm outline-none transition focus:border-cyan-400 resize-none"
           />
           <div className="mt-4">
             <ActionButton
-              label={isGenerating ? "กำลังสร้างข้อความ..." : "AI ช่วยสร้างข้อความ"}
+              label={isGenerating ? "Generating Content..." : "AI Generate Text"}
               icon={Sparkles}
               isLoading={isGenerating}
               onClick={handleGenerateContent}
               fullWidth
             />
           </div>
-        </div>
-
-        <div className="rounded-2xl border border-white/5 bg-slate-900/40 p-6 shadow-sm">
-          <div className="mb-4 flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-cyan-400 uppercase tracking-wider">2. Image Concept</h3>
-            <button
-              type="button"
-              onClick={handleGenerateImagePrompt}
-              disabled={isGeneratingImagePrompt}
-              className="flex items-center gap-1.5 text-xs font-medium text-slate-400 transition hover:text-cyan-400 disabled:opacity-50"
-            >
-              {isGeneratingImagePrompt ? <RefreshCw className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
-              AI ช่วยคิด Prompt
-            </button>
-          </div>
-          <textarea
-            value={form.imagePrompt}
-            onChange={(event) => updateForm("imagePrompt", event.target.value)}
-            placeholder="Prompt สำหรับสร้างรูปภาพประกอบ"
-            className="h-28 w-full rounded-xl border border-white/10 bg-slate-950/50 px-4 py-3 text-sm outline-none transition focus:border-cyan-400"
-          />
-          <div className="mt-4 grid grid-cols-2 gap-3">
-            <ActionButton
-              label="Preview รูป"
-              icon={ImageIcon}
-              isLoading={isGeneratingImageProp}
-              onClick={handleGenerateImagePreview}
-              variant="amber"
-            />
-            <ActionButton
-              label="Generate Real"
-              icon={ImageIcon}
-              isLoading={isGeneratingImage}
-              onClick={handleGenerateImage}
-              variant="sky"
-            />
-          </div>
-          {imageGenerationError && (
-            <p className="mt-3 text-xs text-rose-400">{imageGenerationError}</p>
+          {generationError && (
+            <p className="mt-3 text-xs text-rose-400 bg-rose-400/10 p-2 rounded border border-rose-400/20 italic">{generationError}</p>
           )}
         </div>
+
+        <ImageStudioCard settings={settings} imageForm={imageForm} updateImageForm={updateImageForm} />
       </div>
 
-      {/* Right Panel: Preview & Actions */}
+      {/* Right Panel: Preview & Studio */}
       <div className="flex flex-col space-y-6 lg:h-[calc(100vh-10rem)]">
-        <div className="flex flex-1 flex-col rounded-2xl border border-white/10 bg-slate-900/60 shadow-xl overflow-hidden">
-           <div className="border-b border-white/5 bg-white/5 px-6 py-3">
-             <h3 className="text-sm font-semibold text-white uppercase tracking-wider">Draft Preview</h3>
-           </div>
-           
-           <div className="flex-1 overflow-y-auto p-6 space-y-6">
-              {generationError && (
-                <div className="rounded-xl border border-rose-500/20 bg-rose-500/10 p-3 text-xs text-rose-300">
-                  {generationError}
-                </div>
-              )}
-
-              <div className="relative group">
-                <div className="mb-2 flex flex-col gap-2">
-                  <div className="flex items-center justify-between">
-                    <label className="block text-[10px] font-bold uppercase text-slate-500 tracking-widest">Generated Content</label>
-                    <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-white/5 border border-white/5">
-                      <span className="text-[9px] font-bold text-slate-400 uppercase">Provider:</span>
-                      <span className="text-[9px] font-bold text-cyan-400 uppercase">{settings.textProvider}</span>
-                    </div>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    <span className="rounded bg-slate-800 px-1.5 py-0.5 text-[8px] font-bold text-slate-400 uppercase">Type: {metadata.type}</span>
-                    <span className="rounded bg-slate-800 px-1.5 py-0.5 text-[8px] font-bold text-slate-400 uppercase">Tone: {metadata.tone}</span>
-                    <span className="rounded bg-slate-800 px-1.5 py-0.5 text-[8px] font-bold text-slate-400 uppercase">Len: {metadata.length}</span>
-                    <span className="rounded bg-slate-800 px-1.5 py-0.5 text-[8px] font-bold text-slate-400 uppercase">CTA: {metadata.cta}</span>
-                  </div>
-                </div>
-                <textarea
-                  value={form.content}
-                  onChange={(event) => updateForm("content", event.target.value)}
-                  placeholder="ข้อความที่ AI สร้างจะปรากฏที่นี่..."
-                  className="min-h-[200px] w-full bg-transparent text-sm leading-relaxed outline-none border-none resize-none"
-                />
-              </div>
-
-              {(form.imageUrl || generatedImage?.imageUrl) && (
-                <div className="relative group">
-                  <img
-                    src={generatedImage?.imageUrl || form.imageUrl}
-                    alt="Preview"
-                    className="w-full rounded-xl border border-white/10 object-cover shadow-2xl"
-                  />
-                  {(generatedImage?.imageUrl || form.imageUrl) && (
-                    <button 
-                      onClick={() => {
-                        setGeneratedImage(null);
-                        updateForm("imageUrl", "");
-                      }}
-                      className="absolute top-2 right-2 p-1.5 rounded-full bg-slate-950/60 text-slate-400 hover:text-white opacity-0 group-hover:opacity-100 transition-opacity"
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
-                  )}
-                  {generatedImage?.mode && (
-                    <div className="mt-2 flex items-center gap-2">
-                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tighter">AI Mode:</span>
-                      <span className="text-[10px] font-bold text-cyan-500 uppercase">{generatedImage.mode}</span>
-                    </div>
-                  )}
-                </div>
-              )}
-           </div>
-
-           <div className="border-t border-white/5 bg-white/5 p-6">
-              <ActionButton
-                label="บันทึกโพสต์ (Save Draft)"
-                icon={CheckCircle2}
-                isLoading={isSavingDraft}
-                onClick={handleInternalSave}
-                variant="emerald"
-                fullWidth
-              />
-           </div>
-        </div>
+         <PreviewStudioCard form={form} settings={settings} metadata={metadata} imageForm={imageForm} />
+         
+         <div className="rounded-2xl border border-white/5 bg-slate-900/40 p-4 shadow-sm">
+            <ActionButton
+              label="Save Draft to Supabase"
+              icon={CheckCircle2}
+              isLoading={isSavingDraft}
+              onClick={handleInternalSave}
+              variant="emerald"
+              fullWidth
+            />
+         </div>
       </div>
     </div>
   );

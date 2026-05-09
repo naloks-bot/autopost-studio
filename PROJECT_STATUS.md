@@ -290,12 +290,12 @@ Analytics will be implemented only after:
 
 # Current Stable Phase
 
-Phase 12A Complete — Content Workflow V2 Prompt Assist UI
+Batch 1 Complete — Content + Image Workflow V2 UI Foundation
 
-The Create Draft workflow is now more intelligent with:
-- "Prompt Assist" card that summarizes workspace, provider, and content metadata
-- Auto-generated "Prompt Brief" preview based on user selections
-- Copy-to-clipboard functionality for the prompt brief
-- Clear UI-only status to prevent accidental API costs
+The system now features a fully modernized, studio-grade creation workflow:
+- **AI Image Studio**: Foundation UI for aspect ratio selection, style presets, and prompt planning.
+- **Preview Studio**: Multi-device (Mobile/Desktop) Facebook post visualization.
+- **Workflow Polish**: Clean, multi-card layout for metadata, prompt assist, and runtime status.
+- **Metadata Context**: Visible labels and studio-grade preview tags for workflow planning.
 
-This provides a bridge between manual metadata selection and future automated AI routing.
+All new features are UI-only foundation; real AI routing and publishing logic remain stable on V1.

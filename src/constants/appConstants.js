@@ -145,3 +145,18 @@ export const CONTENT_CTAS = [
   { id: "inbox", label: "Inbox" },
   { id: "link", label: "Visit Link" },
 ];
+
+export const IMAGE_ASPECT_RATIOS = [
+  { id: "1:1", label: "1:1 Square" },
+  { id: "4:5", label: "4:5 Portrait" },
+  { id: "9:16", label: "9:16 Story" },
+  { id: "16:9", label: "16:9 Landscape" },
+];
+
+export const IMAGE_STYLE_PRESETS = [
+  { id: "realistic", label: "Realistic" },
+  { id: "cinematic", label: "Cinematic" },
+  { id: "product", label: "Product Promo" },
+  { id: "minimal", label: "Minimal" },
+  { id: "meme", label: "Fun / Meme" },
+];
