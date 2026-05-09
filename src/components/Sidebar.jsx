@@ -1,4 +1,4 @@
-import { PlusCircle, ListTodo, Settings, ChevronRight, HelpCircle, Calendar, BookOpen, Terminal } from "lucide-react";
+import { PlusCircle, ListTodo, Settings, ChevronRight, HelpCircle, Calendar, BookOpen, Terminal, Sparkles } from "lucide-react";
 
 function Sidebar({ activeTab, setActiveTab, workspaceName, onOpenGuide }) {
   const menuItems = [
@@ -31,11 +31,10 @@ function Sidebar({ activeTab, setActiveTab, workspaceName, onOpenGuide }) {
             <button
               key={item.id}
               onClick={() => setActiveTab(item.id)}
-              className={`group flex w-full items-center justify-between rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200 ${
-                isActive
+              className={`group flex w-full items-center justify-between rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200 ${isActive
                   ? "bg-cyan-500/10 text-cyan-400 shadow-sm shadow-cyan-500/5"
                   : "text-slate-400 hover:bg-white/5 hover:text-slate-200"
-              }`}
+                }`}
             >
               <div className="flex items-center gap-3">
                 <Icon className={`h-5 w-5 ${isActive ? "text-cyan-400" : "text-slate-500 group-hover:text-slate-300"}`} />
@@ -49,7 +48,7 @@ function Sidebar({ activeTab, setActiveTab, workspaceName, onOpenGuide }) {
 
       {/* Sidebar Footer */}
       <div className="border-t border-white/10 p-4 space-y-3">
-        <button 
+        <button
           onClick={onOpenGuide}
           className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-slate-400 transition-all hover:bg-white/5 hover:text-slate-200"
         >
