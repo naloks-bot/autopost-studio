@@ -17,6 +17,71 @@ body {
   background: #020617;
 }
 
+.theme-light {
+  color-scheme: light;
+}
+
+.theme-light .bg-slate-950 {
+  background: #f5efe4 !important;
+}
+
+.theme-light .bg-slate-950\/80,
+.theme-light .bg-slate-950\/50,
+.theme-light .bg-slate-950\/40 {
+  background: rgba(246, 239, 228, 0.92) !important;
+}
+
+.theme-light .bg-slate-900\/80,
+.theme-light .bg-slate-900\/60,
+.theme-light .bg-slate-900\/40 {
+  background: rgba(249, 244, 236, 0.94) !important;
+}
+
+.theme-light .bg-white\/5 {
+  background: rgba(168, 126, 52, 0.08) !important;
+}
+
+.theme-light .border-white\/10,
+.theme-light .border-white\/5 {
+  border-color: rgba(168, 126, 52, 0.14) !important;
+}
+
+.theme-light .text-white {
+  color: #2f2418 !important;
+}
+
+.theme-light .text-slate-200,
+.theme-light .text-slate-300 {
+  color: #4c3b28 !important;
+}
+
+.theme-light .text-slate-400 {
+  color: #71593f !important;
+}
+
+.theme-light .text-slate-500,
+.theme-light .text-slate-600,
+.theme-light .text-slate-700 {
+  color: #937658 !important;
+}
+
+.theme-light .hover\:bg-white\/5:hover,
+.theme-light .hover\:bg-white\/10:hover {
+  background: rgba(168, 126, 52, 0.12) !important;
+}
+
+.theme-light .hover\:text-white:hover {
+  color: #2f2418 !important;
+}
+
+.theme-light .bg-cyan-500\/10,
+.theme-light .bg-emerald-500\/10,
+.theme-light .bg-violet-500\/10,
+.theme-light .bg-amber-500\/10,
+.theme-light .bg-rose-500\/10 {
+  backdrop-filter: saturate(110%);
+}
+
 * {
   box-sizing: border-box;
 }

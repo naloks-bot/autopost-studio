@@ -5,6 +5,7 @@ import SchedulerPage from "./SchedulerPage.jsx";
 import LibraryPage from "./LibraryPage.jsx";
 import LogsPage from "./LogsPage.jsx";
 import SettingsPage from "./SettingsPage.jsx";
+import PagesPage from "./PagesPage.jsx";
 import Sidebar from "../components/Sidebar.jsx";
 import Header from "../components/Header.jsx";
 import GuideModal from "../components/GuideModal.jsx";
@@ -19,21 +20,24 @@ import {
 } from "../services/app-settings.js";
 import { getLocalDrafts, removeLocalDraft, saveLocalDraft, updateLocalDraft } from "../services/local-drafts.js";
 import {
-  fetchRemotePosts,
   fetchRemotePages,
+  fetchRemotePosts,
   fetchRemoteSettings,
   getSupabaseEnvSnapshot,
   hasSupabaseConfig,
   insertRemoteDraft,
+  saveRemotePages,
   saveRemoteSettings,
   updateRemoteDraft,
   updateRemotePostStatus,
 } from "../services/supabase.js";
-import { generateImagePrompt, generatePostContent, getTextProviderRuntime } from "../services/ai-generation.js";
-import { publishFacebookPost, validateFacebookConfig } from "../services/facebook.js";
 import { createOperationLog, fetchOperationLogs } from "../services/operation-logs.js";
+import { publishFacebookPost, validateFacebookConfig } from "../services/facebook.js";
+import { generateImagePrompt, generatePostContent, getTextProviderRuntime } from "../services/ai-generation.js";
 import { resolveEffectivePublishConfig } from "../services/page-context.js";
 import { runSchedulerTick } from "../services/scheduler.js";
+
+const THEME_KEY = "autopost-studio-theme";
 
 function formatDate(value) {
   if (!value) return "-";
@@ -43,11 +47,25 @@ function formatDate(value) {
   }).format(new Date(value));
 }
 
-function toUserSafeMessage(error, fallback = "Something went wrong. Please try again.") {
+function toUserSafeMessage(error, fallback = "เกิดข้อผิดพลาดบางอย่าง กรุณาลองอีกครั้ง") {
   const raw = typeof error === "string" ? error : error?.message;
   const next = String(raw || fallback).replace(/\s+/g, " ").trim();
   if (!next) return fallback;
   return next.length <= 160 ? next : `${next.slice(0, 157)}...`;
+}
+
+function createPageId(label = "") {
+  const base = String(label || "page")
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9ก-๙]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  return `${base || "page"}-${Date.now().toString().slice(-6)}`;
+}
+
+function getInitialTheme() {
+  if (typeof window === "undefined") return "dark";
+  return window.localStorage.getItem(THEME_KEY) === "light" ? "light" : "dark";
 }
 
 function SettingsField({ label, value, onChange, placeholder, multiline = false, secret = false, type = "text", options = [] }) {
@@ -59,11 +77,7 @@ function SettingsField({ label, value, onChange, placeholder, multiline = false,
       <span className="mb-2 block text-[10px] font-bold uppercase tracking-wider text-slate-500">{label}</span>
       {type === "select" ? (
         <div className="relative">
-          <select
-            value={value}
-            onChange={onChange}
-            className={sharedClassName}
-          >
+          <select value={value} onChange={onChange} className={sharedClassName}>
             {options.map((opt) => (
               <option key={opt.value} value={opt.value} className="bg-slate-900 text-white">
                 {opt.label}
@@ -77,12 +91,7 @@ function SettingsField({ label, value, onChange, placeholder, multiline = false,
           </div>
         </div>
       ) : multiline ? (
-        <textarea
-          value={value}
-          onChange={onChange}
-          placeholder={placeholder}
-          className={`${sharedClassName} h-28`}
-        />
+        <textarea value={value} onChange={onChange} placeholder={placeholder} className={`${sharedClassName} h-28`} />
       ) : (
         <input
           type={secret ? "password" : "text"}
@@ -98,30 +107,26 @@ function SettingsField({ label, value, onChange, placeholder, multiline = false,
 
 function App() {
   const [activeTab, setActiveTab] = useState("create");
-  const [isDark, setIsDark] = useState(true);
+  const [theme, setTheme] = useState(getInitialTheme);
   const [isGuideOpen, setIsGuideOpen] = useState(false);
   const [form, setForm] = useState(initialForm);
   const [settings, setSettings] = useState(defaultSettings);
   const [remotePosts, setRemotePosts] = useState([]);
   const [localDrafts, setLocalDrafts] = useState([]);
-  const [connectionMode, setConnectionMode] = useState(
-    hasSupabaseConfig ? "connected" : "offline"
-  );
+  const [connectionMode, setConnectionMode] = useState(hasSupabaseConfig ? "connected" : "offline");
   const [connectionError, setConnectionError] = useState("");
-  const [settingsSyncMode, setSettingsSyncMode] = useState(
-    hasSupabaseConfig ? "connected" : "offline"
-  );
+  const [settingsSyncMode, setSettingsSyncMode] = useState(hasSupabaseConfig ? "connected" : "offline");
   const [settingsMessage, setSettingsMessage] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isGeneratingImagePrompt, setIsGeneratingImagePrompt] = useState(false);
-  const [isGeneratingImage, setIsGeneratingImage] = useState(false);
   const [isSavingDraft, setIsSavingDraft] = useState(false);
   const [isSavingSettings, setIsSavingSettings] = useState(false);
   const [generationError, setGenerationError] = useState("");
   const [schedulerStatus, setSchedulerStatus] = useState(null);
   const [lastTextGeneration, setLastTextGeneration] = useState(null);
   const [createNotice, setCreateNotice] = useState(null);
+  const [statusNotice, setStatusNotice] = useState(null);
   const [operationLogs, setOperationLogs] = useState([]);
   const [logsMode, setLogsMode] = useState(hasSupabaseConfig ? "connected" : "offline");
   const [editingDraft, setEditingDraft] = useState(null);
@@ -135,6 +140,11 @@ function App() {
   }, [remotePosts, settings]);
 
   useEffect(() => {
+    document.documentElement.style.colorScheme = theme === "light" ? "light" : "dark";
+    window.localStorage.setItem(THEME_KEY, theme);
+  }, [theme]);
+
+  useEffect(() => {
     void loadAllData(true);
   }, []);
 
@@ -146,6 +156,7 @@ function App() {
   }, []);
 
   const envSnapshot = getSupabaseEnvSnapshot();
+  const isDark = theme !== "light";
 
   const allPendingPosts = useMemo(() => {
     const remotePending = remotePosts.filter((post) => post.status !== "posted");
@@ -159,37 +170,35 @@ function App() {
     dataLock.current = true;
     if (showSpinner) setIsLoading(true);
     setConnectionError("");
-    setSettingsMessage("");
     try {
       const localSettings = getAppSettings();
       setLocalDrafts(getLocalDrafts());
-      const [postsResult, settingsResult, pagesResult] = await Promise.all([
+
+      const [postsResult, settingsResult, pagesResult, logsResult] = await Promise.all([
         fetchRemotePosts(),
         fetchRemoteSettings(),
         fetchRemotePages(),
+        fetchOperationLogs(),
       ]);
-      const logsResult = await fetchOperationLogs();
-      if (postsResult.data) {
-        setRemotePosts(postsResult.data);
-      }
-      setOperationLogs(logsResult.data || []);
-      if (logsResult.mode) setLogsMode(logsResult.mode);
+
+      if (postsResult.data) setRemotePosts(postsResult.data);
       if (postsResult.mode) setConnectionMode(postsResult.mode);
       if (postsResult.error && postsResult.mode !== "offline") {
-        setConnectionError(toUserSafeMessage(postsResult.error, "Failed to fetch posts from Supabase."));
+        setConnectionError(toUserSafeMessage(postsResult.error, "ยังโหลดร่างจาก Supabase ไม่ได้"));
       }
+
+      if (logsResult.data) setOperationLogs(logsResult.data);
+      if (logsResult.mode) setLogsMode(logsResult.mode);
+
+      const workspacePages = pagesResult.data?.length ? pagesResult.data : localSettings.workspacePages;
       if (settingsResult.mode) setSettingsSyncMode(settingsResult.mode);
-      const workspacePages = pagesResult.data?.length
-        ? pagesResult.data
-        : localSettings.workspacePages;
       if (settingsResult.data) {
         setSettings(sanitizeSettings({ ...localSettings, ...settingsResult.data, workspacePages }));
       } else {
         setSettings(sanitizeSettings({ ...localSettings, workspacePages }));
       }
-    } catch (err) {
-      console.error("Critical error loading data:", err);
-      setConnectionError("Failed to fetch data from server");
+    } catch (error) {
+      setConnectionError(toUserSafeMessage(error, "ยังโหลดข้อมูลระบบไม่สำเร็จ"));
     } finally {
       setIsLoading(false);
       dataLock.current = false;
@@ -211,6 +220,42 @@ function App() {
     setSettings((current) => sanitizeSettings({ ...current, [key]: value }));
   }, []);
 
+  const updateWorkspacePage = useCallback((pageId, patch) => {
+    setSettings((current) => {
+      const workspacePages = getWorkspacePages(current).map((page) =>
+        page.id === pageId ? { ...page, ...patch } : page
+      );
+      return sanitizeSettings({ ...current, workspacePages });
+    });
+  }, []);
+
+  const addWorkspacePage = useCallback(() => {
+    const nextPageId = createPageId("page");
+    setSettings((current) => {
+      const workspacePages = [
+        ...getWorkspacePages(current),
+        {
+          id: nextPageId,
+          label: "เพจใหม่",
+          description: "",
+          facebookPageId: "",
+          facebookPageAccessToken: "",
+          category: "",
+          status: "draft",
+          readme: "",
+          writingDirection: "",
+          imageDirection: "",
+          visualStyle: "",
+          targetAudience: "",
+          tone: "",
+        },
+      ];
+      return sanitizeSettings({ ...current, activePageId: nextPageId, workspacePages });
+    });
+    setSettingsMessage("เพิ่มเพจใหม่แล้ว อย่าลืมกดบันทึกข้อมูลเพจ");
+    setActiveTab("pages");
+  }, []);
+
   const handleLoadDraftToEditor = useCallback((draft) => {
     const nextPageId = draft.page_id || "default";
     setForm({
@@ -221,9 +266,7 @@ function App() {
     });
     setSettings((current) => {
       const workspacePages = getWorkspacePages(current);
-      const activePageId = workspacePages.some((page) => page.id === nextPageId)
-        ? nextPageId
-        : current.activePageId;
+      const activePageId = workspacePages.some((page) => page.id === nextPageId) ? nextPageId : current.activePageId;
       return sanitizeSettings({ ...current, activePageId });
     });
     setGenerationError("");
@@ -232,15 +275,20 @@ function App() {
       source: draft.source === "local" ? "local" : "remote",
       created_at: draft.created_at || null,
     });
-    setCreateNotice({ tone: "info", message: "โหลดร่างงานกลับมาแก้ไขแล้ว" });
+    setCreateNotice({ tone: "info", message: "โหลดร่างกลับมาแก้ไขแล้ว" });
     setActiveTab("create");
   }, []);
 
   async function handleGenerateContent() {
-    if (!form.topic.trim()) return window.alert("กรุณาใส่หัวข้อก่อน");
+    if (!form.topic.trim()) {
+      setCreateNotice({ tone: "warning", message: "กรุณาใส่หัวข้อก่อนสร้างข้อความ" });
+      return;
+    }
+
     setIsGenerating(true);
     setGenerationError("");
     setCreateNotice({ tone: "info", message: "กำลังสร้างข้อความ..." });
+
     try {
       const result = await generatePostContent({ formData: form, settings });
       if (result.data) updateForm("content", result.data);
@@ -252,7 +300,7 @@ function App() {
           : null
       );
     } catch (error) {
-      const message = toUserSafeMessage(error, "ยังสร้างข้อความไม่ได้");
+      const message = toUserSafeMessage(error, "ยังสร้างข้อความไม่สำเร็จ");
       setGenerationError(message);
       setCreateNotice({ tone: "danger", message });
     } finally {
@@ -261,25 +309,30 @@ function App() {
   }
 
   async function handleGenerateImagePrompt() {
-    if (!form.topic.trim()) return window.alert("กรุณาใส่หัวข้อก่อน");
+    if (!form.topic.trim()) {
+      setCreateNotice({ tone: "warning", message: "กรุณาใส่หัวข้อก่อนช่วยคิดคำอธิบายภาพ" });
+      return;
+    }
+
     setIsGeneratingImagePrompt(true);
     setGenerationError("");
     setCreateNotice({ tone: "info", message: "กำลังช่วยคิดคำอธิบายภาพ..." });
+
     try {
       const result = await generateImagePrompt({ formData: form, settings });
       if (result.data) {
         updateForm("imagePrompt", result.data);
         setCreateNotice({
           tone: "success",
-          message: `เตรียมคำอธิบายภาพด้วย ${result.mode === "mock" ? "Mock" : result.mode} แล้ว`,
+          message: `เตรียมคำอธิบายภาพด้วย ${result.mode === "mock" ? "โหมดทดสอบ" : result.mode} แล้ว`,
         });
       } else if (result.error) {
-        const message = toUserSafeMessage(result.error, "ยังสร้างคำอธิบายภาพไม่ได้");
+        const message = toUserSafeMessage(result.error, "ยังสร้างคำอธิบายภาพไม่สำเร็จ");
         setGenerationError(message);
         setCreateNotice({ tone: "danger", message });
       }
     } catch (error) {
-      const message = toUserSafeMessage(error, "ยังสร้างคำอธิบายภาพไม่ได้");
+      const message = toUserSafeMessage(error, "ยังสร้างคำอธิบายภาพไม่สำเร็จ");
       setGenerationError(message);
       setCreateNotice({ tone: "danger", message });
     } finally {
@@ -287,18 +340,10 @@ function App() {
     }
   }
 
-  function handleGenerateImagePreview() {
-    if (!form.imagePrompt.trim()) return window.alert("กรุณาสร้างคำอธิบายภาพก่อน");
-    setIsGeneratingImage(true);
-    window.setTimeout(() => {
-      updateForm("imageUrl", `https://picsum.photos/seed/${encodeURIComponent(form.topic || "autopost")}/1200/1200`);
-      setIsGeneratingImage(false);
-    }, 900);
-  }
-
   async function handleSaveDraft(extraData = {}) {
     if (!form.topic.trim() || !form.content.trim()) {
-      return window.alert("กรุณาใส่หัวข้อและข้อความก่อนบันทึก");
+      setCreateNotice({ tone: "warning", message: "กรุณาใส่หัวข้อและข้อความก่อนบันทึกร่าง" });
+      return;
     }
 
     setIsSavingDraft(true);
@@ -319,9 +364,10 @@ function App() {
         created_at: editingDraft?.created_at || new Date().toISOString(),
       };
 
-      const remote = editingDraft?.source === "remote"
-        ? await updateRemoteDraft(editingDraft.id, draft, { workspacePages: settings.workspacePages })
-        : await insertRemoteDraft(draft, { workspacePages: settings.workspacePages });
+      const remote =
+        editingDraft?.source === "remote"
+          ? await updateRemoteDraft(editingDraft.id, draft, { workspacePages: settings.workspacePages })
+          : await insertRemoteDraft(draft, { workspacePages: settings.workspacePages });
 
       if (remote.data) {
         setRemotePosts((current) => {
@@ -330,23 +376,24 @@ function App() {
           }
           return [remote.data, ...current];
         });
+
         if (editingDraft?.source === "local") {
           removeLocalDraft(editingDraft.id);
           setLocalDrafts((current) => current.filter((item) => item.id !== editingDraft.id));
         }
+
         resetForm();
         setCreateNotice({
           tone: "success",
-          message: editingDraft?.source ? "อัปเดตร่างงานบน Supabase แล้ว" : "บันทึกร่างลง Supabase แล้ว",
+          message: editingDraft?.source ? "อัปเดตร่างเรียบร้อยแล้ว" : "บันทึกร่างลง Supabase แล้ว",
         });
-        window.alert(editingDraft?.source ? "อัปเดตร่างงานบน Supabase แล้ว" : "บันทึกร่างลง Supabase แล้ว");
         return;
       }
 
       if (["read-only", "offline", "missing-table"].includes(remote.mode)) {
-        const localEntry = editingDraft?.source === "local"
-          ? updateLocalDraft(editingDraft.id, draft)
-          : saveLocalDraft(draft);
+        const localEntry =
+          editingDraft?.source === "local" ? updateLocalDraft(editingDraft.id, draft) : saveLocalDraft(draft);
+
         setLocalDrafts((current) => {
           if (!localEntry) return current;
           if (editingDraft?.source === "local") {
@@ -354,28 +401,22 @@ function App() {
           }
           return [localEntry, ...current];
         });
+
         resetForm();
         setCreateNotice({
           tone: "warning",
-          message: editingDraft?.source === "local"
-            ? "บันทึกขึ้นคลาวด์ไม่ได้ตอนนี้ แต่ร่างในเครื่องอัปเดตแล้ว"
-            : "Supabase ยังเขียนข้อมูลไม่ได้ จึงบันทึกไว้ในเครื่องแทน",
+          message:
+            editingDraft?.source === "local"
+              ? "อัปเดตร่างในเครื่องแล้ว เพราะยังเขียนขึ้นคลาวด์ไม่ได้"
+              : "Supabase ยังเขียนข้อมูลไม่ได้ จึงบันทึกไว้ในเครื่องแทน",
         });
-        window.alert(
-          editingDraft?.source === "local"
-            ? "บันทึกขึ้นคลาวด์ไม่ได้ตอนนี้ แต่ร่างในเครื่องอัปเดตแล้ว"
-            : "Supabase ยังเขียนข้อมูลไม่ได้ จึงบันทึกไว้ในเครื่องแทน"
-        );
         return;
       }
 
       const message = toUserSafeMessage(remote.error, "บันทึกร่างไม่สำเร็จ");
       setCreateNotice({ tone: "danger", message });
-      window.alert(`บันทึกร่างไม่สำเร็จ: ${message}`);
     } catch (error) {
-      const message = toUserSafeMessage(error, "บันทึกร่างไม่สำเร็จ");
-      setCreateNotice({ tone: "danger", message });
-      window.alert(`บันทึกร่างไม่สำเร็จ: ${message}`);
+      setCreateNotice({ tone: "danger", message: toUserSafeMessage(error, "บันทึกร่างไม่สำเร็จ") });
     } finally {
       setIsSavingDraft(false);
     }
@@ -385,15 +426,20 @@ function App() {
     setIsSavingSettings(true);
     try {
       const stored = saveAppSettings(settings);
-      const remote = await saveRemoteSettings(stored);
-      if (remote.data) {
-        setSettings(sanitizeSettings({ ...stored, ...remote.data }));
-        setSettingsSyncMode(remote.mode);
-        setSettingsMessage("บันทึกการตั้งค่าลง Supabase แล้ว");
-      } else {
-        setSettingsSyncMode(remote.mode);
-        setSettingsMessage(toUserSafeMessage(remote.error, "บันทึกไว้ในเครื่องแล้ว แต่ยังซิงก์ขึ้น Supabase ไม่ได้"));
+      const [remoteSettings, remotePages] = await Promise.all([
+        saveRemoteSettings(stored),
+        saveRemotePages(stored.workspacePages),
+      ]);
+
+      if (remoteSettings.data) {
+        setSettings(sanitizeSettings({ ...stored, ...remoteSettings.data, workspacePages: remotePages.data?.length ? remotePages.data : stored.workspacePages }));
+        setSettingsSyncMode(remoteSettings.mode);
+        setSettingsMessage("บันทึกการตั้งค่าระบบแล้ว");
+        return;
       }
+
+      setSettingsSyncMode(remoteSettings.mode);
+      setSettingsMessage(toUserSafeMessage(remoteSettings.error, "บันทึกในเครื่องแล้ว แต่ยัง sync ขึ้น Supabase ไม่ได้"));
     } catch (error) {
       setSettingsSyncMode("error");
       setSettingsMessage(toUserSafeMessage(error, "บันทึกการตั้งค่าไม่สำเร็จ"));
@@ -402,91 +448,129 @@ function App() {
     }
   }
 
-  const handlePublishPost = useCallback(async (postId) => {
+  async function handleSaveWorkspacePages() {
+    setIsSavingSettings(true);
     try {
-      const post = remotePosts.find((p) => p.id === postId);
-      if (!post) return window.alert("ไม่พบโพสต์นี้");
-      const effectivePublish = resolveEffectivePublishConfig({
-        post,
-        settings,
-        pages: settings.workspacePages,
-      });
-      if (!effectivePublish.canAttemptPublish) {
-        await createOperationLog({
-          level: "warn",
-          source: "manual_publish",
-          event: "publish_blocked",
-          message: effectivePublish.blockedReason || effectivePublish.fallbackReason || "Manual publish was blocked.",
-          page_id: effectivePublish.resolvedPageId,
-          post_id: post.id,
-          metadata: {
-            topic: post.topic,
-            publish_source: effectivePublish.effectivePublishSource,
-            live_page_publish_status: effectivePublish.livePerPagePublishStatus,
-          },
+      const stored = saveAppSettings(settings);
+      const remotePages = await saveRemotePages(stored.workspacePages);
+      const nextPages = remotePages.data?.length ? remotePages.data : stored.workspacePages;
+      setSettings(sanitizeSettings({ ...stored, workspacePages: nextPages }));
+      setSettingsMessage(
+        remotePages.error
+          ? toUserSafeMessage(remotePages.error, "บันทึกข้อมูลเพจไว้ในเครื่องแล้ว แต่ยัง sync ขึ้น Supabase ไม่ได้")
+          : "บันทึกข้อมูลเพจแล้ว"
+      );
+    } catch (error) {
+      setSettingsMessage(toUserSafeMessage(error, "บันทึกข้อมูลเพจไม่สำเร็จ"));
+    } finally {
+      setIsSavingSettings(false);
+    }
+  }
+
+  const handlePublishPost = useCallback(
+    async (postId) => {
+      try {
+        const post = remotePosts.find((item) => item.id === postId);
+        if (!post) {
+          setStatusNotice({ tone: "danger", message: "ไม่พบโพสต์ที่ต้องการ" });
+          return;
+        }
+
+        const effectivePublish = resolveEffectivePublishConfig({
+          post,
+          settings,
+          pages: settings.workspacePages,
         });
-        return window.alert(effectivePublish.blockedReason || effectivePublish.fallbackReason || "โพสต์นี้ยังไม่พร้อมสำหรับการโพสต์");
-      }
-      if (effectivePublish.fallbackReason) {
-        await createOperationLog({
-          level: "info",
-          source: "manual_publish",
-          event: "publish_fallback",
-          message: effectivePublish.fallbackReason,
-          page_id: effectivePublish.resolvedPageId,
-          post_id: post.id,
-          metadata: {
-            topic: post.topic,
-            publish_source: effectivePublish.effectivePublishSource,
-            live_page_publish_status: effectivePublish.livePerPagePublishStatus,
-            effective_page_id: effectivePublish.effectivePageId,
-          },
-        });
-      }
-      if (effectivePublish.effectiveSettings.facebookPublishMode === "live") {
-        const targetLabel =
-          effectivePublish.effectivePublishSource === "page-specific"
-            ? `${effectivePublish.label} (page-specific)`
-            : effectivePublish.effectivePublishLabel;
-        if (!window.confirm(`ต้องการโพสต์ "${post.topic}" ไปที่ Facebook ตอนนี้หรือไม่? (${targetLabel})`)) return;
-      }
-      const result = await publishFacebookPost(post, effectivePublish.effectiveSettings);
-      if (result.error) {
-        await createOperationLog({
-          level: "error",
-          source: "manual_publish",
-          event: "publish_failure",
-          message: result.error || `Manual publish failed for "${post.topic}".`,
-          page_id: effectivePublish.resolvedPageId,
-          post_id: post.id,
-          metadata: {
-            publish_source: effectivePublish.effectivePublishSource,
-            live_page_publish_status: effectivePublish.livePerPagePublishStatus,
-          },
-        });
-        return window.alert(`โพสต์ไม่สำเร็จ: ${toUserSafeMessage(result.error, "โพสต์ไม่สำเร็จ")}`);
-      }
-      const update = await updateRemotePostStatus(postId, "posted", { posted_at: new Date().toISOString() });
-      if (update.data) {
-        setRemotePosts((current) => current.map((p) => (p.id === postId ? update.data : p)));
-        await createOperationLog({
-          level: "info",
-          source: "manual_publish",
-          event: "publish_success",
-          message: `Manual publish succeeded for "${post.topic}".`,
-          page_id: effectivePublish.resolvedPageId,
-          post_id: post.id,
-          metadata: {
-            publish_source: effectivePublish.effectivePublishSource,
-            live_page_publish_status: effectivePublish.livePerPagePublishStatus,
-            effective_page_id: effectivePublish.effectivePageId,
-          },
-        });
-        const logsResult = await fetchOperationLogs();
-        setOperationLogs(logsResult.data || []);
-        if (logsResult.mode) setLogsMode(logsResult.mode);
-        window.alert("โพสต์ไปที่ Facebook แล้ว");
-      } else {
+
+        if (!effectivePublish.canAttemptPublish) {
+          await createOperationLog({
+            level: "warn",
+            source: "manual_publish",
+            event: "publish_blocked",
+            message: effectivePublish.blockedReason || effectivePublish.fallbackReason || "Manual publish was blocked.",
+            page_id: effectivePublish.resolvedPageId,
+            post_id: post.id,
+            metadata: {
+              topic: post.topic,
+              publish_source: effectivePublish.effectivePublishSource,
+              live_page_publish_status: effectivePublish.livePerPagePublishStatus,
+            },
+          });
+          setStatusNotice({
+            tone: "warning",
+            message: effectivePublish.blockedReason || effectivePublish.fallbackReason || "โพสต์นี้ยังไม่พร้อมสำหรับการโพสต์",
+          });
+          return;
+        }
+
+        if (effectivePublish.fallbackReason) {
+          await createOperationLog({
+            level: "info",
+            source: "manual_publish",
+            event: "publish_fallback",
+            message: effectivePublish.fallbackReason,
+            page_id: effectivePublish.resolvedPageId,
+            post_id: post.id,
+            metadata: {
+              topic: post.topic,
+              publish_source: effectivePublish.effectivePublishSource,
+              live_page_publish_status: effectivePublish.livePerPagePublishStatus,
+              effective_page_id: effectivePublish.effectivePageId,
+            },
+          });
+        }
+
+        if (effectivePublish.effectiveSettings.facebookPublishMode === "live") {
+          const targetLabel =
+            effectivePublish.effectivePublishSource === "page-specific"
+              ? `${effectivePublish.label} (page-specific)`
+              : effectivePublish.effectivePublishLabel;
+          if (!window.confirm(`ต้องการโพสต์ "${post.topic}" ไปที่ Facebook ตอนนี้หรือไม่? (${targetLabel})`)) {
+            return;
+          }
+        }
+
+        const result = await publishFacebookPost(post, effectivePublish.effectiveSettings);
+        if (result.error) {
+          await createOperationLog({
+            level: "error",
+            source: "manual_publish",
+            event: "publish_failure",
+            message: result.error || `Manual publish failed for "${post.topic}".`,
+            page_id: effectivePublish.resolvedPageId,
+            post_id: post.id,
+            metadata: {
+              publish_source: effectivePublish.effectivePublishSource,
+              live_page_publish_status: effectivePublish.livePerPagePublishStatus,
+            },
+          });
+          setStatusNotice({ tone: "danger", message: `โพสต์ไม่สำเร็จ: ${toUserSafeMessage(result.error, "โพสต์ไม่สำเร็จ")}` });
+          return;
+        }
+
+        const update = await updateRemotePostStatus(postId, "posted", { posted_at: new Date().toISOString() });
+        if (update.data) {
+          setRemotePosts((current) => current.map((item) => (item.id === postId ? update.data : item)));
+          await createOperationLog({
+            level: "info",
+            source: "manual_publish",
+            event: "publish_success",
+            message: `Manual publish succeeded for "${post.topic}".`,
+            page_id: effectivePublish.resolvedPageId,
+            post_id: post.id,
+            metadata: {
+              publish_source: effectivePublish.effectivePublishSource,
+              live_page_publish_status: effectivePublish.livePerPagePublishStatus,
+              effective_page_id: effectivePublish.effectivePageId,
+            },
+          });
+          const logsResult = await fetchOperationLogs();
+          setOperationLogs(logsResult.data || []);
+          if (logsResult.mode) setLogsMode(logsResult.mode);
+          setStatusNotice({ tone: "success", message: "โพสต์เรียบร้อยแล้ว" });
+          return;
+        }
+
         await createOperationLog({
           level: "error",
           source: "manual_publish",
@@ -499,36 +583,38 @@ function App() {
             live_page_publish_status: effectivePublish.livePerPagePublishStatus,
           },
         });
-        window.alert("โพสต์ไปที่ Facebook แล้ว แต่ยังอัปเดตสถานะในระบบไม่ได้");
+        setStatusNotice({ tone: "warning", message: "โพสต์ไปแล้ว แต่ยังอัปเดตสถานะในระบบไม่สำเร็จ" });
+      } catch (error) {
+        await createOperationLog({
+          level: "error",
+          source: "manual_publish",
+          event: "publish_error",
+          message: error?.message || "Unexpected manual publish error.",
+          metadata: {},
+        });
+        setStatusNotice({ tone: "danger", message: `โพสต์ไม่สำเร็จ: ${toUserSafeMessage(error, "โพสต์ไม่สำเร็จ")}` });
       }
-    } catch (error) {
-      await createOperationLog({
-        level: "error",
-        source: "manual_publish",
-        event: "publish_error",
-        message: error?.message || "Unexpected manual publish error.",
-        metadata: {},
-      });
-      window.alert(`โพสต์ไม่สำเร็จ: ${toUserSafeMessage(error, "โพสต์ไม่สำเร็จ")}`);
-    }
-  }, [remotePosts, settings]);
+    },
+    [remotePosts, settings]
+  );
 
   async function handleSchedulerTick() {
     if (schedulerLock.current) return;
     const { remotePosts: currentPosts, settings: currentSettings } = stateRef.current;
     if (!currentSettings.schedulerEnabled || !currentPosts?.length) return;
+
     schedulerLock.current = true;
     try {
       const summary = await runSchedulerTick(currentPosts, currentSettings, {
         onPostPublished: (updatedPost) => {
-          setRemotePosts((current) => current.map((p) => (p.id === updatedPost.id ? updatedPost : p)));
+          setRemotePosts((current) => current.map((item) => (item.id === updatedPost.id ? updatedPost : item)));
         },
       });
       if (summary.due > 0 || summary.published > 0 || summary.failed > 0) {
         setSchedulerStatus({ lastRun: new Date().toISOString(), ...summary });
       }
-    } catch (err) {
-      console.error("Scheduler tick error:", err);
+    } catch (error) {
+      console.error("Scheduler tick error:", error);
     } finally {
       schedulerLock.current = false;
     }
@@ -546,100 +632,118 @@ function App() {
   const activeWorkspacePage = getActiveWorkspacePage(settings);
 
   return (
-    <div className="flex h-screen overflow-hidden bg-slate-950 font-sans text-slate-200">
-      <Sidebar
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
-        workspaceName={settings.workspaceName}
-        onOpenGuide={() => setIsGuideOpen(true)}
-      />
-
-      <div className="flex flex-1 flex-col lg:pl-64">
-        <Header
-          isDark={isDark}
-          onToggleTheme={() => setIsDark(!isDark)}
-          connectionMode={connectionMode}
-          fbMode={validateFacebookConfig(settings) ? settings.facebookPublishMode : "missing"}
-          textProviderRuntime={textProviderRuntime}
+    <div className={`min-h-screen ${isDark ? "theme-dark" : "theme-light"}`}>
+      <div className="flex h-screen overflow-hidden bg-slate-950 font-sans text-slate-200">
+        <Sidebar
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+          workspaceName={settings.workspaceName}
           onOpenGuide={() => setIsGuideOpen(true)}
-          settings={settings}
-          workspacePages={workspacePages}
-          onPageChange={(val) => updateSettingsField("activePageId", val)}
         />
 
-        <main className="flex-1 overflow-y-auto p-6 lg:p-8">
-          <div className="mx-auto max-w-5xl">
-            {activeTab === "create" && (
-              <CreatePage
-                form={form}
-                settings={settings}
-                workspacePages={workspacePages}
-                activeWorkspacePage={activeWorkspacePage}
-                updateForm={updateForm}
-                handleGenerateContent={handleGenerateContent}
-                handleGenerateImagePrompt={handleGenerateImagePrompt}
-                handleGenerateImagePreview={handleGenerateImagePreview}
-                handleSaveDraft={handleSaveDraft}
-                isGenerating={isGenerating}
-                isGeneratingImagePrompt={isGeneratingImagePrompt}
-                isGeneratingImage={isGeneratingImage}
-                isSavingDraft={isSavingDraft}
-                generationError={generationError}
-                textProviderRuntime={textProviderRuntime}
-                createNotice={createNotice}
-                editingDraft={editingDraft}
-              />
-            )}
-            {activeTab === "settings" && (
-              <SettingsPage
-                currentSettingsStatus={currentSettingsStatus}
-                SettingsStatusIcon={SettingsStatusIcon}
-                settingsMessage={settingsMessage}
-                SettingsField={SettingsField}
-                settings={settings}
-                workspacePages={workspacePages}
-                activeWorkspacePage={activeWorkspacePage}
-                updateSettingsField={updateSettingsField}
-                envSnapshot={envSnapshot}
-                handleSaveSettings={handleSaveSettings}
-                isSavingSettings={isSavingSettings}
-              />
-            )}
-            {activeTab === "scheduler" && (
-              <SchedulerPage
-                settings={settings}
-                remotePosts={remotePosts}
-                schedulerStatus={schedulerStatus}
-              />
-            )}
-            {activeTab === "library" && (
-              <LibraryPage />
-            )}
-            {activeTab === "logs" && (
-              <LogsPage logs={operationLogs} logsMode={logsMode} />
-            )}
-            {activeTab === "status" && (
-              <StatusPage
-                allPendingPosts={allPendingPosts}
-                remotePosts={remotePosts}
-                localDrafts={localDrafts}
-                formatDate={formatDate}
-                handleDeleteLocalDraft={handleDeleteLocalDraft}
-                handleLoadDraftToEditor={handleLoadDraftToEditor}
-                handlePublishPost={handlePublishPost}
-                settings={settings}
-                workspacePages={workspacePages}
-                schedulerStatus={schedulerStatus}
-              />
-            )}
-          </div>
-        </main>
-      </div>
+        <div className="flex flex-1 flex-col lg:pl-64">
+          <Header
+            isDark={isDark}
+            onToggleTheme={() => setTheme((current) => (current === "light" ? "dark" : "light"))}
+            connectionMode={connectionMode}
+            fbMode={validateFacebookConfig(settings) ? settings.facebookPublishMode : "missing"}
+            textProviderRuntime={textProviderRuntime}
+            onOpenGuide={() => setIsGuideOpen(true)}
+            settings={settings}
+            workspacePages={workspacePages}
+            onPageChange={(value) => updateSettingsField("activePageId", value)}
+          />
 
-      <GuideModal
-        isOpen={isGuideOpen}
-        onClose={() => setIsGuideOpen(false)}
-      />
+          <main className="flex-1 overflow-y-auto p-6 lg:p-8">
+            <div className="mx-auto max-w-6xl">
+              {connectionError && (
+                <div className="mb-6 rounded-2xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
+                  {connectionError}
+                </div>
+              )}
+
+              {isLoading ? (
+                <div className="rounded-2xl border border-white/5 bg-slate-900/40 p-6 text-sm text-slate-400">
+                  กำลังโหลดข้อมูลระบบ...
+                </div>
+              ) : null}
+
+              {!isLoading && activeTab === "create" && (
+                <CreatePage
+                  form={form}
+                  settings={settings}
+                  activeWorkspacePage={activeWorkspacePage}
+                  updateForm={updateForm}
+                  handleGenerateContent={handleGenerateContent}
+                  handleGenerateImagePrompt={handleGenerateImagePrompt}
+                  handleSaveDraft={handleSaveDraft}
+                  isGenerating={isGenerating}
+                  isGeneratingImagePrompt={isGeneratingImagePrompt}
+                  isSavingDraft={isSavingDraft}
+                  generationError={generationError}
+                  textProviderRuntime={textProviderRuntime}
+                  createNotice={createNotice}
+                  editingDraft={editingDraft}
+                />
+              )}
+
+              {!isLoading && activeTab === "pages" && (
+                <PagesPage
+                  settings={settings}
+                  workspacePages={workspacePages}
+                  activeWorkspacePage={activeWorkspacePage}
+                  updateSettingsField={updateSettingsField}
+                  updateWorkspacePage={updateWorkspacePage}
+                  addWorkspacePage={addWorkspacePage}
+                  handleSaveWorkspacePages={handleSaveWorkspacePages}
+                  settingsMessage={settingsMessage}
+                  isSavingSettings={isSavingSettings}
+                />
+              )}
+
+              {!isLoading && activeTab === "settings" && (
+                <SettingsPage
+                  currentSettingsStatus={currentSettingsStatus}
+                  SettingsStatusIcon={SettingsStatusIcon}
+                  settingsMessage={settingsMessage}
+                  SettingsField={SettingsField}
+                  settings={settings}
+                  updateSettingsField={updateSettingsField}
+                  envSnapshot={envSnapshot}
+                  handleSaveSettings={handleSaveSettings}
+                  isSavingSettings={isSavingSettings}
+                />
+              )}
+
+              {!isLoading && activeTab === "scheduler" && (
+                <SchedulerPage settings={settings} remotePosts={remotePosts} schedulerStatus={schedulerStatus} />
+              )}
+
+              {!isLoading && activeTab === "library" && <LibraryPage />}
+
+              {!isLoading && activeTab === "logs" && <LogsPage logs={operationLogs} logsMode={logsMode} />}
+
+              {!isLoading && activeTab === "status" && (
+                <StatusPage
+                  allPendingPosts={allPendingPosts}
+                  remotePosts={remotePosts}
+                  localDrafts={localDrafts}
+                  formatDate={formatDate}
+                  handleDeleteLocalDraft={handleDeleteLocalDraft}
+                  handleLoadDraftToEditor={handleLoadDraftToEditor}
+                  handlePublishPost={handlePublishPost}
+                  settings={settings}
+                  workspacePages={workspacePages}
+                  schedulerStatus={schedulerStatus}
+                  statusNotice={statusNotice}
+                />
+              )}
+            </div>
+          </main>
+        </div>
+
+        <GuideModal isOpen={isGuideOpen} onClose={() => setIsGuideOpen(false)} />
+      </div>
     </div>
   );
 }

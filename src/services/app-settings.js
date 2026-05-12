@@ -3,17 +3,33 @@ const STORAGE_KEY = "autopost-studio-settings";
 export const defaultWorkspacePages = [
   {
     id: "default",
-    label: "Default Page",
-    description: "Current stable Facebook settings",
+    label: "หน้าหลัก",
+    description: "ใช้ค่ากลางของระบบ",
     facebookPageId: "",
     facebookPageAccessToken: "",
+    category: "หลัก",
+    status: "active",
+    readme: "",
+    writingDirection: "",
+    imageDirection: "",
+    visualStyle: "",
+    targetAudience: "",
+    tone: "",
   },
   {
     id: "demo-mock",
-    label: "Demo / Mock Page",
-    description: "Simulation for workspace testing",
+    label: "เดโม / ทดสอบ",
+    description: "ใช้ลอง flow แบบปลอดภัย",
     facebookPageId: "",
     facebookPageAccessToken: "",
+    category: "ทดสอบ",
+    status: "mock",
+    readme: "",
+    writingDirection: "",
+    imageDirection: "",
+    visualStyle: "",
+    targetAudience: "",
+    tone: "",
   },
 ];
 
@@ -42,10 +58,18 @@ export const defaultSettings = {
 function normalizeWorkspacePage(page = {}) {
   return {
     id: page.id || `page-${Date.now()}`,
-    label: page.label || "Untitled Page",
+    label: page.label || "เพจใหม่",
     description: page.description || "",
     facebookPageId: page.facebookPageId || "",
     facebookPageAccessToken: page.facebookPageAccessToken || "",
+    category: page.category || "",
+    status: page.status || "draft",
+    readme: page.readme || "",
+    writingDirection: page.writingDirection || "",
+    imageDirection: page.imageDirection || "",
+    visualStyle: page.visualStyle || "",
+    targetAudience: page.targetAudience || "",
+    tone: page.tone || "",
   };
 }
 

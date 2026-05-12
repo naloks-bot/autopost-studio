@@ -222,6 +222,31 @@ export async function fetchRemotePages() {
   };
 }
 
+export async function saveRemotePages(workspacePages = []) {
+  if (!supabase) {
+    return {
+      data: [],
+      error: new Error("Missing Supabase environment variables."),
+      mode: "offline",
+    };
+  }
+
+  const ensuredPages = await ensureRemotePages(workspacePages, "default");
+  if (ensuredPages.error) {
+    return {
+      data: [],
+      error: ensuredPages.error,
+      mode: ensuredPages.mode,
+    };
+  }
+
+  return {
+    data: ensuredPages.data,
+    error: null,
+    mode: ensuredPages.mode,
+  };
+}
+
 export async function insertRemoteDraft(draft, options = {}) {
   if (!supabase) {
     return {

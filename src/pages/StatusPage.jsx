@@ -19,11 +19,26 @@ function StatusPage({
   settings,
   workspacePages,
   schedulerStatus,
+  statusNotice,
 }) {
   const isFbConfigured = validateFacebookConfig(settings);
 
   return (
     <div className="space-y-6">
+      {statusNotice && (
+        <div
+          className={`rounded-2xl border px-4 py-3 text-sm ${
+            statusNotice.tone === "danger"
+              ? "border-rose-500/20 bg-rose-500/10 text-rose-200"
+              : statusNotice.tone === "warning"
+                ? "border-amber-500/20 bg-amber-500/10 text-amber-200"
+                : "border-emerald-500/20 bg-emerald-500/10 text-emerald-200"
+          }`}
+        >
+          {statusNotice.message}
+        </div>
+      )}
+
       <div
         className={`flex items-center gap-3 rounded-2xl border p-4 text-xs shadow-sm ${
           settings.facebookPublishMode === "live"

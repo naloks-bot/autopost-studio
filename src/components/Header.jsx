@@ -1,4 +1,4 @@
-import { Moon, Sun, Database, Share2, BrainCircuit, HelpCircle, Layers } from "lucide-react";
+import { BrainCircuit, Database, HelpCircle, Layers, Moon, Share2, Sun } from "lucide-react";
 
 function Header({
   isDark,
@@ -9,10 +9,10 @@ function Header({
   onOpenGuide,
   settings,
   workspacePages,
-  onPageChange
+  onPageChange,
 }) {
   const StatusChip = ({ icon: Icon, label, colorClass }) => (
-    <div className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-semibold border ${colorClass}`}>
+    <div className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-semibold ${colorClass}`}>
       <Icon className="h-3 w-3" />
       <span>{label}</span>
     </div>
@@ -21,34 +21,31 @@ function Header({
   const getSupabaseConfig = () => {
     switch (connectionMode) {
       case "connected":
-        return { label: "Supabase พร้อม", color: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" };
+        return { label: "Supabase พร้อม", color: "border-emerald-500/20 bg-emerald-500/10 text-emerald-400" };
       case "offline":
-        return { label: "ออฟไลน์", color: "bg-slate-500/10 text-slate-400 border-slate-500/20" };
+        return { label: "ออฟไลน์", color: "border-slate-500/20 bg-slate-500/10 text-slate-400" };
       case "read-only":
-        return { label: "อ่านอย่างเดียว", color: "bg-amber-500/10 text-amber-400 border-amber-500/20" };
+        return { label: "อ่านอย่างเดียว", color: "border-amber-500/20 bg-amber-500/10 text-amber-400" };
       default:
-        return { label: "มีปัญหา", color: "bg-rose-500/10 text-rose-400 border-rose-500/20" };
+        return { label: "มีปัญหา", color: "border-rose-500/20 bg-rose-500/10 text-rose-400" };
     }
   };
 
   const getFbConfig = () => {
-    if (fbMode === "live") return { label: "โพสต์จริง", color: "bg-rose-500/10 text-rose-400 border-rose-500/20" };
-    if (fbMode === "mock") return { label: "โหมดทดสอบ", color: "bg-cyan-500/10 text-cyan-400 border-cyan-500/20" };
-    return { label: "ยังไม่พร้อม", color: "bg-amber-500/10 text-amber-400 border-amber-500/20" };
+    if (fbMode === "live") return { label: "โพสต์จริง", color: "border-rose-500/20 bg-rose-500/10 text-rose-400" };
+    if (fbMode === "mock") return { label: "โหมดทดสอบ", color: "border-cyan-500/20 bg-cyan-500/10 text-cyan-400" };
+    return { label: "ยังไม่พร้อม", color: "border-amber-500/20 bg-amber-500/10 text-amber-400" };
   };
 
   const getAiConfig = () => {
     const activeProvider = textProviderRuntime?.activeProvider || "mock";
-    const statusLabel = textProviderRuntime?.statusLabel || "Ready";
-    const label = activeProvider === "openai"
-      ? "ข้อความ: OpenAI"
-      : activeProvider === "gemini"
-        ? "ข้อความ: Gemini"
-        : "ข้อความ: Mock";
-    const color = textProviderRuntime?.tone === "warning"
-      ? "bg-amber-500/10 text-amber-400 border-amber-500/20"
-      : "bg-violet-500/10 text-violet-400 border-violet-500/20";
-    return { label: `${label} • ${statusLabel}`, color };
+    const providerLabel = activeProvider === "openai" ? "OpenAI" : activeProvider === "gemini" ? "Gemini" : "Mock";
+    const label = `ข้อความ: ${providerLabel} • ${textProviderRuntime?.statusLabel || "พร้อม"}`;
+    const color =
+      textProviderRuntime?.tone === "warning"
+        ? "border-amber-500/20 bg-amber-500/10 text-amber-400"
+        : "border-violet-500/20 bg-violet-500/10 text-violet-400";
+    return { label, color };
   };
 
   const db = getSupabaseConfig();
@@ -58,24 +55,26 @@ function Header({
   return (
     <header className="sticky top-0 z-40 flex h-16 items-center justify-between border-b border-white/10 bg-slate-950/80 px-6 backdrop-blur-md lg:pl-6">
       <div className="flex items-center gap-2 lg:hidden">
-        <span className="text-sm font-bold text-white tracking-tight">AutoPost Studio</span>
+        <span className="text-sm font-bold tracking-tight text-white">AutoPost Studio</span>
       </div>
 
       <div className="flex items-center gap-4">
-        <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-xl border border-white/10 bg-white/5">
+        <div className="hidden items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-1.5 lg:flex">
           <Layers className="h-3 w-3 text-slate-500" />
           <select
             value={settings?.activePageId || "default"}
-            onChange={(e) => onPageChange(e.target.value)}
-            className="bg-transparent text-[11px] font-bold text-slate-300 outline-none cursor-pointer tracking-tight"
+            onChange={(event) => onPageChange(event.target.value)}
+            className="cursor-pointer bg-transparent text-[11px] font-bold tracking-tight text-slate-300 outline-none"
           >
-            {workspacePages.map((p) => (
-              <option key={p.id} value={p.id} className="bg-slate-900 text-white">{p.label}</option>
+            {workspacePages.map((page) => (
+              <option key={page.id} value={page.id} className="bg-slate-900 text-white">
+                {page.label}
+              </option>
             ))}
           </select>
         </div>
 
-        <div className="hidden items-center gap-2 md:flex border-l border-white/10 pl-4">
+        <div className="hidden items-center gap-2 border-l border-white/10 pl-4 md:flex">
           <StatusChip icon={Database} label={db.label} colorClass={db.color} />
           <StatusChip icon={Share2} label={fb.label} colorClass={fb.color} />
           <StatusChip icon={BrainCircuit} label={ai.label} colorClass={ai.color} />

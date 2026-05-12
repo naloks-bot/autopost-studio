@@ -246,6 +246,14 @@ Post-Phase C stabilization remains within the same architecture boundary. It is 
 
 Phase D is also constrained to the same boundary. It is reserved for operator-facing UI cleanup, Thai wording, reduced visual fatigue, and operational polish only.
 
+Phase D.2 narrows that further:
+
+* finish broken operator flows before adding visual polish
+* separate workspace page management from Settings
+* treat page README / AI memory as workspace context, not backend expansion
+* keep scheduler, queue, and backend redesign deferred
+* avoid schema expansion unless it is required to preserve existing save-flow compatibility
+
 This protects the current stable publish flow and avoids unnecessary backend churn.
 
 ---

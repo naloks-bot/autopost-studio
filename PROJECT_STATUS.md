@@ -1,10 +1,10 @@
 # Project Status
 
-## Current State: Phase D UI Cleanup
+## Current State: Phase D.2 Operational UX Completion
 
-AutoPost Studio has completed its UI foundation milestone. The application now has a full studio-grade frontend for AI content creation, workspace planning, scheduling visibility, asset/library browsing, and system log viewing.
+AutoPost Studio has completed its UI foundation milestone and is now in Phase D.2: operational UX completion. This phase is focused on finishing the day-to-day working flow, reducing operator friction, and separating workspace page setup from system settings.
 
-No backend, publishing, or scheduler execution logic was changed during the UI foundation work. Mock mode remains the default. Production publishing continues to rely on the existing stable V1 flow.
+No backend, publishing, scheduler, or queue architecture expansion is planned inside this phase except for safe compatibility fixes to existing UI flows. Mock mode remains the default. Production publishing continues to rely on the existing stable V1 flow.
 
 The current MVP core is release-locked as stable for:
 
@@ -17,6 +17,8 @@ The current MVP core is release-locked as stable for:
 * guarded per-page live publish routing
 * non-blocking operation log persistence
 * Thai-first operational UI across the main working surfaces
+* dedicated workspace page management surface
+* local theme persistence with dark default and warm light mode
 
 ---
 
@@ -203,6 +205,8 @@ Current Phase C progress:
 * final Phase C QA confirms draft persistence, page-context reload, guarded publish routing, and non-blocking log behavior remain stable
 * post-Phase C stabilization resolved live draft-save page foreign-key issues, improved draft edit refresh behavior, cleaned up scheduler/logs UX, and connected the image entry flow to the current safe services
 * Phase D Round 1 cleaned up the primary operator surfaces with Thai labels, lighter wording, and lower UI clutter without changing backend behavior
+* Phase D.2 is now focused on operational completion of the Create flow, inline notices, theme polish, and moving page management out of Settings
+* page README / AI memory is now the next workspace-facing direction inside the existing Phase C data boundary
 
 ---
 
@@ -211,7 +215,7 @@ Current Phase C progress:
 ## Immediate Priority
 
 1. Preserve the locked MVP core and Phase C behavior without architecture expansion.
-2. Focus Phase D on UI/UX operational polish only.
+2. Focus Phase D.2 on UI/UX operational completion only.
 3. Keep queue processor V2, analytics, and scheduler redesign deferred until a separate future checkpoint is explicitly approved.
 
 ## Latest Stable Lock
