@@ -200,6 +200,7 @@ Current Phase C progress:
 * global V1 publish remains the fallback path when it is the safe default target
 * Batch 4 added a minimal persistent operation log foundation for high-value publish and routing events
 * final Phase C QA confirms draft persistence, page-context reload, guarded publish routing, and non-blocking log behavior remain stable
+* post-Phase C stabilization resolved live draft-save page foreign-key issues, improved draft edit refresh behavior, cleaned up scheduler/logs UX, and connected the image entry flow to the current safe services
 
 ---
 
@@ -219,6 +220,7 @@ Latest stable lock checkpoints:
 * `94ea0a6` `lock mvp core stable`
 * `c66cdb7` `phase c batch 3 controlled per page publish activation`
 * `e11811a` `phase c batch 4 add logs persistence foundation`
+* post-Phase C stabilization batch keeps the same architecture boundary while improving integration safety and operator clarity
 
 ## Deferred Until Controlled Expansion
 

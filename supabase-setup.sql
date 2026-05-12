@@ -67,6 +67,43 @@ create table if not exists public.operation_logs (
   metadata jsonb not null default '{}'::jsonb
 );
 
+insert into public.pages (id, label, description)
+values
+  ('default', 'Default Page', 'Current stable Facebook settings'),
+  ('demo-mock', 'Demo / Mock Page', 'Simulation for workspace testing')
+on conflict (id) do nothing;
+
+alter table public.posts alter column page_id set default 'default';
+
+update public.posts
+set page_id = 'default'
+where page_id is null or btrim(page_id) = '';
+
+update public.posts
+set page_id = 'default'
+where not exists (
+  select 1
+  from public.pages
+  where public.pages.id = public.posts.page_id
+);
+
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_constraint
+    where conname = 'posts_page_id_fkey'
+      and conrelid = 'public.posts'::regclass
+  ) then
+    alter table public.posts
+      add constraint posts_page_id_fkey
+      foreign key (page_id) references public.pages(id)
+      on update cascade
+      on delete set default;
+  end if;
+end
+$$;
+
 alter table public.posts enable row level security;
 alter table public.app_settings enable row level security;
 alter table public.pages enable row level security;
@@ -175,9 +212,3 @@ on public.operation_logs
 for insert
 to anon
 with check (true);
-
-insert into public.pages (id, label, description)
-values
-  ('default', 'Default Page', 'Current stable Facebook settings'),
-  ('demo-mock', 'Demo / Mock Page', 'Simulation for workspace testing')
-on conflict (id) do nothing;

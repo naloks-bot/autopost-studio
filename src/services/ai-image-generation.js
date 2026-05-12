@@ -13,8 +13,9 @@ import { logger } from "./logger.js";
  */
 export function detectImageProvider(settings) {
   // Prefer explicit provider setting if present
-  const pref = settings?.aiProvider?.toLowerCase();
-  if (pref === "openai" && settings?.openaiApiKey) return "openai";
+  const pref = settings?.imageProvider?.toLowerCase();
+  if ((pref === "gpt-image" || pref === "dalle") && settings?.openaiApiKey) return "openai";
+  if (pref === "mock") return "mock";
   // Fallback to auto‑detect based on key prefix
   if (settings?.openaiApiKey && settings.openaiApiKey.startsWith("sk-")) return "openai";
   return "mock";

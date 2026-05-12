@@ -70,7 +70,7 @@ export default function ProviderStatusCard({ settings, textProviderRuntime: runt
         </div>
         <div className="flex items-center gap-1 text-slate-500">
           <Info className="h-3 w-3" />
-          <span className="text-[9px] italic">Routing stays inside the stable V1 flow.</span>
+          <span className="text-[9px] italic">Publish safety stays on the current stable flow.</span>
         </div>
       </div>
     </div>

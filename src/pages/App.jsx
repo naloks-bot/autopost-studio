@@ -17,7 +17,7 @@ import {
   saveAppSettings,
   sanitizeSettings,
 } from "../services/app-settings.js";
-import { getLocalDrafts, removeLocalDraft, saveLocalDraft } from "../services/local-drafts.js";
+import { getLocalDrafts, removeLocalDraft, saveLocalDraft, updateLocalDraft } from "../services/local-drafts.js";
 import {
   fetchRemotePosts,
   fetchRemotePages,
@@ -26,6 +26,7 @@ import {
   hasSupabaseConfig,
   insertRemoteDraft,
   saveRemoteSettings,
+  updateRemoteDraft,
   updateRemotePostStatus,
 } from "../services/supabase.js";
 import { generateImagePrompt, generatePostContent, getTextProviderRuntime } from "../services/ai-generation.js";
@@ -123,6 +124,7 @@ function App() {
   const [createNotice, setCreateNotice] = useState(null);
   const [operationLogs, setOperationLogs] = useState([]);
   const [logsMode, setLogsMode] = useState(hasSupabaseConfig ? "connected" : "offline");
+  const [editingDraft, setEditingDraft] = useState(null);
 
   const schedulerLock = useRef(false);
   const dataLock = useRef(false);
@@ -202,6 +204,7 @@ function App() {
     setForm(initialForm);
     setGenerationError("");
     setCreateNotice(null);
+    setEditingDraft(null);
   }, []);
 
   const updateSettingsField = useCallback((key, value) => {
@@ -224,6 +227,11 @@ function App() {
       return sanitizeSettings({ ...current, activePageId });
     });
     setGenerationError("");
+    setEditingDraft({
+      id: draft.id,
+      source: draft.source === "local" ? "local" : "remote",
+      created_at: draft.created_at || null,
+    });
     setCreateNotice({ tone: "info", message: "Draft loaded into the editor." });
     setActiveTab("create");
   }, []);
@@ -308,24 +316,56 @@ function App() {
         image_storage_path: extraData.image_storage_path || null,
         image_storage_mode: extraData.image_storage_mode || null,
         status: "draft",
-        created_at: new Date().toISOString(),
+        created_at: editingDraft?.created_at || new Date().toISOString(),
       };
 
-      const remote = await insertRemoteDraft(draft);
+      const remote = editingDraft?.source === "remote"
+        ? await updateRemoteDraft(editingDraft.id, draft, { workspacePages: settings.workspacePages })
+        : await insertRemoteDraft(draft, { workspacePages: settings.workspacePages });
+
       if (remote.data) {
-        setRemotePosts((current) => [remote.data, ...current]);
+        setRemotePosts((current) => {
+          if (editingDraft?.source === "remote") {
+            return current.map((item) => (item.id === editingDraft.id ? remote.data : item));
+          }
+          return [remote.data, ...current];
+        });
+        if (editingDraft?.source === "local") {
+          removeLocalDraft(editingDraft.id);
+          setLocalDrafts((current) => current.filter((item) => item.id !== editingDraft.id));
+        }
         resetForm();
-        setCreateNotice({ tone: "success", message: "Draft saved to Supabase." });
-        window.alert("Draft saved to Supabase.");
+        setCreateNotice({
+          tone: "success",
+          message: editingDraft?.source ? "Draft updated in Supabase." : "Draft saved to Supabase.",
+        });
+        window.alert(editingDraft?.source ? "Draft updated in Supabase." : "Draft saved to Supabase.");
         return;
       }
 
       if (["read-only", "offline", "missing-table"].includes(remote.mode)) {
-        const localEntry = saveLocalDraft(draft);
-        setLocalDrafts((current) => localEntry ? [localEntry, ...current] : current);
+        const localEntry = editingDraft?.source === "local"
+          ? updateLocalDraft(editingDraft.id, draft)
+          : saveLocalDraft(draft);
+        setLocalDrafts((current) => {
+          if (!localEntry) return current;
+          if (editingDraft?.source === "local") {
+            return current.map((item) => (item.id === editingDraft.id ? localEntry : item));
+          }
+          return [localEntry, ...current];
+        });
         resetForm();
-        setCreateNotice({ tone: "warning", message: "Supabase is not writable right now. Draft was saved locally instead." });
-        window.alert("Supabase is unavailable for write access. Draft saved locally instead.");
+        setCreateNotice({
+          tone: "warning",
+          message: editingDraft?.source === "local"
+            ? "Cloud save is unavailable right now. Your local draft was updated safely."
+            : "Supabase is not writable right now. Draft was saved locally instead.",
+        });
+        window.alert(
+          editingDraft?.source === "local"
+            ? "Cloud save is unavailable right now. Your local draft was updated safely."
+            : "Supabase is unavailable for write access. Draft saved locally instead."
+        );
         return;
       }
 
@@ -547,6 +587,7 @@ function App() {
                 generationError={generationError}
                 textProviderRuntime={textProviderRuntime}
                 createNotice={createNotice}
+                editingDraft={editingDraft}
               />
             )}
             {activeTab === "settings" && (
@@ -565,7 +606,11 @@ function App() {
               />
             )}
             {activeTab === "scheduler" && (
-              <SchedulerPage settings={settings} />
+              <SchedulerPage
+                settings={settings}
+                remotePosts={remotePosts}
+                schedulerStatus={schedulerStatus}
+              />
             )}
             {activeTab === "library" && (
               <LibraryPage />

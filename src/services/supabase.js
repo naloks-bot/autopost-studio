@@ -81,6 +81,93 @@ function classifySupabaseError(error) {
   return "error";
 }
 
+function isPageForeignKeyError(error) {
+  return Boolean(
+    error &&
+      error.code === "23503" &&
+      /posts_page_id_fkey|page_id/i.test(`${error.message || ""} ${error.details || ""}`)
+  );
+}
+
+function buildRemotePagePayload(page = {}) {
+  return {
+    id: page.id || "default",
+    label: page.label || "Default Page",
+    description: page.description || "",
+    facebook_page_id: page.facebookPageId || "",
+    facebook_page_access_token: page.facebookPageAccessToken || "",
+    updated_at: new Date().toISOString(),
+  };
+}
+
+async function ensureRemotePages(workspacePages = [], requestedPageId = "default") {
+  if (!supabase) {
+    return { data: [], error: new Error("Missing Supabase environment variables."), mode: "offline" };
+  }
+
+  const pageMap = new Map();
+  const requestedPage =
+    workspacePages.find((page) => page.id === requestedPageId) ||
+    workspacePages.find((page) => page.id === "default") || {
+      id: "default",
+      label: "Default Page",
+      description: "Current stable Facebook settings",
+      facebookPageId: "",
+      facebookPageAccessToken: "",
+    };
+
+  for (const page of workspacePages) {
+    pageMap.set(page.id, buildRemotePagePayload(page));
+  }
+  pageMap.set(requestedPage.id, buildRemotePagePayload(requestedPage));
+  if (!pageMap.has("default")) {
+    pageMap.set("default", buildRemotePagePayload({
+      id: "default",
+      label: "Default Page",
+      description: "Current stable Facebook settings",
+    }));
+  }
+  if (!pageMap.has("demo-mock")) {
+    pageMap.set("demo-mock", buildRemotePagePayload({
+      id: "demo-mock",
+      label: "Demo / Mock Page",
+      description: "Simulation for workspace testing",
+    }));
+  }
+
+  const { data, error } = await supabase
+    .from("pages")
+    .upsert(Array.from(pageMap.values()))
+    .select(PAGES_SELECT);
+
+  if (error) {
+    return { data: [], error, mode: classifySupabaseError(error) };
+  }
+
+  return {
+    data: (data ?? []).map((page) => normalizeWorkspacePage(page)),
+    error: null,
+    mode: "connected",
+  };
+}
+
+function buildDraftPayload(draft = {}) {
+  return {
+    page_id: draft.page_id || "default",
+    topic: draft.topic,
+    content: draft.content,
+    image_prompt: draft.image_prompt,
+    image_url: draft.image_url,
+    image_provider: draft.image_provider || null,
+    image_revised_prompt: draft.image_revised_prompt || null,
+    image_storage_path: draft.image_storage_path || null,
+    image_storage_mode: draft.image_storage_mode || null,
+    status: draft.status || "draft",
+    scheduled_at: draft.scheduled_at || null,
+    created_at: draft.created_at || new Date().toISOString(),
+  };
+}
+
 export async function fetchRemotePosts() {
   if (!supabase) {
     return {
@@ -135,7 +222,7 @@ export async function fetchRemotePages() {
   };
 }
 
-export async function insertRemoteDraft(draft) {
+export async function insertRemoteDraft(draft, options = {}) {
   if (!supabase) {
     return {
       data: null,
@@ -145,26 +232,30 @@ export async function insertRemoteDraft(draft) {
   }
 
   logger.info("Inserting remote draft...");
-  const payload = {
-    page_id: draft.page_id || null,
-    topic: draft.topic,
-    content: draft.content,
-    image_prompt: draft.image_prompt,
-    image_url: draft.image_url,
-    image_provider: draft.image_provider || null,
-    image_revised_prompt: draft.image_revised_prompt || null,
-    image_storage_path: draft.image_storage_path || null,
-    image_storage_mode: draft.image_storage_mode || null,
-    status: draft.status || "draft",
-    scheduled_at: draft.scheduled_at || null,
-    created_at: draft.created_at || new Date().toISOString(),
-  };
+  let payload = buildDraftPayload(draft);
 
-  const { data, error } = await supabase
+  let { data, error } = await supabase
     .from("posts")
     .insert([payload])
     .select(POSTS_SELECT)
     .single();
+
+  if (error && isPageForeignKeyError(error)) {
+    const ensuredPages = await ensureRemotePages(options.workspacePages || [], payload.page_id);
+    if (!ensuredPages.error) {
+      const validPageId = ensuredPages.data.some((page) => page.id === payload.page_id)
+        ? payload.page_id
+        : "default";
+      payload = { ...payload, page_id: validPageId };
+      const retryResult = await supabase
+        .from("posts")
+        .insert([payload])
+        .select(POSTS_SELECT)
+        .single();
+      data = retryResult.data;
+      error = retryResult.error;
+    }
+  }
 
   if (error) {
     return {
@@ -175,6 +266,59 @@ export async function insertRemoteDraft(draft) {
   }
 
   logger.info("Remote draft insertion successful.");
+  return {
+    data: normalizePost({ ...data, source: "remote" }),
+    error: null,
+    mode: "connected",
+  };
+}
+
+export async function updateRemoteDraft(postId, draft, options = {}) {
+  if (!supabase) {
+    return {
+      data: null,
+      error: new Error("Missing Supabase environment variables."),
+      mode: "offline",
+    };
+  }
+
+  logger.info(`Updating remote draft ${postId}...`);
+  let payload = buildDraftPayload(draft);
+
+  let { data, error } = await supabase
+    .from("posts")
+    .update(payload)
+    .eq("id", postId)
+    .select(POSTS_SELECT)
+    .single();
+
+  if (error && isPageForeignKeyError(error)) {
+    const ensuredPages = await ensureRemotePages(options.workspacePages || [], payload.page_id);
+    if (!ensuredPages.error) {
+      const validPageId = ensuredPages.data.some((page) => page.id === payload.page_id)
+        ? payload.page_id
+        : "default";
+      payload = { ...payload, page_id: validPageId };
+      const retryResult = await supabase
+        .from("posts")
+        .update(payload)
+        .eq("id", postId)
+        .select(POSTS_SELECT)
+        .single();
+      data = retryResult.data;
+      error = retryResult.error;
+    }
+  }
+
+  if (error) {
+    return {
+      data: null,
+      error,
+      mode: classifySupabaseError(error),
+    };
+  }
+
+  logger.info("Remote draft update successful.");
   return {
     data: normalizePost({ ...data, source: "remote" }),
     error: null,

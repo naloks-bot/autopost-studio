@@ -33,7 +33,7 @@ export default function WorkspaceContextCard({ settings, activeWorkspacePage }) 
           </div>
           <div className="flex items-center gap-1.5 text-slate-500">
             <Info className="h-3 w-3" />
-            <span className="text-[9px] italic">Multi-page routing is in foundation stage only.</span>
+            <span className="text-[9px] italic">The active page controls draft context and safe publish routing.</span>
           </div>
         </div>
       </div>

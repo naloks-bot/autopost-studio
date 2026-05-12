@@ -27,6 +27,7 @@ function CreatePage({
   generationError,
   textProviderRuntime,
   createNotice,
+  editingDraft,
 }) {
   const [generatedImage, setGeneratedImage] = useState(null);
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
@@ -42,7 +43,6 @@ function CreatePage({
   const [imageForm, setImageForm] = useState({
     aspectRatio: "1:1",
     style: "realistic",
-    prompt: "",
   });
 
   const updateMetadata = (key, value) => setMetadata(prev => ({ ...prev, [key]: value }));
@@ -81,6 +81,7 @@ function CreatePage({
           storagePath,
           storageMode,
         });
+        updateForm("imageUrl", finalUrl);
       }
     } catch (err) {
       setImageGenerationError(`Unexpected error: ${err.message}`);
@@ -218,7 +219,19 @@ function CreatePage({
           </div>
         </div>
 
-        <ImageStudioCard settings={settings} imageForm={imageForm} updateImageForm={updateImageForm} />
+        <ImageStudioCard
+          settings={settings}
+          imageForm={imageForm}
+          updateImageForm={updateImageForm}
+          imagePrompt={form.imagePrompt}
+          updateImagePrompt={(value) => updateForm("imagePrompt", value)}
+          handleGenerateImagePrompt={handleGenerateImagePrompt}
+          handleGenerateImage={handleGenerateImage}
+          isGeneratingImagePrompt={isGeneratingImagePrompt}
+          isGeneratingImage={isGeneratingImage || isGeneratingImageProp}
+          imageGenerationError={imageGenerationError}
+          generatedImage={generatedImage}
+        />
       </div>
 
       {/* Right Panel: Preview & Studio */}
@@ -227,7 +240,7 @@ function CreatePage({
 
          <div className="rounded-2xl border border-white/5 bg-slate-900/40 p-4 shadow-sm">
             <ActionButton
-              label="Save Draft to Supabase"
+              label={editingDraft ? "Update Draft" : "Save Draft to Supabase"}
               icon={CheckCircle2}
               isLoading={isSavingDraft}
               onClick={handleInternalSave}

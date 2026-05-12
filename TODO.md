@@ -120,6 +120,7 @@ Expand backend capabilities only after MVP stability is proven.
 * Connected the existing Logs viewer to persisted logs when available
 * Kept scheduler structure, publish processor structure, and Facebook service behavior unchanged
 * Final QA confirmed create/save/reload draft flow, page-context restore, scheduled publish compatibility, per-page live safety rules, and non-blocking logs behavior
+* Post-Phase C stabilization fixed `posts_page_id_fkey` draft save issues, improved draft refresh/edit behavior, reduced misleading scheduler/logs states, and connected the image prompt/image entry flow to the existing safe services
 
 ### Risk Areas
 

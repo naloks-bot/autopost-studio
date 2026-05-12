@@ -26,10 +26,10 @@ function getCounts(logs) {
 
 export default function LogsPage({ logs = [], logsMode = "offline" }) {
   const counts = getCounts(logs);
-  const hasPersistentLogs = logsMode === "connected" && logs.length > 0;
+  const hasPersistentLogs = logsMode === "connected";
   const infoMessage =
     logsMode === "connected"
-      ? "Persistent operation logs are active. High-value publish and routing events are stored in Supabase."
+      ? "Persistent operation logs are active. High-value publish and routing events are stored in Supabase when they occur."
       : logsMode === "missing-table"
         ? "Operation log storage is not ready yet. Run the latest Supabase SQL to enable persistent logs."
         : "Persistent logs are unavailable right now. The publish and scheduler flows still continue safely.";
@@ -48,10 +48,10 @@ export default function LogsPage({ logs = [], logsMode = "offline" }) {
               </div>
            </div>
            <div className="flex items-center gap-3">
-              <button className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-xs font-bold text-slate-400 hover:text-white transition uppercase tracking-tight">
+              <button disabled className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-xs font-bold text-slate-500 uppercase tracking-tight opacity-60 cursor-not-allowed">
                  <Download className="h-3.5 w-3.5" /> Export
               </button>
-              <button className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-xs font-bold text-slate-400 hover:text-white transition uppercase tracking-tight">
+              <button disabled className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-xs font-bold text-slate-500 uppercase tracking-tight opacity-60 cursor-not-allowed">
                  <Copy className="h-3.5 w-3.5" /> Copy
               </button>
            </div>
@@ -61,7 +61,7 @@ export default function LogsPage({ logs = [], logsMode = "offline" }) {
            <Info className="h-5 w-5 text-rose-400 mt-0.5" />
            <div>
               <p className="text-xs font-semibold text-rose-300">
-                {hasPersistentLogs ? "Persistent Logs Active" : "Foundation Mode Active"}
+                {hasPersistentLogs ? "Persistent Logs Ready" : "Foundation Mode Active"}
               </p>
               <p className="text-[10px] text-rose-400/80 leading-relaxed">
                 {infoMessage}
@@ -105,7 +105,13 @@ export default function LogsPage({ logs = [], logsMode = "offline" }) {
               </div>
               <div className="p-4 font-mono text-[11px] leading-relaxed space-y-2 h-[400px] overflow-y-auto">
                  {logs.length === 0 ? (
-                   <div className="text-slate-500">No persisted operation logs available yet.</div>
+                   <div className="rounded-xl border border-white/5 bg-white/5 p-4 text-slate-400">
+                     {logsMode === "connected"
+                       ? "No operation logs have been recorded yet. Publish, scheduler, and routing events will appear here as the system runs."
+                       : logsMode === "missing-table"
+                         ? "Persistent log storage is not installed yet. Apply the latest Supabase SQL to start recording logs."
+                         : "Log storage is unavailable right now, but publish and scheduler flows continue safely."}
+                   </div>
                  ) : (
                    logs.map((log) => (
                      <div key={log.id} className="flex gap-4 group">

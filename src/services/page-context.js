@@ -222,7 +222,7 @@ export function runPerPagePublishDryRun({ post = null, pageId, settings = {}, pa
     effectivePublishSource: effectivePublish.effectivePublishSource,
     livePerPagePublishStatus: effectivePublish.livePerPagePublishStatus,
     isDryRunOnly: true,
-    dryRunLabel: "Dry run only - live per-page publish is disabled",
+    dryRunLabel: "Dry run only - this preview does not publish live",
     willCallFacebookApi: false,
     willPublish: false,
   };

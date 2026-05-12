@@ -425,12 +425,13 @@ function SettingsPage({
           </div>
         </div>
 
-        <div className="rounded-2xl border border-white/10 bg-slate-900/60 p-6 shadow-sm">
-           <div className="mb-4 flex items-center gap-2">
-             <SettingsIcon className="h-4 w-4 text-slate-500" />
-             <h3 className="text-sm font-semibold text-slate-300 uppercase tracking-wider">Current Config</h3>
-           </div>
-           <div className="space-y-3">
+        <details className="rounded-2xl border border-white/10 bg-slate-900/60 p-6 shadow-sm">
+          <summary className="flex cursor-pointer list-none items-center gap-2 text-sm font-semibold uppercase tracking-wider text-slate-300">
+            <SettingsIcon className="h-4 w-4 text-slate-500" />
+            Advanced Status
+          </summary>
+          <div className="mt-4 space-y-6">
+            <div className="space-y-3">
               <div className="flex justify-between items-center rounded-lg bg-slate-950/40 p-3">
                 <span className="text-[11px] text-slate-500">OpenAI Key</span>
                 <span className="text-[11px] text-slate-300">{maskSecret(settings.openaiApiKey)}</span>
@@ -445,36 +446,37 @@ function SettingsPage({
               </div>
               <div className="flex flex-col rounded-lg border border-white/5 bg-slate-950/40 p-3">
                 <div className="flex items-center gap-2">
-                   {isFbConfigured ? <CheckCircle2 className="h-3 w-3 text-emerald-500" /> : <AlertCircle className="h-3 w-3 text-amber-500" />}
-                   <span className={`text-[11px] font-bold ${isFbConfigured ? "text-emerald-500" : "text-amber-500"}`}>
-                      {isFbConfigured ? "Global Facebook Configured" : "Global Facebook Incomplete"}
-                   </span>
+                  {isFbConfigured ? <CheckCircle2 className="h-3 w-3 text-emerald-500" /> : <AlertCircle className="h-3 w-3 text-amber-500" />}
+                  <span className={`text-[11px] font-bold ${isFbConfigured ? "text-emerald-500" : "text-amber-500"}`}>
+                    {isFbConfigured ? "Global Facebook Configured" : "Global Facebook Incomplete"}
+                  </span>
                 </div>
               </div>
-           </div>
-        </div>
-
-        <div className="rounded-2xl border border-white/5 bg-slate-900/40 p-6 shadow-sm">
-          <div className="mb-4 flex items-center gap-2 text-sm text-slate-300">
-            <KeyRound className="h-4 w-4 text-slate-500" />
-            <span className="uppercase text-[10px] font-bold tracking-widest text-slate-500">Environment Snapshot</span>
-          </div>
-          <div className="space-y-4">
-            <div>
-              <p className="text-[10px] uppercase tracking-wide text-slate-500">Supabase Endpoint</p>
-              <p className="mt-1 break-all text-[11px] text-slate-400 font-mono">
-                {envSnapshot.url || "MISSING"}
-              </p>
             </div>
-            <div>
-              <p className="text-[10px] uppercase tracking-wide text-slate-500">Anon Key Protection</p>
-              <div className="mt-1 flex items-center gap-1.5 text-[11px] text-slate-400">
-                 <div className={`h-1.5 w-1.5 rounded-full ${envSnapshot.hasAnonKey ? "bg-emerald-500" : "bg-rose-500"}`}></div>
-                 {envSnapshot.hasAnonKey ? "Loaded securely from .env" : "Missing environment config"}
+
+            <div className="border-t border-white/5 pt-4">
+              <div className="mb-4 flex items-center gap-2 text-sm text-slate-300">
+                <KeyRound className="h-4 w-4 text-slate-500" />
+                <span className="uppercase text-[10px] font-bold tracking-widest text-slate-500">Environment Snapshot</span>
+              </div>
+              <div className="space-y-4">
+                <div>
+                  <p className="text-[10px] uppercase tracking-wide text-slate-500">Supabase Endpoint</p>
+                  <p className="mt-1 break-all text-[11px] text-slate-400 font-mono">
+                    {envSnapshot.url || "MISSING"}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[10px] uppercase tracking-wide text-slate-500">Anon Key Protection</p>
+                  <div className="mt-1 flex items-center gap-1.5 text-[11px] text-slate-400">
+                    <div className={`h-1.5 w-1.5 rounded-full ${envSnapshot.hasAnonKey ? "bg-emerald-500" : "bg-rose-500"}`}></div>
+                    {envSnapshot.hasAnonKey ? "Loaded securely from .env" : "Missing environment config"}
+                  </div>
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        </details>
       </div>
     </div>
   );
