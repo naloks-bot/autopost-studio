@@ -146,10 +146,20 @@ export function buildContentPrompt(formData, settings) {
   const voice = settings.brandVoice || "Professional";
   const business = settings.businessName || "My Brand";
   const topic = formData.topic || "Social Media Update";
+  const pageLabel = formData.pageLabel ? `Page: ${formData.pageLabel}` : "";
+  const pageWritingDirection = formData.pageWritingDirection ? `Page writing direction: ${formData.pageWritingDirection}` : "";
+  const pageImageDirection = formData.pageImageDirection ? `Page image direction: ${formData.pageImageDirection}` : "";
+  const pageReadme = formData.pageReadme ? `Page memory: ${formData.pageReadme}` : "";
+  const pageTone = formData.pageTone ? `Page tone: ${formData.pageTone}` : "";
 
   return `Generate a high-engaging social media post for ${business}.
 Tone: ${voice}
 Topic: ${topic}
+${pageLabel}
+${pageTone}
+${pageWritingDirection}
+${pageImageDirection}
+${pageReadme}
 Structure: Grab attention, address pain points, offer solution, and include a clear call to action.
 Platform: Facebook/Instagram`;
 }
@@ -160,8 +170,20 @@ Platform: Facebook/Instagram`;
 export function buildImagePrompt(formData, settings) {
   const topic = formData.topic || "Abstract concept";
   const voice = settings.brandVoice || "Modern";
+  const content = formData.content ? `Post content context: ${formData.content}` : "";
+  const pageLabel = formData.pageLabel ? `Page: ${formData.pageLabel}` : "";
+  const pageImageDirection = formData.pageImageDirection ? `Page image direction: ${formData.pageImageDirection}` : "";
+  const pageWritingDirection = formData.pageWritingDirection ? `Page writing direction: ${formData.pageWritingDirection}` : "";
+  const pageReadme = formData.pageReadme ? `Page memory: ${formData.pageReadme}` : "";
 
-  return `High-quality social media visual for "${topic}". ${voice} style, clean composition, vibrant colors, premium lighting, 4k resolution, optimized for social media engagement.`;
+  return `Create a clean social media image prompt for "${topic}".
+Brand voice: ${voice}
+${content}
+${pageLabel}
+${pageWritingDirection}
+${pageImageDirection}
+${pageReadme}
+Return one clear production-ready image prompt focused on subject, composition, mood, and visual direction.`;
 }
 
 async function generateMockText(formData, settings, meta = {}) {
@@ -404,7 +426,7 @@ export async function generateImagePrompt({ formData, settings }) {
   if (provider === "openai") {
     await new Promise((resolve) => setTimeout(resolve, 800));
     return {
-      data: `[Mock OpenAI Image Prompt] ${formData.topic}, high quality visual.`,
+      data: `ภาพโปรโมต ${formData.topic} แบบพรีเมียม โฟกัสชัด แสงสวย องค์ประกอบสะอาด ${formData.pageImageDirection || ""}`.trim(),
       error: null,
       mode: "openai",
     };
@@ -413,14 +435,14 @@ export async function generateImagePrompt({ formData, settings }) {
   if (provider === "gemini") {
     await new Promise((resolve) => setTimeout(resolve, 800));
     return {
-      data: `[Mock Gemini Image Prompt] ${formData.topic}, vibrant style, professional photography.`,
+      data: `ภาพ ${formData.topic} สำหรับโซเชียล โทนดึงดูดสายตา สไตล์มืออาชีพ ${formData.pageImageDirection || ""}`.trim(),
       error: null,
       mode: "gemini",
     };
   }
 
   await new Promise((resolve) => setTimeout(resolve, 800));
-  const mockPrompt = `Premium visual of ${formData.topic}, ${settings.brandVoice || "elegant"} aesthetic, professional photography style.`;
+  const mockPrompt = `ภาพ ${formData.topic} โทน ${settings.brandVoice || "เรียบหรู"} องค์ประกอบชัด สื่อสารง่าย เหมาะกับโพสต์ Facebook ${formData.pageImageDirection || ""}`.trim();
 
   return {
     data: mockPrompt,

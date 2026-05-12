@@ -1,12 +1,7 @@
-import React from "react";
-import { Calendar, Clock, Facebook, Globe, Send, Trash2, Database, Laptop, Info, AlertCircle, Pencil } from "lucide-react";
+import React, { useMemo } from "react";
+import { AlertCircle, Calendar, CheckCircle2, Clock, Facebook, Info, Pencil, Send, Trash2 } from "lucide-react";
 import ActionButton from "../components/ActionButton.jsx";
-import { validateFacebookConfig } from "../services/facebook.js";
-import {
-  getPagePublishReadiness,
-  resolveEffectivePublishConfig,
-  runPerPagePublishDryRun,
-} from "../services/page-context.js";
+import { getPagePublishReadiness, resolveEffectivePublishConfig, runPerPagePublishDryRun } from "../services/page-context.js";
 
 function StatusPage({
   allPendingPosts,
@@ -21,11 +16,25 @@ function StatusPage({
   schedulerStatus,
   statusNotice,
 }) {
-  const isFbConfigured = validateFacebookConfig(settings);
+  const activePageId = settings.activePageId || "default";
+
+  const pageAware = useMemo(() => {
+    const pendingForPage = allPendingPosts.filter((post) => (post.page_id || "default") === activePageId);
+    const postedForPage = remotePosts.filter(
+      (post) => post.status === "posted" && (post.page_id || "default") === activePageId
+    );
+
+    return {
+      total: pendingForPage.length + postedForPage.length,
+      queued: pendingForPage.length,
+      success: postedForPage.length,
+      list: pendingForPage,
+    };
+  }, [activePageId, allPendingPosts, remotePosts]);
 
   return (
     <div className="space-y-6">
-      {statusNotice && (
+      {statusNotice ? (
         <div
           className={`rounded-2xl border px-4 py-3 text-sm ${
             statusNotice.tone === "danger"
@@ -37,66 +46,39 @@ function StatusPage({
         >
           {statusNotice.message}
         </div>
-      )}
+      ) : null}
 
-      <div
-        className={`flex items-center gap-3 rounded-2xl border p-4 text-xs shadow-sm ${
-          settings.facebookPublishMode === "live"
-            ? "border-rose-500/20 bg-rose-500/10 text-rose-300"
-            : "border-emerald-500/20 bg-emerald-500/10 text-emerald-300"
-        }`}
-      >
-        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-black/10">
-          <Facebook className="h-4 w-4" />
-        </div>
-        <div>
-          <p className="font-bold uppercase tracking-tight">
-            โหมดโพสต์: {settings.facebookPublishMode === "live" ? "โพสต์จริง" : "ทดสอบ"}
-          </p>
-          <p className="mt-0.5 opacity-80">
-            {settings.facebookPublishMode === "live"
-              ? "เมื่อกดยืนยัน ระบบจะโพสต์จริงไปยัง Facebook"
-              : "ระบบจำลองการโพสต์เพื่อความปลอดภัยของงาน"}
-          </p>
+      <div className="rounded-2xl border border-cyan-500/20 bg-cyan-500/10 p-4 text-sm text-cyan-200 shadow-sm">
+        <div className="flex items-center gap-3">
+          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-black/10">
+            <Facebook className="h-4 w-4" />
+          </div>
+          <div>
+            <p className="font-semibold">สถานะการโพสต์ของเพจปัจจุบัน</p>
+            <p className="mt-0.5 text-xs text-cyan-100/80">
+              โหมด {settings.facebookPublishMode === "live" ? "โพสต์จริง" : "ทดสอบ"} ยังทำงานบน flow เดิมที่เสถียร และสถิติด้านล่างอิงจากร่าง/โพสต์ที่มีอยู่ในระบบตอนนี้
+            </p>
+          </div>
         </div>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-3">
         <div className="rounded-2xl border border-white/5 bg-slate-900/40 p-5 shadow-sm">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">ร่างทั้งหมด</span>
-            <div className="rounded-full bg-cyan-500/10 p-1.5 text-cyan-400">
-              <Database className="h-4 w-4" />
-            </div>
-          </div>
-          <p className="mt-3 text-4xl font-bold tracking-tight text-white">{allPendingPosts.length}</p>
+          <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">ทั้งหมด</span>
+          <p className="mt-3 text-4xl font-bold tracking-tight text-white">{pageAware.total}</p>
         </div>
-
         <div className="rounded-2xl border border-white/5 bg-slate-900/40 p-5 shadow-sm">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">ร่างบน Supabase</span>
-            <div className="rounded-full bg-violet-500/10 p-1.5 text-violet-400">
-              <Globe className="h-4 w-4" />
-            </div>
-          </div>
-          <p className="mt-3 text-4xl font-bold tracking-tight text-white">
-            {remotePosts.filter((post) => post.status !== "posted").length}
-          </p>
+          <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">รอคิวโพสต์</span>
+          <p className="mt-3 text-4xl font-bold tracking-tight text-white">{pageAware.queued}</p>
         </div>
-
         <div className="rounded-2xl border border-white/5 bg-slate-900/40 p-5 shadow-sm">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">ร่างในเครื่อง</span>
-            <div className="rounded-full bg-amber-500/10 p-1.5 text-amber-400">
-              <Laptop className="h-4 w-4" />
-            </div>
-          </div>
-          <p className="mt-3 text-4xl font-bold tracking-tight text-white">{localDrafts.length}</p>
+          <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">โพสต์สำเร็จ</span>
+          <p className="mt-3 text-4xl font-bold tracking-tight text-white">{pageAware.success}</p>
         </div>
       </div>
 
-      {schedulerStatus && (
-        <div className="flex items-center gap-3 rounded-2xl border border-cyan-500/20 bg-cyan-500/10 p-4 text-xs text-cyan-400 shadow-sm">
+      {schedulerStatus ? (
+        <div className="flex items-center gap-3 rounded-2xl border border-cyan-500/20 bg-cyan-500/10 p-4 text-xs text-cyan-300 shadow-sm">
           <div className="flex h-8 w-8 items-center justify-center rounded-full bg-cyan-500/20">
             <Clock className="h-4 w-4" />
           </div>
@@ -107,19 +89,19 @@ function StatusPage({
             </p>
           </div>
         </div>
-      )}
+      ) : null}
 
       <div className="space-y-4">
-        <h3 className="pl-1 text-sm font-semibold uppercase tracking-widest text-slate-300">รายการร่างงาน</h3>
+        <h3 className="pl-1 text-sm font-semibold uppercase tracking-widest text-slate-300">รายการของเพจปัจจุบัน</h3>
 
-        {allPendingPosts.length === 0 ? (
+        {pageAware.list.length === 0 ? (
           <div className="flex flex-col items-center justify-center rounded-[2rem] border border-dashed border-white/10 p-12 text-center">
             <Info className="mb-3 h-10 w-10 text-slate-700" />
-            <p className="text-lg font-medium text-slate-500">ยังไม่มีร่างงาน</p>
-            <p className="mt-1 text-sm text-slate-600">เริ่มสร้างโพสต์ใหม่ได้จากเมนูสร้างโพสต์</p>
+            <p className="text-lg font-medium text-slate-500">ยังไม่มีร่างในเพจนี้</p>
+            <p className="mt-1 text-sm text-slate-600">เริ่มสร้างโพสต์ใหม่หรือสลับเพจจากแถบด้านบนเพื่อดูข้อมูลของเพจอื่น</p>
           </div>
         ) : (
-          allPendingPosts.map((post) => {
+          pageAware.list.map((post) => {
             const pageReadiness = getPagePublishReadiness({
               pageId: post.page_id,
               settings,
@@ -141,11 +123,11 @@ function StatusPage({
                 key={post.id}
                 className="group relative flex flex-col gap-5 overflow-hidden rounded-[2rem] border border-white/5 bg-slate-900/60 p-5 transition-all hover:bg-slate-900/80 lg:flex-row"
               >
-                {post.image_url && (
+                {post.image_url ? (
                   <div className="h-32 w-full shrink-0 overflow-hidden rounded-2xl lg:h-32 lg:w-44">
                     <img src={post.image_url} alt="Preview" className="h-full w-full object-cover transition duration-500 group-hover:scale-105" />
                   </div>
-                )}
+                ) : null}
 
                 <div className="flex flex-1 flex-col justify-between">
                   <div>
@@ -172,7 +154,7 @@ function StatusPage({
                           pageReadiness.pageConfigReady ? "bg-emerald-500/10 text-emerald-400" : "bg-amber-500/10 text-amber-400"
                         }`}
                       >
-                        {pageReadiness.pageConfigReady ? "พร้อมใช้ของเพจ" : "ใช้ค่ากลาง"}
+                        {pageReadiness.pageConfigReady ? "พร้อมใช้ค่าของเพจ" : "ใช้ค่ากลาง"}
                       </span>
                       <span className="rounded-full bg-cyan-500/10 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-cyan-400">
                         เส้นทางโพสต์: {effectivePublish.effectivePublishLabel}
@@ -182,15 +164,16 @@ function StatusPage({
                     <div className="mt-2 rounded-lg border border-cyan-500/10 bg-cyan-500/5 px-3 py-2">
                       <p className="text-[10px] font-bold uppercase tracking-wider text-cyan-400">{pageDryRun.dryRunLabel}</p>
                       <p className="mt-1 text-[10px] text-slate-400">
-                        จะไปที่ {pageDryRun.resolvedPageLabel} • Page ID {pageDryRun.pageSpecificPageIdReady ? "พร้อม" : "ไม่มี"} • Token {pageDryRun.pageSpecificTokenReady ? "พร้อม" : "ไม่มี"}
+                        จะไปที่ {pageDryRun.resolvedPageLabel} • Page ID {pageDryRun.pageSpecificPageIdReady ? "พร้อม" : "ไม่มี"} • Token{" "}
+                        {pageDryRun.pageSpecificTokenReady ? "พร้อม" : "ไม่มี"}
                       </p>
                     </div>
 
-                    {(effectivePublish.fallbackReason || effectivePublish.blockedReason) && (
+                    {effectivePublish.fallbackReason || effectivePublish.blockedReason ? (
                       <p className="mt-2 text-[10px] italic text-slate-500">
                         {effectivePublish.blockedReason || effectivePublish.fallbackReason}
                       </p>
-                    )}
+                    ) : null}
                   </div>
 
                   <div className="mt-4 flex flex-wrap items-center gap-4 border-t border-white/5 pt-4">
@@ -198,12 +181,12 @@ function StatusPage({
                       <Calendar className="h-3 w-3" />
                       <span>สร้างเมื่อ {formatDate(post.created_at)}</span>
                     </div>
-                    {post.scheduled_at && post.status === "scheduled" && (
+                    {post.scheduled_at && post.status === "scheduled" ? (
                       <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-tight text-amber-400">
                         <Clock className="h-3 w-3" />
                         <span>ตั้งเวลา {formatDate(post.scheduled_at)}</span>
                       </div>
-                    )}
+                    ) : null}
                   </div>
                 </div>
 
@@ -224,21 +207,12 @@ function StatusPage({
                         disabled={!effectivePublish.canAttemptPublish}
                         fullWidth
                       />
-                      {!effectivePublish.canAttemptPublish && (
+                      {!effectivePublish.canAttemptPublish ? (
                         <div className="flex items-center justify-center gap-1 text-center text-[9px] font-bold uppercase text-rose-400">
                           <AlertCircle className="h-3 w-3" />
                           {effectivePublish.livePerPagePublishStatus === "Blocked" ? "ยังโพสต์ไม่ได้" : "ข้อมูลไม่ครบ"}
                         </div>
-                      )}
-                      {effectivePublish.canAttemptPublish &&
-                        !isFbConfigured &&
-                        settings.facebookPublishMode !== "mock" &&
-                        effectivePublish.effectivePublishSource === "page-specific" && (
-                          <div className="flex items-center justify-center gap-1 text-[9px] font-bold uppercase text-emerald-400">
-                            <AlertCircle className="h-3 w-3" />
-                            ใช้ค่าของเพจนี้
-                          </div>
-                        )}
+                      ) : null}
                     </>
                   )}
                 </div>

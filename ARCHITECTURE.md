@@ -254,6 +254,14 @@ Phase D.2 narrows that further:
 * keep scheduler, queue, and backend redesign deferred
 * avoid schema expansion unless it is required to preserve existing save-flow compatibility
 
+Phase D.3 continues within the same boundary:
+
+* align the core posting flow with real operator usage
+* keep Create as input-left / preview-right
+* allow page profile guidance to shape writing and image prompt behavior using existing workspace state
+* keep Settings system-only and move page-specific setup to the dedicated page management surface
+* preserve scheduler V1, current publish flow, and the existing backend/schema boundary
+
 This protects the current stable publish flow and avoids unnecessary backend churn.
 
 ---

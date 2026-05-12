@@ -1,5 +1,5 @@
 import React from "react";
-import { CheckCircle2, KeyRound, Palette, Settings as SettingsIcon, ShieldCheck, Zap } from "lucide-react";
+import { CheckCircle2, KeyRound, Settings as SettingsIcon, ShieldCheck, Zap } from "lucide-react";
 import ActionButton from "../components/ActionButton.jsx";
 import { getTextProviderRuntime } from "../services/ai-generation.js";
 
@@ -30,6 +30,10 @@ function SettingsPage({
             <SettingsIcon className="h-5 w-5 text-cyan-400" />
             <h3 className="text-base font-semibold text-white">ข้อมูลระบบ</h3>
           </div>
+
+          <p className="mb-4 rounded-xl border border-cyan-500/20 bg-cyan-500/10 px-4 py-3 text-sm text-cyan-200">
+            ข้อมูลนี้ใช้เป็นบริบทรวมของระบบ ส่วนข้อมูลเฉพาะเพจให้ตั้งที่เมนูจัดการเพจ
+          </p>
 
           <div className="grid gap-4 md:grid-cols-2">
             <SettingsField
@@ -136,24 +140,6 @@ function SettingsPage({
           </div>
         </div>
 
-        <div className="rounded-2xl border border-white/5 bg-slate-900/40 p-5 shadow-sm">
-          <div className="mb-5 flex items-center gap-2 border-b border-white/5 pb-3">
-            <Palette className="h-5 w-5 text-amber-400" />
-            <h3 className="text-base font-semibold text-white">หน้าตาและธีม</h3>
-          </div>
-
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="rounded-2xl border border-white/5 bg-slate-950/40 p-4">
-              <p className="text-xs font-semibold text-white">ธีมเข้ม</p>
-              <p className="mt-1 text-xs text-slate-400">เหมาะกับการทำงานต่อเนื่องและเป็นค่าเริ่มต้นของระบบ</p>
-            </div>
-            <div className="rounded-2xl border border-white/5 bg-slate-950/40 p-4">
-              <p className="text-xs font-semibold text-white">ธีมสว่าง</p>
-              <p className="mt-1 text-xs text-slate-400">โทนครีมอุ่นตา เหมาะกับงานรีวิวและปรับข้อความยาว</p>
-            </div>
-          </div>
-        </div>
-
         <div className="pt-1">
           <ActionButton
             label="บันทึกการตั้งค่า"
@@ -163,12 +149,12 @@ function SettingsPage({
             variant="secondary"
             fullWidth
           />
-          {settingsMessage && (
+          {settingsMessage ? (
             <div className="mt-3 flex items-center gap-2 rounded-xl bg-cyan-500/10 px-4 py-3 text-sm text-cyan-300">
               <SettingsStatusIcon className="h-4 w-4" />
               <span>{settingsMessage}</span>
             </div>
-          )}
+          ) : null}
         </div>
       </div>
 
@@ -228,10 +214,6 @@ function SettingsPage({
                   {settings.schedulerEnabled ? "เปิดใช้งาน" : "ปิดไว้"}
                 </span>
               </div>
-            </div>
-
-            <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
-              หน้า Settings เหลือเฉพาะค่าระดับระบบ ส่วนการตั้งค่าเพจและ memory ย้ายไปที่เมนู “จัดการเพจ” แล้ว
             </div>
           </div>
         </div>

@@ -1,15 +1,15 @@
-import React, { useState } from "react";
-import { CheckCircle2, Sparkles, FileText } from "lucide-react";
-import { CONTENT_TYPES, CONTENT_TONES, CONTENT_LENGTHS, CONTENT_CTAS } from "../constants/appConstants";
+import React, { useMemo, useState } from "react";
+import { CheckCircle2, FileText, Sparkles } from "lucide-react";
+import { CONTENT_CTAS, CONTENT_LENGTHS, CONTENT_TONES, CONTENT_TYPES } from "../constants/appConstants";
 import { generateImage } from "../services/ai-image-generation.js";
 import { uploadImageFromUrl } from "../services/storage.js";
+import { getProviderLabel } from "../services/ai-generation.js";
 import ActionButton from "../components/ActionButton.jsx";
-import ProviderStatusCard from "../components/ProviderStatusCard.jsx";
-import WorkspaceContextCard from "../components/WorkspaceContextCard.jsx";
 import PromptAssistCard from "../components/PromptAssistCard.jsx";
 import ImageStudioCard from "../components/ImageStudioCard.jsx";
 import PreviewStudioCard from "../components/PreviewStudioCard.jsx";
-import { getProviderLabel } from "../services/ai-generation.js";
+import ProviderStatusCard from "../components/ProviderStatusCard.jsx";
+import WorkspaceContextCard from "../components/WorkspaceContextCard.jsx";
 
 function CreatePage({
   form,
@@ -31,18 +31,37 @@ function CreatePage({
   const [generatedImage, setGeneratedImage] = useState(null);
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
   const [imageGenerationError, setImageGenerationError] = useState(null);
-
+  const [usePageGuidance, setUsePageGuidance] = useState(true);
   const [metadata, setMetadata] = useState({
     type: "general",
     tone: "friendly",
     length: "medium",
     cta: "none",
   });
-
   const [imageForm, setImageForm] = useState({
-    aspectRatio: "1:1",
+    aspectRatio: "4:5",
     style: "realistic",
   });
+
+  const hasPageGuidance = useMemo(
+    () =>
+      Boolean(
+        activeWorkspacePage?.writingDirection ||
+          activeWorkspacePage?.imageDirection ||
+          activeWorkspacePage?.tone ||
+          activeWorkspacePage?.visualStyle
+      ),
+    [activeWorkspacePage]
+  );
+
+  const effectiveMetadata = useMemo(() => {
+    if (!usePageGuidance) return metadata;
+
+    return {
+      ...metadata,
+      tone: activeWorkspacePage?.tone ? "professional" : metadata.tone,
+    };
+  }, [activeWorkspacePage, metadata, usePageGuidance]);
 
   const updateMetadata = (key, value) => setMetadata((prev) => ({ ...prev, [key]: value }));
   const updateImageForm = (key, value) => setImageForm((prev) => ({ ...prev, [key]: value }));
@@ -77,17 +96,19 @@ function CreatePage({
           storageMode = "supabase";
         }
 
-        setGeneratedImage({
+        const nextImage = {
           imageUrl: finalUrl,
           revisedPrompt: result.data.revisedPrompt,
           mode: result.mode,
           storagePath,
           storageMode,
-        });
+        };
+
+        setGeneratedImage(nextImage);
         updateForm("imageUrl", finalUrl);
       }
-    } catch (err) {
-      setImageGenerationError(`เกิดข้อผิดพลาด: ${err.message}`);
+    } catch (error) {
+      setImageGenerationError(`เกิดข้อผิดพลาด: ${error.message}`);
     } finally {
       setIsGeneratingImage(false);
     }
@@ -109,79 +130,101 @@ function CreatePage({
   }
 
   return (
-    <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+    <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1.1fr_0.9fr]">
       <div className="space-y-5">
-        <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-          <ProviderStatusCard settings={settings} textProviderRuntime={textProviderRuntime} />
-          <WorkspaceContextCard settings={settings} activeWorkspacePage={activeWorkspacePage} />
-        </div>
-
         <div className="rounded-2xl border border-white/5 bg-slate-900/40 p-5 shadow-sm">
           <div className="mb-4 flex items-center gap-2 border-b border-white/5 pb-2">
             <FileText className="h-4 w-4 text-amber-400" />
             <h3 className="text-sm font-semibold uppercase tracking-wider text-white">รายละเอียดโพสต์</h3>
           </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-bold uppercase text-slate-500">ประเภท</label>
-              <select
-                value={metadata.type}
-                onChange={(e) => updateMetadata("type", e.target.value)}
-                className="w-full rounded-lg border border-white/10 bg-slate-950/50 px-2 py-1.5 text-xs text-slate-300 outline-none focus:border-amber-400"
-              >
-                {CONTENT_TYPES.map((t) => (
-                  <option key={t.id} value={t.id} className="bg-slate-900">
-                    {t.label}
-                  </option>
-                ))}
-              </select>
+
+          <label className="mb-4 flex items-start gap-3 rounded-2xl border border-cyan-500/20 bg-cyan-500/10 px-4 py-3 text-sm text-cyan-200">
+            <input
+              type="checkbox"
+              checked={usePageGuidance}
+              onChange={(event) => setUsePageGuidance(event.target.checked)}
+              className="mt-0.5 accent-cyan-400"
+            />
+            <span>
+              <span className="font-semibold">ใช้แนวทางจากเพจ</span>
+              <span className="mt-1 block text-xs text-cyan-100/80">
+                ระบบจะใช้ข้อมูลทิศทางการเขียนและแนวภาพจากเมนูจัดการเพจเพื่อช่วยกำหนดข้อความและ prompt รูปภาพ
+              </span>
+            </span>
+          </label>
+
+          {!usePageGuidance ? (
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold uppercase text-slate-500">ประเภท</label>
+                <select
+                  value={metadata.type}
+                  onChange={(event) => updateMetadata("type", event.target.value)}
+                  className="w-full rounded-lg border border-white/10 bg-slate-950/50 px-2 py-1.5 text-xs text-slate-300 outline-none focus:border-amber-400"
+                >
+                  {CONTENT_TYPES.map((item) => (
+                    <option key={item.id} value={item.id} className="bg-slate-900">
+                      {item.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold uppercase text-slate-500">โทน</label>
+                <select
+                  value={metadata.tone}
+                  onChange={(event) => updateMetadata("tone", event.target.value)}
+                  className="w-full rounded-lg border border-white/10 bg-slate-950/50 px-2 py-1.5 text-xs text-slate-300 outline-none focus:border-amber-400"
+                >
+                  {CONTENT_TONES.map((item) => (
+                    <option key={item.id} value={item.id} className="bg-slate-900">
+                      {item.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold uppercase text-slate-500">ความยาว</label>
+                <select
+                  value={metadata.length}
+                  onChange={(event) => updateMetadata("length", event.target.value)}
+                  className="w-full rounded-lg border border-white/10 bg-slate-950/50 px-2 py-1.5 text-xs text-slate-300 outline-none focus:border-amber-400"
+                >
+                  {CONTENT_LENGTHS.map((item) => (
+                    <option key={item.id} value={item.id} className="bg-slate-900">
+                      {item.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold uppercase text-slate-500">การปิดท้าย</label>
+                <select
+                  value={metadata.cta}
+                  onChange={(event) => updateMetadata("cta", event.target.value)}
+                  className="w-full rounded-lg border border-white/10 bg-slate-950/50 px-2 py-1.5 text-xs text-slate-300 outline-none focus:border-amber-400"
+                >
+                  {CONTENT_CTAS.map((item) => (
+                    <option key={item.id} value={item.id} className="bg-slate-900">
+                      {item.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-bold uppercase text-slate-500">โทน</label>
-              <select
-                value={metadata.tone}
-                onChange={(e) => updateMetadata("tone", e.target.value)}
-                className="w-full rounded-lg border border-white/10 bg-slate-950/50 px-2 py-1.5 text-xs text-slate-300 outline-none focus:border-amber-400"
-              >
-                {CONTENT_TONES.map((t) => (
-                  <option key={t.id} value={t.id} className="bg-slate-900">
-                    {t.label}
-                  </option>
-                ))}
-              </select>
+          ) : (
+            <div className="rounded-2xl border border-white/5 bg-slate-950/40 px-4 py-4 text-sm text-slate-300">
+              <p className="font-semibold text-white">{activeWorkspacePage?.label || "เพจปัจจุบัน"}</p>
+              <p className="mt-2 text-xs text-slate-400">
+                {hasPageGuidance
+                  ? "โพสต์นี้จะอ้างอิงแนวการเขียนและแนว prompt ภาพจากโปรไฟล์เพจ เพื่อลดการเลือกค่าซ้ำ"
+                  : "เพจนี้ยังไม่มีแนวทางเฉพาะ ระบบจะใช้ค่าหลักของระบบร่วมกับหัวข้อที่กรอก"}
+              </p>
             </div>
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-bold uppercase text-slate-500">ความยาว</label>
-              <select
-                value={metadata.length}
-                onChange={(e) => updateMetadata("length", e.target.value)}
-                className="w-full rounded-lg border border-white/10 bg-slate-950/50 px-2 py-1.5 text-xs text-slate-300 outline-none focus:border-amber-400"
-              >
-                {CONTENT_LENGTHS.map((l) => (
-                  <option key={l.id} value={l.id} className="bg-slate-900">
-                    {l.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-bold uppercase text-slate-500">การปิดท้าย</label>
-              <select
-                value={metadata.cta}
-                onChange={(e) => updateMetadata("cta", e.target.value)}
-                className="w-full rounded-lg border border-white/10 bg-slate-950/50 px-2 py-1.5 text-xs text-slate-300 outline-none focus:border-amber-400"
-              >
-                {CONTENT_CTAS.map((c) => (
-                  <option key={c.id} value={c.id} className="bg-slate-900">
-                    {c.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
+          )}
         </div>
 
-        <PromptAssistCard settings={settings} metadata={metadata} activeWorkspacePage={activeWorkspacePage} />
+        <PromptAssistCard settings={settings} metadata={effectiveMetadata} activeWorkspacePage={activeWorkspacePage} />
 
         <div className="rounded-2xl border border-white/5 bg-slate-900/40 p-5 shadow-sm">
           <div className="mb-4 flex items-center justify-between">
@@ -208,7 +251,7 @@ function CreatePage({
             />
           </div>
 
-          {createNotice && (
+          {createNotice ? (
             <div
               className={`mt-3 rounded border p-2 text-xs italic ${
                 createNotice.tone === "danger"
@@ -222,19 +265,18 @@ function CreatePage({
             >
               {createNotice.message}
             </div>
-          )}
+          ) : null}
 
-          {generationError && (
+          {generationError ? (
             <p className="mt-3 rounded border border-rose-400/20 bg-rose-400/10 p-2 text-xs italic text-rose-400">
               {generationError}
             </p>
-          )}
+          ) : null}
 
           <div className="mt-3 flex flex-wrap gap-2 text-[10px] font-bold uppercase tracking-tight text-slate-500">
             <span className="rounded-full border border-white/10 bg-slate-950/50 px-2 py-1">
               ข้อความ: {getProviderLabel(textProviderRuntime?.activeProvider || "mock")}
             </span>
-            <span className="rounded-full border border-white/10 bg-slate-950/50 px-2 py-1">ตัวอย่าง: พร้อม</span>
             <span className="rounded-full border border-white/10 bg-slate-950/50 px-2 py-1">
               โหมดโพสต์: {settings.facebookPublishMode === "live" ? "จริง" : "ทดสอบ"}
             </span>
@@ -257,10 +299,15 @@ function CreatePage({
       </div>
 
       <div className="flex flex-col space-y-5 lg:h-[calc(100vh-10rem)]">
+        <div className="grid grid-cols-1 gap-4">
+          <ProviderStatusCard settings={settings} textProviderRuntime={textProviderRuntime} />
+          <WorkspaceContextCard settings={settings} activeWorkspacePage={activeWorkspacePage} />
+        </div>
+
         <PreviewStudioCard
           form={form}
           settings={settings}
-          metadata={metadata}
+          metadata={effectiveMetadata}
           imageForm={imageForm}
           textProviderRuntime={textProviderRuntime}
           activeWorkspacePage={activeWorkspacePage}

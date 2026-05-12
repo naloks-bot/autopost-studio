@@ -2,7 +2,7 @@
 
 ## Current Status
 
-UI foundation and controlled Phase C backend expansion are now stable. Mock mode remains the default. Phase D.2 is now the active milestone and is limited to operational UX completion, workspace page management separation, and broken flow cleanup.
+UI foundation and controlled Phase C backend expansion are now stable. Mock mode remains the default. Phase D.3 is now the active milestone and is limited to aligning the core posting UX with the real operator flow.
 
 MVP core is currently locked as stable after the controlled QA pass and latest checkpoint commit:
 
@@ -155,15 +155,15 @@ Expand backend capabilities only after MVP stability is proven.
 ## Ready Now
 
 * MVP core maintenance only
-* Phase D.2 operational UX completion only
+* Phase D.3 core posting UX alignment only
 
-### Phase D.2 Focus
+### Phase D.3 Focus
 
-* fix Create flow issues without backend redesign
-* move page-specific setup out of Settings into a dedicated workspace page
-* add page README / AI memory as workspace guidance
-* keep backend, scheduler, queue redesign, and analytics deferred
-* avoid schema expansion unless needed to preserve existing draft save compatibility
+* keep Create page input-left / preview-right
+* let page profile guide writing and image prompt direction
+* keep page setup in “จัดการเพจ” and Settings as system-only
+* clarify Status and Scheduler around current real V1 behavior
+* keep backend, schema, scheduler engine, queue redesign, and analytics deferred
 
 ## After Phase A Is Stable
 

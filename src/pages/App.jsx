@@ -256,6 +256,34 @@ function App() {
     setActiveTab("pages");
   }, []);
 
+  const removeWorkspacePage = useCallback((pageId) => {
+    setSettings((current) => {
+      const workspacePages = getWorkspacePages(current);
+      const targetPage = workspacePages.find((page) => page.id === pageId);
+      if (!targetPage) {
+        setSettingsMessage("ไม่พบเพจที่ต้องการลบ");
+        return current;
+      }
+      if (pageId === "default") {
+        setSettingsMessage("ยังลบเพจหลักไม่ได้");
+        return current;
+      }
+      if (current.activePageId === pageId) {
+        setSettingsMessage("กรุณาเปลี่ยนไปใช้เพจอื่นก่อนลบเพจนี้");
+        return current;
+      }
+      if (!window.confirm(`ต้องการลบเพจ "${targetPage.label}" ออกจากรายการใช่หรือไม่?`)) {
+        return current;
+      }
+
+      setSettingsMessage(`ลบเพจ "${targetPage.label}" ออกจากรายการแล้ว อย่าลืมกดบันทึกข้อมูลเพจ`);
+      return sanitizeSettings({
+        ...current,
+        workspacePages: workspacePages.filter((page) => page.id !== pageId),
+      });
+    });
+  }, []);
+
   const handleLoadDraftToEditor = useCallback((draft) => {
     const nextPageId = draft.page_id || "default";
     setForm({
@@ -290,7 +318,17 @@ function App() {
     setCreateNotice({ tone: "info", message: "กำลังสร้างข้อความ..." });
 
     try {
-      const result = await generatePostContent({ formData: form, settings });
+      const result = await generatePostContent({
+        formData: {
+          ...form,
+          pageLabel: activeWorkspacePage?.label || "",
+          pageWritingDirection: activeWorkspacePage?.writingDirection || "",
+          pageImageDirection: activeWorkspacePage?.imageDirection || "",
+          pageReadme: activeWorkspacePage?.readme || "",
+          pageTone: activeWorkspacePage?.tone || "",
+        },
+        settings,
+      });
       if (result.data) updateForm("content", result.data);
       setLastTextGeneration(result);
       setGenerationError(result.status === "blocked" ? result.error || "" : "");
@@ -319,7 +357,16 @@ function App() {
     setCreateNotice({ tone: "info", message: "กำลังช่วยคิดคำอธิบายภาพ..." });
 
     try {
-      const result = await generateImagePrompt({ formData: form, settings });
+      const result = await generateImagePrompt({
+        formData: {
+          ...form,
+          pageLabel: activeWorkspacePage?.label || "",
+          pageImageDirection: activeWorkspacePage?.imageDirection || "",
+          pageWritingDirection: activeWorkspacePage?.writingDirection || "",
+          pageReadme: activeWorkspacePage?.readme || "",
+        },
+        settings,
+      });
       if (result.data) {
         updateForm("imagePrompt", result.data);
         setCreateNotice({
@@ -695,6 +742,7 @@ function App() {
                   updateSettingsField={updateSettingsField}
                   updateWorkspacePage={updateWorkspacePage}
                   addWorkspacePage={addWorkspacePage}
+                  removeWorkspacePage={removeWorkspacePage}
                   handleSaveWorkspacePages={handleSaveWorkspacePages}
                   settingsMessage={settingsMessage}
                   isSavingSettings={isSavingSettings}

@@ -1,5 +1,5 @@
 import React from "react";
-import { BookOpenText, CheckCircle2, FileText, Layers3, Plus, Settings2 } from "lucide-react";
+import { BookOpenText, CheckCircle2, FileText, Layers3, Plus, Settings2, Trash2 } from "lucide-react";
 import ActionButton from "../components/ActionButton.jsx";
 
 function PagesPage({
@@ -9,6 +9,7 @@ function PagesPage({
   updateSettingsField,
   updateWorkspacePage,
   addWorkspacePage,
+  removeWorkspacePage,
   handleSaveWorkspacePages,
   settingsMessage,
   isSavingSettings,
@@ -24,40 +25,49 @@ function PagesPage({
               <Layers3 className="h-5 w-5 text-cyan-400" />
               <h2 className="text-base font-semibold text-white">จัดการเพจ</h2>
             </div>
-            <ActionButton
-              label="เพิ่มเพจ"
-              icon={Plus}
-              onClick={addWorkspacePage}
-              variant="outline"
-            />
+            <ActionButton label="เพิ่มเพจ" icon={Plus} onClick={addWorkspacePage} variant="outline" />
           </div>
 
           <div className="space-y-3">
             {workspacePages.map((page) => {
               const isActive = page.id === settings.activePageId;
+              const isDefault = page.id === "default";
+
               return (
-                <button
+                <div
                   key={page.id}
-                  type="button"
-                  onClick={() => updateSettingsField("activePageId", page.id)}
-                  className={`w-full rounded-2xl border px-4 py-3 text-left transition ${
+                  className={`rounded-2xl border px-4 py-3 transition ${
                     isActive
                       ? "border-cyan-500/30 bg-cyan-500/10"
                       : "border-white/5 bg-slate-950/40 hover:border-white/10 hover:bg-slate-950/60"
                   }`}
                 >
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
+                  <div className="flex items-start justify-between gap-3">
+                    <button type="button" onClick={() => updateSettingsField("activePageId", page.id)} className="flex-1 text-left">
                       <p className="text-sm font-semibold text-white">{page.label}</p>
                       <p className="mt-1 text-xs text-slate-400">{page.description || "ยังไม่ได้เพิ่มคำอธิบายเพจ"}</p>
-                    </div>
-                    <div className="text-right">
+                    </button>
+
+                    <div className="flex items-center gap-2">
                       <span className="rounded-full bg-white/5 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
                         {page.status === "active" ? "พร้อมใช้งาน" : page.status === "mock" ? "ทดสอบ" : "ร่าง"}
                       </span>
+                      <button
+                        type="button"
+                        onClick={() => removeWorkspacePage(page.id)}
+                        disabled={isDefault}
+                        className={`rounded-xl border p-2 transition ${
+                          isDefault
+                            ? "cursor-not-allowed border-white/5 bg-white/5 text-slate-600"
+                            : "border-rose-500/20 bg-rose-500/10 text-rose-300 hover:bg-rose-500/20"
+                        }`}
+                        title={isDefault ? "ลบเพจหลักไม่ได้" : "ลบเพจ"}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
                     </div>
                   </div>
-                </button>
+                </div>
               );
             })}
           </div>
@@ -74,7 +84,7 @@ function PagesPage({
             </span>
           </div>
 
-          {selectedPage && (
+          {selectedPage ? (
             <div className="space-y-4">
               <div className="grid gap-4 md:grid-cols-2">
                 <label className="block">
@@ -153,11 +163,11 @@ function PagesPage({
                 </div>
               </div>
             </div>
-          )}
+          ) : null}
         </div>
       </div>
 
-      {selectedPage && (
+      {selectedPage ? (
         <div className="grid gap-6 lg:grid-cols-2">
           <div className="rounded-2xl border border-white/5 bg-slate-900/40 p-5 shadow-sm">
             <div className="mb-4 flex items-center gap-2 border-b border-white/5 pb-3">
@@ -213,7 +223,7 @@ function PagesPage({
             </div>
           </div>
         </div>
-      )}
+      ) : null}
 
       <div className="rounded-2xl border border-white/5 bg-slate-900/40 p-5 shadow-sm">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -231,11 +241,11 @@ function PagesPage({
             variant="secondary"
           />
         </div>
-        {settingsMessage && (
+        {settingsMessage ? (
           <div className="mt-4 rounded-xl border border-cyan-500/20 bg-cyan-500/10 px-4 py-3 text-sm text-cyan-300">
             {settingsMessage}
           </div>
-        )}
+        ) : null}
       </div>
     </div>
   );

@@ -3,7 +3,7 @@ import { Smartphone, Monitor, Facebook, Info } from "lucide-react";
 import { getProviderLabel } from "../services/ai-generation.js";
 
 export default function PreviewStudioCard({ form, settings, metadata, imageForm, textProviderRuntime, activeWorkspacePage }) {
-  const [device, setDevice] = useState("mobile");
+  const [device, setDevice] = useState("desktop");
   const activePage = activeWorkspacePage;
 
   return (
