@@ -190,6 +190,7 @@ Current Phase C progress:
 * new drafts now persist `page_id` without requiring migration of existing posts/settings
 * scheduler flow and publish flow remain unchanged
 * Milestone 2A now includes a shared page-context resolver for safe metadata-only scheduled-post context
+* Milestone 2B now reports page publish readiness metadata while keeping actual publish execution on global V1
 
 ---
 

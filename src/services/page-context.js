@@ -39,3 +39,42 @@ export function resolvePageContext({ pageId, settings = {}, pages = [] } = {}) {
     source: resolvedPage.id === requestedPageId ? "matched" : "fallback",
   };
 }
+
+export function getPagePublishReadiness({ pageId, settings = {}, pages = [] } = {}) {
+  const pageContext = resolvePageContext({ pageId, settings, pages });
+  const resolvedPages = getPageContextPages(settings, pages);
+  const resolvedPage =
+    resolvedPages.find((page) => page.id === pageContext.resolvedPageId) ||
+    resolvedPages[0] ||
+    defaultWorkspacePages[0];
+  const hasDirectPageId = Boolean(resolvedPage?.facebookPageId);
+  const hasDirectPageToken = Boolean(resolvedPage?.facebookPageAccessToken);
+  const hasGlobalPageId = Boolean(settings.facebookPageId);
+  const hasGlobalPageToken = Boolean(settings.facebookPageAccessToken);
+
+  let fallbackReason = "";
+  if (pageContext.source === "fallback") {
+    fallbackReason = "Requested page was missing. Using default page context.";
+  } else if (!hasDirectPageId && !hasDirectPageToken) {
+    fallbackReason = "No page-specific Facebook config found. Global V1 publish config remains active.";
+  } else if (!hasDirectPageId) {
+    fallbackReason = "Page-specific Facebook Page ID is missing. Global V1 publish config remains active.";
+  } else if (!hasDirectPageToken) {
+    fallbackReason = "Page-specific Facebook token is missing. Global V1 publish config remains active.";
+  }
+
+  return {
+    ...pageContext,
+    hasPageSpecificPageId: hasDirectPageId,
+    hasPageSpecificToken: hasDirectPageToken,
+    hasGlobalPageId,
+    hasGlobalPageToken,
+    pageConfigReady: hasDirectPageId && hasDirectPageToken,
+    globalConfigReady: hasGlobalPageId && hasGlobalPageToken,
+    fallbackReason,
+    effectiveExecutionMode:
+      settings.facebookPublishMode === "live" ? "global-v1-live" : "global-v1-mock-safe",
+    effectiveExecutionLabel:
+      settings.facebookPublishMode === "live" ? "Global V1 Live" : "Global V1 Mock Safe",
+  };
+}

@@ -4,6 +4,7 @@ import SectionCard from "../components/SectionCard.jsx";
 import ActionButton from "../components/ActionButton.jsx";
 import { validateFacebookConfig } from "../services/facebook.js";
 import { getTextProviderRuntime } from "../services/ai-generation.js";
+import { getPagePublishReadiness } from "../services/page-context.js";
 
 function maskSecret(value) {
   if (!value) return "ยังไม่ได้กรอก";
@@ -64,6 +65,11 @@ function SettingsPage({
 }) {
   const isFbConfigured = validateFacebookConfig(settings);
   const currentTextRuntime = getTextProviderRuntime(settings);
+  const activePageReadiness = getPagePublishReadiness({
+    pageId: settings.activePageId,
+    settings,
+    pages: workspacePages,
+  });
 
   return (
     <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1.5fr_1fr]">
@@ -237,8 +243,8 @@ function SettingsPage({
                    <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-950/50 border border-white/5">
                       <div className="h-1.5 w-1.5 rounded-full bg-emerald-500"></div>
                       <span className="text-xs text-slate-400">
-                        {activeWorkspacePage?.facebookPageId && activeWorkspacePage?.facebookPageAccessToken
-                          ? "Page-Specific Foundation Ready"
+                        {activePageReadiness.pageConfigReady
+                          ? "Page-Specific Config Ready"
                           : "Using Global FB Settings"}
                       </span>
                    </div>
@@ -253,6 +259,26 @@ function SettingsPage({
              <p className="text-[10px] text-slate-500 italic">
                Note: Publishing currently uses the stable Facebook configuration. Multi-page routing is in foundation stage.
              </p>
+             <div className="rounded-xl border border-white/5 bg-slate-950/30 p-3 text-[10px]">
+               <div className="flex flex-wrap items-center gap-2">
+                 <span className={`rounded-full px-2 py-0.5 font-bold uppercase tracking-wider ${
+                   activePageReadiness.pageConfigReady
+                     ? "bg-emerald-500/10 text-emerald-400"
+                     : "bg-amber-500/10 text-amber-400"
+                 }`}>
+                   {activePageReadiness.pageConfigReady ? "Page Ready" : "Page Fallback"}
+                 </span>
+                 <span className="rounded-full bg-cyan-500/10 px-2 py-0.5 font-bold uppercase tracking-wider text-cyan-400">
+                   Execute: {activePageReadiness.effectiveExecutionLabel}
+                 </span>
+               </div>
+               <p className="mt-2 text-slate-400">
+                 Page ID: {activePageReadiness.hasPageSpecificPageId ? "present" : "missing"} · Token: {activePageReadiness.hasPageSpecificToken ? "present" : "missing"}
+               </p>
+               {activePageReadiness.fallbackReason && (
+                 <p className="mt-1 text-slate-500 italic">{activePageReadiness.fallbackReason}</p>
+               )}
+             </div>
           </div>
         </div>
 

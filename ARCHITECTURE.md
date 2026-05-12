@@ -189,6 +189,7 @@ Current Milestone 1 status:
 * draft persistence now carries `page_id`
 * publish and scheduler execution still use the existing stable flow
 * scheduled-post processing can now resolve normalized page context for metadata/debug without changing publish token execution
+* page publish readiness can now be derived safely for UI/debug without activating per-page token execution
 
 Risk areas to watch:
 

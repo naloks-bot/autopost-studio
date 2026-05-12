@@ -3,6 +3,7 @@ import { Calendar, Clock, Facebook, Globe, Send, Trash2, Database, Laptop, Info,
 import SectionCard from "../components/SectionCard.jsx";
 import ActionButton from "../components/ActionButton.jsx";
 import { validateFacebookConfig } from "../services/facebook.js";
+import { getPagePublishReadiness } from "../services/page-context.js";
 
 function StatusPage({
   allPendingPosts,
@@ -13,6 +14,7 @@ function StatusPage({
   handleLoadDraftToEditor,
   handlePublishPost,
   settings,
+  workspacePages,
   schedulerStatus,
 }) {
   const isFbConfigured = validateFacebookConfig(settings);
@@ -100,7 +102,14 @@ function StatusPage({
             <p className="mt-1 text-sm text-slate-600">Start by creating a new post in the Create section.</p>
           </div>
         ) : (
-          allPendingPosts.map((post) => (
+          allPendingPosts.map((post) => {
+            const pageReadiness = getPagePublishReadiness({
+              pageId: post.page_id,
+              settings,
+              pages: workspacePages,
+            });
+
+            return (
             <article
               key={post.id}
               className="group relative flex flex-col gap-6 overflow-hidden rounded-[2rem] border border-white/5 bg-slate-900/60 p-6 transition-all hover:bg-slate-900/80 lg:flex-row"
@@ -128,6 +137,24 @@ function StatusPage({
                     </span>
                   </div>
                   <p className="mt-2 text-sm leading-relaxed text-slate-400 line-clamp-2">{post.content}</p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <span className="rounded-full border border-white/5 bg-slate-950/40 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                      Page: {pageReadiness.label}
+                    </span>
+                    <span className={`rounded-full px-2 py-1 text-[10px] font-bold uppercase tracking-wider ${
+                      pageReadiness.pageConfigReady
+                        ? "bg-emerald-500/10 text-emerald-400"
+                        : "bg-amber-500/10 text-amber-400"
+                    }`}>
+                      {pageReadiness.pageConfigReady ? "Page Config Ready" : "Global Fallback"}
+                    </span>
+                    <span className="rounded-full bg-cyan-500/10 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-cyan-400">
+                      {pageReadiness.effectiveExecutionLabel}
+                    </span>
+                  </div>
+                  {pageReadiness.fallbackReason && (
+                    <p className="mt-2 text-[10px] italic text-slate-500">{pageReadiness.fallbackReason}</p>
+                  )}
                 </div>
 
                 <div className="mt-4 flex flex-wrap items-center gap-4 border-t border-white/5 pt-4">
@@ -196,7 +223,7 @@ function StatusPage({
                 )}
               </div>
             </article>
-          ))
+          )})
         )}
       </div>
     </div>
