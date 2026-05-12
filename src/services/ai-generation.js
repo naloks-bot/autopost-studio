@@ -40,7 +40,7 @@ function getPreferredTextProvider(settings) {
 }
 
 export function getProviderLabel(provider) {
-  return PROVIDER_LABELS[provider] || "Unknown";
+  return PROVIDER_LABELS[provider] || "ไม่ทราบ";
 }
 
 export function getTextProviderRuntime(settings, lastResult = null) {
@@ -51,8 +51,8 @@ export function getTextProviderRuntime(settings, lastResult = null) {
     runtime = {
       selectedProvider: "mock",
       activeProvider: "mock",
-      statusLabel: "Mock Ready",
-      detail: "Mock mode active",
+      statusLabel: "พร้อม",
+      detail: "กำลังใช้โหมดทดสอบ",
       tone: "ready",
     };
   } else if (preferred === "openai") {
@@ -60,15 +60,15 @@ export function getTextProviderRuntime(settings, lastResult = null) {
       ? {
           selectedProvider: "openai",
           activeProvider: "openai",
-          statusLabel: "Ready",
-          detail: "OpenAI key detected",
+          statusLabel: "พร้อม",
+          detail: "พบ OpenAI key แล้ว",
           tone: "ready",
         }
       : {
           selectedProvider: "openai",
           activeProvider: "mock",
-          statusLabel: "Mock Fallback",
-          detail: "OpenAI key missing",
+          statusLabel: "ใช้โหมดทดสอบ",
+          detail: "ยังไม่พบ OpenAI key",
           tone: "warning",
         };
   } else if (preferred === "gemini") {
@@ -76,31 +76,31 @@ export function getTextProviderRuntime(settings, lastResult = null) {
       ? {
           selectedProvider: "gemini",
           activeProvider: "gemini",
-          statusLabel: "Ready",
-          detail: "Gemini key detected",
+          statusLabel: "พร้อม",
+          detail: "พบ Gemini key แล้ว",
           tone: "ready",
         }
       : {
           selectedProvider: "gemini",
           activeProvider: "mock",
-          statusLabel: "Mock Fallback",
-          detail: "Gemini key missing",
+          statusLabel: "ใช้โหมดทดสอบ",
+          detail: "ยังไม่พบ Gemini key",
           tone: "warning",
         };
   } else if (preferred === "codex") {
     runtime = {
       selectedProvider: "codex",
       activeProvider: "mock",
-      statusLabel: "Mock Fallback",
-      detail: "Codex CLI is not active in Phase A",
+      statusLabel: "ใช้โหมดทดสอบ",
+      detail: "Codex CLI ยังไม่เปิดใช้",
       tone: "warning",
     };
   } else {
     runtime = {
       selectedProvider: "mock",
       activeProvider: "mock",
-      statusLabel: "Mock Ready",
-      detail: "Mock mode active",
+      statusLabel: "พร้อม",
+      detail: "กำลังใช้โหมดทดสอบ",
       tone: "ready",
     };
   }
@@ -113,7 +113,7 @@ export function getTextProviderRuntime(settings, lastResult = null) {
     return {
       ...runtime,
       activeProvider: "mock",
-      statusLabel: "Mock Fallback",
+      statusLabel: "ใช้โหมดทดสอบ",
       detail: lastResult.noticeMessage || lastResult.error || runtime.detail,
       tone: "warning",
     };
@@ -122,8 +122,8 @@ export function getTextProviderRuntime(settings, lastResult = null) {
   if (lastResult.mode === runtime.selectedProvider && runtime.selectedProvider !== "mock") {
     return {
       ...runtime,
-      statusLabel: "Active",
-      detail: lastResult.noticeMessage || `Last run used ${getProviderLabel(runtime.selectedProvider)}`,
+      statusLabel: "กำลังใช้งาน",
+      detail: lastResult.noticeMessage || `ครั้งล่าสุดใช้ ${getProviderLabel(runtime.selectedProvider)}`,
       tone: "ready",
     };
   }
@@ -168,7 +168,7 @@ async function generateMockText(formData, settings, meta = {}) {
   await new Promise((resolve) => setTimeout(resolve, 1000));
 
   return createGenerationResult({
-    data: `[Mock Generated Content]\n\nTopic: ${formData.topic}\n\nThis is mock AI-generated content for ${settings.businessName || "your business"} using a ${settings.brandVoice || "professional"} brand voice.\n\nThe post highlights the audience problem, introduces the offer clearly, and ends with a strong call to action.`,
+      data: `[ข้อความตัวอย่างจากระบบ]\n\nหัวข้อ: ${formData.topic}\n\nนี่คือข้อความตัวอย่างสำหรับ ${settings.businessName || "ธุรกิจของคุณ"} โดยใช้โทน ${settings.brandVoice || "มืออาชีพ"}\n\nเนื้อหาจะเกริ่นประเด็นหลัก อธิบายให้เข้าใจง่าย และปิดท้ายด้วยคำชวนที่ชัดเจน`,
     error: meta.error || null,
     mode: "mock",
     status: meta.status || "success",

@@ -7,88 +7,90 @@ export default function PreviewStudioCard({ form, settings, metadata, imageForm,
   const activePage = activeWorkspacePage;
 
   return (
-    <div className="flex flex-col h-full rounded-2xl border border-white/10 bg-slate-900/60 shadow-xl overflow-hidden">
-      <div className="border-b border-white/5 bg-white/5 px-6 py-4 flex items-center justify-between">
+    <div className="flex h-full flex-col overflow-hidden rounded-2xl border border-white/10 bg-slate-900/60 shadow-xl">
+      <div className="flex items-center justify-between border-b border-white/5 bg-white/5 px-6 py-4">
         <div className="flex items-center gap-2">
           <Facebook className="h-4 w-4 text-blue-500" />
-          <h3 className="text-sm font-semibold text-white uppercase tracking-wider">Preview Studio</h3>
+          <h3 className="text-sm font-semibold uppercase tracking-wider text-white">ตัวอย่างโพสต์</h3>
         </div>
-        <div className="flex items-center gap-2 rounded-lg bg-slate-950/50 p-1 border border-white/5">
-          <button 
+        <div className="flex items-center gap-2 rounded-lg border border-white/5 bg-slate-950/50 p-1">
+          <button
             onClick={() => setDevice("mobile")}
-            className={`p-1.5 rounded-md transition ${device === 'mobile' ? 'bg-white/10 text-white' : 'text-slate-500 hover:text-slate-300'}`}
+            className={`rounded-md p-1.5 transition ${device === "mobile" ? "bg-white/10 text-white" : "text-slate-500 hover:text-slate-300"}`}
           >
             <Smartphone className="h-3.5 w-3.5" />
           </button>
-          <button 
+          <button
             onClick={() => setDevice("desktop")}
-            className={`p-1.5 rounded-md transition ${device === 'desktop' ? 'bg-white/10 text-white' : 'text-slate-500 hover:text-slate-300'}`}
+            className={`rounded-md p-1.5 transition ${device === "desktop" ? "bg-white/10 text-white" : "text-slate-500 hover:text-slate-300"}`}
           >
             <Monitor className="h-3.5 w-3.5" />
           </button>
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto bg-slate-950/20 p-6 flex justify-center">
-        <div className={`transition-all duration-300 ${device === 'mobile' ? 'w-[320px]' : 'w-full max-w-2xl'}`}>
-           <div className="bg-[#242526] rounded-xl overflow-hidden shadow-2xl border border-white/5">
-              {/* FB Header */}
-              <div className="p-3 flex items-center gap-2">
-                 <div className="h-9 w-9 rounded-full bg-slate-700 flex items-center justify-center border border-white/10">
-                    <Facebook className="h-5 w-5 text-blue-500" />
-                 </div>
-                 <div>
-                    <p className="text-[13px] font-bold text-white leading-tight">{activePage?.label || "Default Page"}</p>
-                    <p className="text-[11px] text-slate-400">Just now · 🌎</p>
-                 </div>
+      <div className="flex flex-1 justify-center overflow-y-auto bg-slate-950/20 p-6">
+        <div className={`transition-all duration-300 ${device === "mobile" ? "w-[320px]" : "w-full max-w-2xl"}`}>
+          <div className="overflow-hidden rounded-xl border border-white/5 bg-[#242526] shadow-2xl">
+            <div className="flex items-center gap-2 p-3">
+              <div className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-slate-700">
+                <Facebook className="h-5 w-5 text-blue-500" />
               </div>
-
-              {/* Content */}
-              <div className="px-3 pb-3">
-                 <p className="text-[14px] text-white whitespace-pre-wrap leading-relaxed">
-                   {form.content || "Content preview will appear here..."}
-                 </p>
+              <div>
+                <p className="text-[13px] font-bold leading-tight text-white">{activePage?.label || "หน้าหลัก"}</p>
+                <p className="text-[11px] text-slate-400">เมื่อสักครู่ · สาธารณะ</p>
               </div>
+            </div>
 
-              {/* Image Area */}
-              {(form.imageUrl) && (
-                <div className={`w-full bg-slate-800 flex items-center justify-center overflow-hidden border-y border-white/5 ${
-                  imageForm.aspectRatio === '1:1' ? 'aspect-square' : 
-                  imageForm.aspectRatio === '4:5' ? 'aspect-[4/5]' : 
-                  imageForm.aspectRatio === '9:16' ? 'aspect-[9/16]' : 'aspect-video'
-                }`}>
-                   <img src={form.imageUrl} alt="Preview" className="w-full h-full object-cover" />
-                </div>
-              )}
+            <div className="px-3 pb-3">
+              <p className="whitespace-pre-wrap text-[14px] leading-relaxed text-white">
+                {form.content || "ข้อความตัวอย่างจะแสดงตรงนี้"}
+              </p>
+            </div>
 
-              {/* FB Interactions */}
-              <div className="px-3 py-2 border-t border-white/5 flex items-center justify-between text-slate-400">
-                 <div className="flex items-center gap-1 text-xs">👍 24</div>
-                 <div className="flex items-center gap-3 text-xs">
-                    <span>1 comment</span>
-                    <span>2 shares</span>
-                 </div>
+            {form.imageUrl && (
+              <div
+                className={`flex w-full items-center justify-center overflow-hidden border-y border-white/5 bg-slate-800 ${
+                  imageForm.aspectRatio === "1:1"
+                    ? "aspect-square"
+                    : imageForm.aspectRatio === "4:5"
+                      ? "aspect-[4/5]"
+                      : imageForm.aspectRatio === "9:16"
+                        ? "aspect-[9/16]"
+                        : "aspect-video"
+                }`}
+              >
+                <img src={form.imageUrl} alt="Preview" className="h-full w-full object-cover" />
               </div>
-           </div>
+            )}
+
+            <div className="flex items-center justify-between border-t border-white/5 px-3 py-2 text-slate-400">
+              <div className="flex items-center gap-1 text-xs">ถูกใจ 24</div>
+              <div className="flex items-center gap-3 text-xs">
+                <span>1 ความคิดเห็น</span>
+                <span>2 แชร์</span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
-      <div className="border-t border-white/5 bg-white/5 p-4 space-y-3">
+      <div className="space-y-3 border-t border-white/5 bg-white/5 p-4">
         <div className="flex flex-wrap gap-2">
-           <span className="text-[8px] font-bold text-slate-500 uppercase px-1.5 py-0.5 rounded border border-white/5">TYPE: {metadata.type}</span>
-           <span className="text-[8px] font-bold text-slate-500 uppercase px-1.5 py-0.5 rounded border border-white/5">TONE: {metadata.tone}</span>
-           <span className="text-[8px] font-bold text-slate-500 uppercase px-1.5 py-0.5 rounded border border-white/5">CTA: {metadata.cta}</span>
-           <span className="text-[8px] font-bold text-sky-500 uppercase px-1.5 py-0.5 rounded border border-sky-500/20 bg-sky-500/5">RATIO: {imageForm.aspectRatio}</span>
-           <span className="text-[8px] font-bold text-violet-400 uppercase px-1.5 py-0.5 rounded border border-violet-500/20 bg-violet-500/5">
-             TEXT: {getProviderLabel(textProviderRuntime?.activeProvider || settings.textProvider)}
-           </span>
-           <span className="text-[8px] font-bold text-emerald-400 uppercase px-1.5 py-0.5 rounded border border-emerald-500/20 bg-emerald-500/5">
-             PUBLISH: {settings.facebookPublishMode === "live" ? "LIVE" : "MOCK SAFE"}
-           </span>
+          <span className="rounded border border-white/5 px-1.5 py-0.5 text-[8px] font-bold uppercase text-slate-500">ประเภท: {metadata.type}</span>
+          <span className="rounded border border-white/5 px-1.5 py-0.5 text-[8px] font-bold uppercase text-slate-500">โทน: {metadata.tone}</span>
+          <span className="rounded border border-white/5 px-1.5 py-0.5 text-[8px] font-bold uppercase text-slate-500">ปิดท้าย: {metadata.cta}</span>
+          <span className="rounded border border-sky-500/20 bg-sky-500/5 px-1.5 py-0.5 text-[8px] font-bold uppercase text-sky-500">ภาพ: {imageForm.aspectRatio}</span>
+          <span className="rounded border border-violet-500/20 bg-violet-500/5 px-1.5 py-0.5 text-[8px] font-bold uppercase text-violet-400">
+            ข้อความ: {getProviderLabel(textProviderRuntime?.activeProvider || settings.textProvider)}
+          </span>
+          <span className="rounded border border-emerald-500/20 bg-emerald-500/5 px-1.5 py-0.5 text-[8px] font-bold uppercase text-emerald-400">
+            โหมดโพสต์: {settings.facebookPublishMode === "live" ? "จริง" : "ทดสอบ"}
+          </span>
         </div>
         <div className="flex items-center gap-1.5 text-slate-500">
-           <Info className="h-3 w-3" />
-           <p className="text-[9px] italic">Preview Studio is for visualization. Real publishing preserves stable logic.</p>
+          <Info className="h-3 w-3" />
+          <p className="text-[9px] italic">หน้านี้ใช้ดูตัวอย่างก่อนบันทึกหรือโพสต์จริง</p>
         </div>
       </div>
     </div>

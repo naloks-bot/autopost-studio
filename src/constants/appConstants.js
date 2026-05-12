@@ -105,14 +105,14 @@ export const APP_VERSION = "0.2.0-dashboard";
 export const BUILD_TIME = new Date().toISOString();
 
 export const TEXT_PROVIDERS = [
-  { id: "mock", label: "Mock Mode", description: "Safe and free for testing", safety: "Safe / Free" },
+  { id: "mock", label: "โหมดทดสอบ", description: "ปลอดภัยและใช้ฟรี", safety: "ปลอดภัย" },
   { id: "gemini", label: "Gemini API", description: "High performance, cost-effective", safety: "API Cost" },
   { id: "openai", label: "OpenAI API", description: "Standard high-quality generation", safety: "API Cost" },
-  { id: "codex", label: "Codex CLI", description: "Local workflow (Planned)", safety: "Local" },
+  { id: "codex", label: "Codex CLI", description: "ใช้งานในเครื่อง (ยังไม่เปิด)", safety: "Local" },
 ];
 
 export const IMAGE_PROVIDERS = [
-  { id: "mock", label: "Mock Mode", description: "Safe and free for testing", safety: "Safe / Free" },
+  { id: "mock", label: "โหมดทดสอบ", description: "ปลอดภัยและใช้ฟรี", safety: "ปลอดภัย" },
   { id: "gpt-image", label: "GPT Image", description: "DALL-E 3 via GPT-4o", safety: "API Cost" },
   { id: "dalle", label: "DALL·E API", description: "Native OpenAI image generation", safety: "API Cost" },
 ];
@@ -123,48 +123,48 @@ export const WORKSPACE_PAGES = [
 ];
 
 export const CONTENT_TYPES = [
-  { id: "general", label: "General Post" },
-  { id: "promo", label: "Promo" },
-  { id: "story", label: "Storytelling" },
-  { id: "engagement", label: "Engagement Question" },
-  { id: "announcement", label: "Announcement" },
+  { id: "general", label: "โพสต์ทั่วไป" },
+  { id: "promo", label: "โปรโมชัน" },
+  { id: "story", label: "เล่าเรื่อง" },
+  { id: "engagement", label: "ชวนคุย" },
+  { id: "announcement", label: "ประกาศ" },
 ];
 
 export const CONTENT_TONES = [
-  { id: "friendly", label: "Friendly" },
-  { id: "professional", label: "Professional" },
-  { id: "funny", label: "Funny" },
-  { id: "emotional", label: "Emotional" },
-  { id: "bold", label: "Bold" },
+  { id: "friendly", label: "เป็นกันเอง" },
+  { id: "professional", label: "มืออาชีพ" },
+  { id: "funny", label: "สนุก" },
+  { id: "emotional", label: "เข้าถึงอารมณ์" },
+  { id: "bold", label: "ชัดเจน" },
 ];
 
 export const CONTENT_LENGTHS = [
-  { id: "short", label: "Short" },
-  { id: "medium", label: "Medium" },
-  { id: "long", label: "Long" },
+  { id: "short", label: "สั้น" },
+  { id: "medium", label: "กลาง" },
+  { id: "long", label: "ยาว" },
 ];
 
 export const CONTENT_CTAS = [
-  { id: "none", label: "None" },
-  { id: "comment", label: "Comment" },
-  { id: "share", label: "Share" },
-  { id: "inbox", label: "Inbox" },
-  { id: "link", label: "Visit Link" },
+  { id: "none", label: "ไม่ระบุ" },
+  { id: "comment", label: "ให้คอมเมนต์" },
+  { id: "share", label: "ให้แชร์" },
+  { id: "inbox", label: "ให้ทักแชต" },
+  { id: "link", label: "ให้กดลิงก์" },
 ];
 
 export const IMAGE_ASPECT_RATIOS = [
-  { id: "1:1", label: "1:1 Square" },
-  { id: "4:5", label: "4:5 Portrait" },
-  { id: "9:16", label: "9:16 Story" },
-  { id: "16:9", label: "16:9 Landscape" },
+  { id: "1:1", label: "1:1 จัตุรัส" },
+  { id: "4:5", label: "4:5 แนวตั้ง" },
+  { id: "9:16", label: "9:16 สตอรี่" },
+  { id: "16:9", label: "16:9 แนวนอน" },
 ];
 
 export const IMAGE_STYLE_PRESETS = [
-  { id: "realistic", label: "Realistic" },
-  { id: "cinematic", label: "Cinematic" },
-  { id: "product", label: "Product Promo" },
-  { id: "minimal", label: "Minimal" },
-  { id: "meme", label: "Fun / Meme" },
+  { id: "realistic", label: "สมจริง" },
+  { id: "cinematic", label: "ภาพยนตร์" },
+  { id: "product", label: "สินค้า" },
+  { id: "minimal", label: "มินิมอล" },
+  { id: "meme", label: "สนุก / มีม" },
 ];
 
 export const QUEUE_STATUSES = [

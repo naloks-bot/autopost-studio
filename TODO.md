@@ -155,7 +155,7 @@ Expand backend capabilities only after MVP stability is proven.
 ## Ready Now
 
 * MVP core maintenance only
-* Post-Phase C planning only
+* Phase D UI/UX cleanup only
 
 ## After Phase A Is Stable
 

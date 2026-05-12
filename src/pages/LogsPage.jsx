@@ -43,8 +43,8 @@ export default function LogsPage({ logs = [], logsMode = "offline" }) {
                  <Terminal className="h-6 w-6" />
               </div>
               <div>
-                 <h2 className="text-xl font-bold text-white tracking-tight">System Logs</h2>
-                 <p className="text-xs text-slate-400">Monitor publish, scheduler, and routing activity</p>
+                 <h2 className="text-xl font-bold text-white tracking-tight">ประวัติระบบ</h2>
+                 <p className="text-xs text-slate-400">ติดตามการโพสต์ ระบบอัตโนมัติ และเส้นทางการทำงาน</p>
               </div>
            </div>
            <div className="flex items-center gap-3">
@@ -61,7 +61,7 @@ export default function LogsPage({ logs = [], logsMode = "offline" }) {
            <Info className="h-5 w-5 text-rose-400 mt-0.5" />
            <div>
               <p className="text-xs font-semibold text-rose-300">
-                {hasPersistentLogs ? "Persistent Logs Ready" : "Foundation Mode Active"}
+                {hasPersistentLogs ? "บันทึกถาวรพร้อมใช้งาน" : "โหมดพื้นฐาน"}
               </p>
               <p className="text-[10px] text-rose-400/80 leading-relaxed">
                 {infoMessage}
@@ -76,11 +76,11 @@ export default function LogsPage({ logs = [], logsMode = "offline" }) {
               <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-4">Log Categories</h3>
               <div className="space-y-1">
                  {[
-                   { label: "All Logs", icon: History, count: counts.all, active: true },
-                   { label: "AI Engines", icon: Cpu, count: counts.ai, active: false },
-                   { label: "Scheduler", icon: History, count: counts.scheduler, active: false },
-                   { label: "Publishing", icon: Share2, count: counts.publishing, active: false },
-                   { label: "Errors", icon: ShieldAlert, count: counts.errors, active: false },
+                   { label: "ทั้งหมด", icon: History, count: counts.all, active: true },
+                   { label: "AI", icon: Cpu, count: counts.ai, active: false },
+                   { label: "ระบบอัตโนมัติ", icon: History, count: counts.scheduler, active: false },
+                   { label: "การโพสต์", icon: Share2, count: counts.publishing, active: false },
+                   { label: "ข้อผิดพลาด", icon: ShieldAlert, count: counts.errors, active: false },
                  ].map((cat) => (
                     <button key={cat.label} className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs transition ${cat.active ? "bg-rose-500/10 text-rose-400" : "text-slate-400 hover:bg-white/5 hover:text-slate-200"}`}>
                        <div className="flex items-center gap-2">
@@ -99,9 +99,9 @@ export default function LogsPage({ logs = [], logsMode = "offline" }) {
               <div className="bg-white/5 px-4 py-2 flex items-center justify-between border-b border-white/5">
                  <div className="flex items-center gap-2">
                     <div className="h-2 w-2 rounded-full bg-rose-500"></div>
-                    <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Operation Log Stream</span>
+                    <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">รายการล่าสุด</span>
                  </div>
-                 <span className="text-[9px] text-slate-600">Latest first</span>
+                 <span className="text-[9px] text-slate-600">ใหม่สุดก่อน</span>
               </div>
               <div className="p-4 font-mono text-[11px] leading-relaxed space-y-2 h-[400px] overflow-y-auto">
                  {logs.length === 0 ? (

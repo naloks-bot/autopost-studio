@@ -1,6 +1,5 @@
 import React from "react";
 import { Calendar, Clock, Facebook, Globe, Send, Trash2, Database, Laptop, Info, AlertCircle, Pencil } from "lucide-react";
-import SectionCard from "../components/SectionCard.jsx";
 import ActionButton from "../components/ActionButton.jsx";
 import { validateFacebookConfig } from "../services/facebook.js";
 import {
@@ -25,22 +24,24 @@ function StatusPage({
 
   return (
     <div className="space-y-6">
-      <div className={`flex items-center gap-3 rounded-2xl border p-4 text-xs shadow-sm ${
-        settings.facebookPublishMode === "live"
-          ? "border-rose-500/20 bg-rose-500/10 text-rose-300"
-          : "border-emerald-500/20 bg-emerald-500/10 text-emerald-300"
-      }`}>
+      <div
+        className={`flex items-center gap-3 rounded-2xl border p-4 text-xs shadow-sm ${
+          settings.facebookPublishMode === "live"
+            ? "border-rose-500/20 bg-rose-500/10 text-rose-300"
+            : "border-emerald-500/20 bg-emerald-500/10 text-emerald-300"
+        }`}
+      >
         <div className="flex h-8 w-8 items-center justify-center rounded-full bg-black/10">
           <Facebook className="h-4 w-4" />
         </div>
         <div>
           <p className="font-bold uppercase tracking-tight">
-            Publish Mode: {settings.facebookPublishMode === "live" ? "Live" : "Mock Safe"}
+            โหมดโพสต์: {settings.facebookPublishMode === "live" ? "โพสต์จริง" : "ทดสอบ"}
           </p>
           <p className="mt-0.5 opacity-80">
             {settings.facebookPublishMode === "live"
-              ? "Posts will publish to Facebook for real when you confirm."
-              : "Posts stay in safe simulation, which preserves scheduler and publish compatibility."}
+              ? "เมื่อกดยืนยัน ระบบจะโพสต์จริงไปยัง Facebook"
+              : "ระบบจำลองการโพสต์เพื่อความปลอดภัยของงาน"}
           </p>
         </div>
       </div>
@@ -48,9 +49,9 @@ function StatusPage({
       <div className="grid gap-4 sm:grid-cols-3">
         <div className="rounded-2xl border border-white/5 bg-slate-900/40 p-5 shadow-sm">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Drafts</span>
+            <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">ร่างทั้งหมด</span>
             <div className="rounded-full bg-cyan-500/10 p-1.5 text-cyan-400">
-               <Database className="h-4 w-4" />
+              <Database className="h-4 w-4" />
             </div>
           </div>
           <p className="mt-3 text-4xl font-bold tracking-tight text-white">{allPendingPosts.length}</p>
@@ -58,9 +59,9 @@ function StatusPage({
 
         <div className="rounded-2xl border border-white/5 bg-slate-900/40 p-5 shadow-sm">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Supabase Drafts</span>
+            <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">ร่างบน Supabase</span>
             <div className="rounded-full bg-violet-500/10 p-1.5 text-violet-400">
-               <Globe className="h-4 w-4" />
+              <Globe className="h-4 w-4" />
             </div>
           </div>
           <p className="mt-3 text-4xl font-bold tracking-tight text-white">
@@ -70,9 +71,9 @@ function StatusPage({
 
         <div className="rounded-2xl border border-white/5 bg-slate-900/40 p-5 shadow-sm">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Local Only</span>
+            <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">ร่างในเครื่อง</span>
             <div className="rounded-full bg-amber-500/10 p-1.5 text-amber-400">
-               <Laptop className="h-4 w-4" />
+              <Laptop className="h-4 w-4" />
             </div>
           </div>
           <p className="mt-3 text-4xl font-bold tracking-tight text-white">{localDrafts.length}</p>
@@ -85,22 +86,22 @@ function StatusPage({
             <Clock className="h-4 w-4" />
           </div>
           <div>
-            <p className="font-bold uppercase tracking-tight">Active Scheduler Service</p>
+            <p className="font-bold uppercase tracking-tight">ระบบโพสต์อัตโนมัติ</p>
             <p className="mt-0.5 opacity-80">
-              Last sync: {formatDate(schedulerStatus.lastRun)} - Processed: {schedulerStatus.published} OK, {schedulerStatus.failed} Failed
+              ล่าสุด {formatDate(schedulerStatus.lastRun)} • สำเร็จ {schedulerStatus.published} • ไม่สำเร็จ {schedulerStatus.failed}
             </p>
           </div>
         </div>
       )}
 
       <div className="space-y-4">
-        <h3 className="text-sm font-semibold text-slate-300 uppercase tracking-widest pl-1">Active Drafts Queue</h3>
-        
+        <h3 className="pl-1 text-sm font-semibold uppercase tracking-widest text-slate-300">รายการร่างงาน</h3>
+
         {allPendingPosts.length === 0 ? (
           <div className="flex flex-col items-center justify-center rounded-[2rem] border border-dashed border-white/10 p-12 text-center">
             <Info className="mb-3 h-10 w-10 text-slate-700" />
-            <p className="text-lg font-medium text-slate-500">No active drafts found</p>
-            <p className="mt-1 text-sm text-slate-600">Start by creating a new post in the Create section.</p>
+            <p className="text-lg font-medium text-slate-500">ยังไม่มีร่างงาน</p>
+            <p className="mt-1 text-sm text-slate-600">เริ่มสร้างโพสต์ใหม่ได้จากเมนูสร้างโพสต์</p>
           </div>
         ) : (
           allPendingPosts.map((post) => {
@@ -123,63 +124,53 @@ function StatusPage({
             return (
               <article
                 key={post.id}
-                className="group relative flex flex-col gap-6 overflow-hidden rounded-[2rem] border border-white/5 bg-slate-900/60 p-6 transition-all hover:bg-slate-900/80 lg:flex-row"
+                className="group relative flex flex-col gap-5 overflow-hidden rounded-[2rem] border border-white/5 bg-slate-900/60 p-5 transition-all hover:bg-slate-900/80 lg:flex-row"
               >
-                {(post.image_url) && (
-                  <div className="h-32 w-full shrink-0 overflow-hidden rounded-2xl lg:h-32 lg:w-48">
-                    <img
-                      src={post.image_url}
-                      alt="Preview"
-                      className="h-full w-full object-cover transition duration-500 group-hover:scale-110"
-                    />
+                {post.image_url && (
+                  <div className="h-32 w-full shrink-0 overflow-hidden rounded-2xl lg:h-32 lg:w-44">
+                    <img src={post.image_url} alt="Preview" className="h-full w-full object-cover transition duration-500 group-hover:scale-105" />
                   </div>
                 )}
 
                 <div className="flex flex-1 flex-col justify-between">
                   <div>
                     <div className="flex items-center gap-3">
-                      <h3 className="text-lg font-bold text-white">{post.topic || "Untitled Post"}</h3>
-                      <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
-                        post.source === "local" ? "bg-amber-500/10 text-amber-400 border border-amber-500/20" : "bg-cyan-500/10 text-cyan-400 border border-cyan-500/20"
-                      }`}>
-                        {post.source === "local" ? "Local" : "Supabase"}
+                      <h3 className="text-lg font-bold text-white">{post.topic || "ยังไม่ได้ตั้งหัวข้อ"}</h3>
+                      <span
+                        className={`rounded-full border px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
+                          post.source === "local"
+                            ? "border-amber-500/20 bg-amber-500/10 text-amber-400"
+                            : "border-cyan-500/20 bg-cyan-500/10 text-cyan-400"
+                        }`}
+                      >
+                        {post.source === "local" ? "ในเครื่อง" : "Supabase"}
                       </span>
                     </div>
-                    <p className="mt-2 text-sm leading-relaxed text-slate-400 line-clamp-2">{post.content}</p>
+                    <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-slate-400">{post.content}</p>
+
                     <div className="mt-3 flex flex-wrap gap-2">
                       <span className="rounded-full border border-white/5 bg-slate-950/40 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                        Page: {pageReadiness.label}
+                        เพจ: {pageReadiness.label}
                       </span>
-                      <span className={`rounded-full px-2 py-1 text-[10px] font-bold uppercase tracking-wider ${
-                        pageReadiness.pageConfigReady
-                          ? "bg-emerald-500/10 text-emerald-400"
-                          : "bg-amber-500/10 text-amber-400"
-                      }`}>
-                        {pageReadiness.pageConfigReady ? "Page Config Ready" : "Global Fallback"}
+                      <span
+                        className={`rounded-full px-2 py-1 text-[10px] font-bold uppercase tracking-wider ${
+                          pageReadiness.pageConfigReady ? "bg-emerald-500/10 text-emerald-400" : "bg-amber-500/10 text-amber-400"
+                        }`}
+                      >
+                        {pageReadiness.pageConfigReady ? "พร้อมใช้ของเพจ" : "ใช้ค่ากลาง"}
                       </span>
                       <span className="rounded-full bg-cyan-500/10 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-cyan-400">
-                        Source: {effectivePublish.effectivePublishLabel}
-                      </span>
-                      <span className={`rounded-full px-2 py-1 text-[10px] font-bold uppercase tracking-wider ${
-                        effectivePublish.livePerPagePublishStatus === "Active"
-                          ? "bg-emerald-500/10 text-emerald-400"
-                          : effectivePublish.livePerPagePublishStatus === "Fallback"
-                            ? "bg-amber-500/10 text-amber-400"
-                            : effectivePublish.livePerPagePublishStatus === "Blocked"
-                              ? "bg-rose-500/10 text-rose-400"
-                              : "bg-slate-500/10 text-slate-400"
-                      }`}>
-                        Per-Page Live: {effectivePublish.livePerPagePublishStatus}
+                        เส้นทางโพสต์: {effectivePublish.effectivePublishLabel}
                       </span>
                     </div>
+
                     <div className="mt-2 rounded-lg border border-cyan-500/10 bg-cyan-500/5 px-3 py-2">
-                      <p className="text-[10px] font-bold uppercase tracking-wider text-cyan-400">
-                        {pageDryRun.dryRunLabel}
-                      </p>
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-cyan-400">{pageDryRun.dryRunLabel}</p>
                       <p className="mt-1 text-[10px] text-slate-400">
-                        Would route to `{pageDryRun.resolvedPageLabel}` ({pageDryRun.resolvedPageId}) | Page ID: {pageDryRun.pageSpecificPageIdReady ? "present" : "missing"} | Token: {pageDryRun.pageSpecificTokenReady ? "present" : "missing"}
+                        จะไปที่ {pageDryRun.resolvedPageLabel} • Page ID {pageDryRun.pageSpecificPageIdReady ? "พร้อม" : "ไม่มี"} • Token {pageDryRun.pageSpecificTokenReady ? "พร้อม" : "ไม่มี"}
                       </p>
                     </div>
+
                     {(effectivePublish.fallbackReason || effectivePublish.blockedReason) && (
                       <p className="mt-2 text-[10px] italic text-slate-500">
                         {effectivePublish.blockedReason || effectivePublish.fallbackReason}
@@ -188,54 +179,30 @@ function StatusPage({
                   </div>
 
                   <div className="mt-4 flex flex-wrap items-center gap-4 border-t border-white/5 pt-4">
-                    <div className="flex items-center gap-1.5 text-[10px] font-medium text-slate-500 uppercase tracking-tight">
+                    <div className="flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-tight text-slate-500">
                       <Calendar className="h-3 w-3" />
-                      <span>Created: {formatDate(post.created_at)}</span>
+                      <span>สร้างเมื่อ {formatDate(post.created_at)}</span>
                     </div>
                     {post.scheduled_at && post.status === "scheduled" && (
-                      <div className="flex items-center gap-1.5 text-[10px] font-bold text-amber-400 uppercase tracking-tight">
+                      <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-tight text-amber-400">
                         <Clock className="h-3 w-3" />
-                        <span>Scheduled: {formatDate(post.scheduled_at)}</span>
-                      </div>
-                    )}
-                    {post.image_provider && (
-                      <div className="flex items-center gap-1.5 text-[10px] font-medium text-slate-500 uppercase tracking-tight">
-                        <ImageIcon className="h-3 w-3" />
-                        <span>{post.image_provider}</span>
+                        <span>ตั้งเวลา {formatDate(post.scheduled_at)}</span>
                       </div>
                     )}
                   </div>
                 </div>
 
-                <div className="flex shrink-0 flex-col justify-center gap-2 lg:w-48 lg:border-l lg:border-white/5 lg:pl-6">
+                <div className="flex shrink-0 flex-col justify-center gap-2 lg:w-44 lg:border-l lg:border-white/5 lg:pl-5">
                   {post.source === "local" ? (
                     <>
-                      <ActionButton
-                        label="Edit Draft"
-                        icon={Pencil}
-                        onClick={() => handleLoadDraftToEditor(post)}
-                        variant="outline"
-                        fullWidth
-                      />
-                      <ActionButton
-                        label="Delete Local"
-                        icon={Trash2}
-                        onClick={() => handleDeleteLocalDraft(post.id)}
-                        variant="danger"
-                        fullWidth
-                      />
+                      <ActionButton label="แก้ไขร่าง" icon={Pencil} onClick={() => handleLoadDraftToEditor(post)} variant="outline" fullWidth />
+                      <ActionButton label="ลบในเครื่อง" icon={Trash2} onClick={() => handleDeleteLocalDraft(post.id)} variant="danger" fullWidth />
                     </>
                   ) : (
                     <>
+                      <ActionButton label="แก้ไขร่าง" icon={Pencil} onClick={() => handleLoadDraftToEditor(post)} variant="outline" fullWidth />
                       <ActionButton
-                        label="Edit Draft"
-                        icon={Pencil}
-                        onClick={() => handleLoadDraftToEditor(post)}
-                        variant="outline"
-                        fullWidth
-                      />
-                      <ActionButton
-                        label={settings.facebookPublishMode === "live" ? "Publish" : "Test Post"}
+                        label={settings.facebookPublishMode === "live" ? "โพสต์ตอนนี้" : "ทดสอบโพสต์"}
                         icon={Send}
                         onClick={() => handlePublishPost(post.id)}
                         variant={settings.facebookPublishMode === "live" ? "emerald" : "secondary"}
@@ -243,17 +210,20 @@ function StatusPage({
                         fullWidth
                       />
                       {!effectivePublish.canAttemptPublish && (
-                        <div className="flex items-center gap-1 justify-center text-[9px] font-bold text-rose-400 uppercase text-center">
-                           <AlertCircle className="h-3 w-3" />
-                           {effectivePublish.livePerPagePublishStatus === "Blocked" ? "Blocked" : "Missing Config"}
+                        <div className="flex items-center justify-center gap-1 text-center text-[9px] font-bold uppercase text-rose-400">
+                          <AlertCircle className="h-3 w-3" />
+                          {effectivePublish.livePerPagePublishStatus === "Blocked" ? "ยังโพสต์ไม่ได้" : "ข้อมูลไม่ครบ"}
                         </div>
                       )}
-                      {effectivePublish.canAttemptPublish && !isFbConfigured && settings.facebookPublishMode !== "mock" && effectivePublish.effectivePublishSource === "page-specific" && (
-                        <div className="flex items-center gap-1 justify-center text-[9px] font-bold text-emerald-400 uppercase">
-                           <AlertCircle className="h-3 w-3" />
-                           Page Config Active
-                        </div>
-                      )}
+                      {effectivePublish.canAttemptPublish &&
+                        !isFbConfigured &&
+                        settings.facebookPublishMode !== "mock" &&
+                        effectivePublish.effectivePublishSource === "page-specific" && (
+                          <div className="flex items-center justify-center gap-1 text-[9px] font-bold uppercase text-emerald-400">
+                            <AlertCircle className="h-3 w-3" />
+                            ใช้ค่าของเพจนี้
+                          </div>
+                        )}
                     </>
                   )}
                 </div>
@@ -263,19 +233,6 @@ function StatusPage({
         )}
       </div>
     </div>
-  );
-}
-
-function ImageIcon({ className }) {
-  return (
-    <svg 
-      className={className} 
-      viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-    >
-      <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
-      <circle cx="9" cy="9" r="2" />
-      <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
-    </svg>
   );
 }
 

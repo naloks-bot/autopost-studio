@@ -244,6 +244,8 @@ Phase C is now considered complete and stable at the current architecture bounda
 
 Post-Phase C stabilization remains within the same architecture boundary. It is limited to safe integration fixes, UI clarity, and migration-safe data guards.
 
+Phase D is also constrained to the same boundary. It is reserved for operator-facing UI cleanup, Thai wording, reduced visual fatigue, and operational polish only.
+
 This protects the current stable publish flow and avoids unnecessary backend churn.
 
 ---

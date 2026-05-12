@@ -20,17 +20,17 @@ export default function ImageStudioCard({
       <div className="mb-4 flex items-center justify-between border-b border-white/5 pb-2">
         <div className="flex items-center gap-2">
           <ImageIcon className="h-4 w-4 text-sky-400" />
-          <h3 className="text-sm font-semibold text-white uppercase tracking-wider">AI Image Studio</h3>
+          <h3 className="text-sm font-semibold text-white uppercase tracking-wider">สร้างภาพ</h3>
         </div>
         <span className="text-[10px] font-bold text-slate-500 uppercase px-2 py-0.5 rounded bg-white/5">
-          Provider: {settings.imageProvider}
+          ผู้ให้บริการ: {settings.imageProvider}
         </span>
       </div>
 
       <div className="space-y-4">
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-1.5">
-            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-tight">Aspect Ratio</label>
+            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-tight">สัดส่วนภาพ</label>
             <select 
               value={imageForm.aspectRatio}
               onChange={(e) => updateImageForm("aspectRatio", e.target.value)}
@@ -40,7 +40,7 @@ export default function ImageStudioCard({
             </select>
           </div>
           <div className="space-y-1.5">
-            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-tight">Style Preset</label>
+            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-tight">สไตล์ภาพ</label>
             <select 
               value={imageForm.style}
               onChange={(e) => updateImageForm("style", e.target.value)}
@@ -52,11 +52,11 @@ export default function ImageStudioCard({
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-[10px] font-bold text-slate-500 uppercase tracking-tight">Image Prompt</label>
+          <label className="text-[10px] font-bold text-slate-500 uppercase tracking-tight">คำอธิบายภาพ</label>
           <textarea
             value={imagePrompt}
             onChange={(e) => updateImagePrompt(e.target.value)}
-            placeholder="Describe the visual you want to create..."
+            placeholder="อธิบายภาพที่ต้องการสร้าง"
             className="h-20 w-full rounded-xl border border-white/10 bg-slate-950/50 px-4 py-3 text-sm outline-none transition focus:border-sky-400 resize-none"
           />
         </div>
@@ -69,7 +69,7 @@ export default function ImageStudioCard({
             className="flex w-full items-center justify-center gap-2 rounded-xl bg-violet-500/10 py-3 text-xs font-bold text-violet-300 border border-violet-500/20 hover:bg-violet-500/20 transition shadow-sm disabled:opacity-60"
           >
             <Sparkles className="h-3.5 w-3.5" />
-            <span>{isGeneratingImagePrompt ? "PREPARING PROMPT..." : "PREPARE PROMPT"}</span>
+            <span>{isGeneratingImagePrompt ? "กำลังเตรียมคำอธิบาย..." : "ช่วยคิดคำอธิบาย"}</span>
           </button>
           <button
             type="button"
@@ -78,17 +78,17 @@ export default function ImageStudioCard({
             className="flex w-full items-center justify-center gap-2 rounded-xl bg-sky-500/10 py-3 text-xs font-bold text-sky-400 border border-sky-500/20 hover:bg-sky-500/20 transition shadow-sm disabled:opacity-60"
           >
             <Wand2 className="h-3.5 w-3.5" />
-            <span>{isGeneratingImage ? "GENERATING IMAGE..." : "GENERATE IMAGE"}</span>
+            <span>{isGeneratingImage ? "กำลังสร้างภาพ..." : "สร้างภาพ"}</span>
           </button>
         </div>
 
         {generatedImage?.imageUrl && (
           <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-3">
             <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-400">
-              Image Ready
+              ภาพพร้อมแล้ว
             </p>
             <p className="mt-1 text-[10px] text-slate-400">
-              The latest generated image is now connected to preview and draft save.
+              ภาพล่าสุดเชื่อมกับหน้าตัวอย่างและการบันทึกร่างแล้ว
             </p>
           </div>
         )}
@@ -102,7 +102,7 @@ export default function ImageStudioCard({
         <div className="flex items-center gap-1.5 text-slate-500">
            <Info className="h-3 w-3" />
            <p className="text-[9px] italic">
-             Prompt prep and image generation stay optional. If live image services are not ready, the workflow falls back safely.
+             ถ้ายังไม่พร้อมใช้บริการภาพจริง ระบบยังคงทำงานต่อได้อย่างปลอดภัย
            </p>
         </div>
       </div>

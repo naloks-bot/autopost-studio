@@ -21,34 +21,34 @@ function Header({
   const getSupabaseConfig = () => {
     switch (connectionMode) {
       case "connected":
-        return { label: "Supabase Live", color: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" };
+        return { label: "Supabase พร้อม", color: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" };
       case "offline":
-        return { label: "Offline Mode", color: "bg-slate-500/10 text-slate-400 border-slate-500/20" };
+        return { label: "ออฟไลน์", color: "bg-slate-500/10 text-slate-400 border-slate-500/20" };
       case "read-only":
-        return { label: "Read-Only", color: "bg-amber-500/10 text-amber-400 border-amber-500/20" };
+        return { label: "อ่านอย่างเดียว", color: "bg-amber-500/10 text-amber-400 border-amber-500/20" };
       default:
-        return { label: "Error", color: "bg-rose-500/10 text-rose-400 border-rose-500/20" };
+        return { label: "มีปัญหา", color: "bg-rose-500/10 text-rose-400 border-rose-500/20" };
     }
   };
 
   const getFbConfig = () => {
-    if (fbMode === "live") return { label: "FB: Live", color: "bg-rose-500/10 text-rose-400 border-rose-500/20" };
-    if (fbMode === "mock") return { label: "FB: Mock Safe", color: "bg-cyan-500/10 text-cyan-400 border-cyan-500/20" };
-    return { label: "FB: Missing", color: "bg-amber-500/10 text-amber-400 border-amber-500/20" };
+    if (fbMode === "live") return { label: "โพสต์จริง", color: "bg-rose-500/10 text-rose-400 border-rose-500/20" };
+    if (fbMode === "mock") return { label: "โหมดทดสอบ", color: "bg-cyan-500/10 text-cyan-400 border-cyan-500/20" };
+    return { label: "ยังไม่พร้อม", color: "bg-amber-500/10 text-amber-400 border-amber-500/20" };
   };
 
   const getAiConfig = () => {
     const activeProvider = textProviderRuntime?.activeProvider || "mock";
     const statusLabel = textProviderRuntime?.statusLabel || "Ready";
     const label = activeProvider === "openai"
-      ? "AI: OpenAI"
+      ? "ข้อความ: OpenAI"
       : activeProvider === "gemini"
-        ? "AI: Gemini"
-        : "AI: Mock";
+        ? "ข้อความ: Gemini"
+        : "ข้อความ: Mock";
     const color = textProviderRuntime?.tone === "warning"
       ? "bg-amber-500/10 text-amber-400 border-amber-500/20"
       : "bg-violet-500/10 text-violet-400 border-violet-500/20";
-    return { label: `${label} - ${statusLabel}`, color };
+    return { label: `${label} • ${statusLabel}`, color };
   };
 
   const db = getSupabaseConfig();
@@ -67,7 +67,7 @@ function Header({
           <select
             value={settings?.activePageId || "default"}
             onChange={(e) => onPageChange(e.target.value)}
-            className="bg-transparent text-[11px] font-bold text-slate-300 outline-none cursor-pointer uppercase tracking-tight"
+            className="bg-transparent text-[11px] font-bold text-slate-300 outline-none cursor-pointer tracking-tight"
           >
             {workspacePages.map((p) => (
               <option key={p.id} value={p.id} className="bg-slate-900 text-white">{p.label}</option>
@@ -87,7 +87,7 @@ function Header({
           type="button"
           onClick={onOpenGuide}
           className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-slate-400 transition hover:bg-white/10 hover:text-white"
-          title="Help Guide"
+          title="คู่มือ"
         >
           <HelpCircle className="h-4 w-4" />
         </button>
@@ -96,7 +96,7 @@ function Header({
           type="button"
           onClick={onToggleTheme}
           className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-slate-400 transition hover:bg-white/10 hover:text-white"
-          title="Toggle Theme"
+          title="เปลี่ยนธีม"
         >
           {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
         </button>

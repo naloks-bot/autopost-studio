@@ -2,12 +2,12 @@ import { PlusCircle, ListTodo, Settings, ChevronRight, HelpCircle, Calendar, Boo
 
 function Sidebar({ activeTab, setActiveTab, workspaceName, onOpenGuide }) {
   const menuItems = [
-    { id: "create", label: "Create Draft", icon: PlusCircle },
-    { id: "status", label: "Status", icon: ListTodo },
-    { id: "scheduler", label: "Scheduler", icon: Calendar },
-    { id: "library", label: "AI Library", icon: BookOpen },
-    { id: "logs", label: "System Logs", icon: Terminal },
-    { id: "settings", label: "Settings", icon: Settings },
+    { id: "create", label: "สร้างโพสต์", icon: PlusCircle },
+    { id: "status", label: "สถานะระบบ", icon: ListTodo },
+    { id: "scheduler", label: "ระบบโพสต์อัตโนมัติ", icon: Calendar },
+    { id: "library", label: "คลัง AI", icon: BookOpen },
+    { id: "logs", label: "ประวัติระบบ", icon: Terminal },
+    { id: "settings", label: "ตั้งค่า", icon: Settings },
   ];
 
   return (
@@ -53,13 +53,13 @@ function Sidebar({ activeTab, setActiveTab, workspaceName, onOpenGuide }) {
           className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-slate-400 transition-all hover:bg-white/5 hover:text-slate-200"
         >
           <HelpCircle className="h-5 w-5 text-slate-500" />
-          <span>Help & Guide</span>
+          <span>คู่มือใช้งาน</span>
         </button>
 
         <div className="rounded-xl bg-white/5 p-4">
           <p className="text-[10px] uppercase tracking-wider text-slate-500 font-bold">AutoPost Studio v0.3.0</p>
           <div className="mt-2 flex items-center justify-between">
-            <span className="text-xs text-slate-400">Foundation Stable</span>
+            <span className="text-xs text-slate-400">พร้อมใช้งาน</span>
             <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]"></div>
           </div>
         </div>

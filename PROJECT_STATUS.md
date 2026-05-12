@@ -1,6 +1,6 @@
 # Project Status
 
-## Current State: Phase C Stable
+## Current State: Phase D UI Cleanup
 
 AutoPost Studio has completed its UI foundation milestone. The application now has a full studio-grade frontend for AI content creation, workspace planning, scheduling visibility, asset/library browsing, and system log viewing.
 
@@ -16,6 +16,7 @@ The current MVP core is release-locked as stable for:
 * scheduler compatibility by scope
 * guarded per-page live publish routing
 * non-blocking operation log persistence
+* Thai-first operational UI across the main working surfaces
 
 ---
 
@@ -201,6 +202,7 @@ Current Phase C progress:
 * Batch 4 added a minimal persistent operation log foundation for high-value publish and routing events
 * final Phase C QA confirms draft persistence, page-context reload, guarded publish routing, and non-blocking log behavior remain stable
 * post-Phase C stabilization resolved live draft-save page foreign-key issues, improved draft edit refresh behavior, cleaned up scheduler/logs UX, and connected the image entry flow to the current safe services
+* Phase D Round 1 cleaned up the primary operator surfaces with Thai labels, lighter wording, and lower UI clutter without changing backend behavior
 
 ---
 
@@ -209,8 +211,8 @@ Current Phase C progress:
 ## Immediate Priority
 
 1. Preserve the locked MVP core and Phase C behavior without architecture expansion.
-2. Keep queue processor V2, analytics, and scheduler redesign deferred until a separate future checkpoint is explicitly approved.
-3. Limit future work to maintenance, production QA, or intentionally planned post-Phase C expansion.
+2. Focus Phase D on UI/UX operational polish only.
+3. Keep queue processor V2, analytics, and scheduler redesign deferred until a separate future checkpoint is explicitly approved.
 
 ## Latest Stable Lock
 

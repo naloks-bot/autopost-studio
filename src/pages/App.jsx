@@ -232,15 +232,15 @@ function App() {
       source: draft.source === "local" ? "local" : "remote",
       created_at: draft.created_at || null,
     });
-    setCreateNotice({ tone: "info", message: "Draft loaded into the editor." });
+    setCreateNotice({ tone: "info", message: "โหลดร่างงานกลับมาแก้ไขแล้ว" });
     setActiveTab("create");
   }, []);
 
   async function handleGenerateContent() {
-    if (!form.topic.trim()) return window.alert("Please enter a topic first.");
+    if (!form.topic.trim()) return window.alert("กรุณาใส่หัวข้อก่อน");
     setIsGenerating(true);
     setGenerationError("");
-    setCreateNotice({ tone: "info", message: "Generating content..." });
+    setCreateNotice({ tone: "info", message: "กำลังสร้างข้อความ..." });
     try {
       const result = await generatePostContent({ formData: form, settings });
       if (result.data) updateForm("content", result.data);
@@ -252,7 +252,7 @@ function App() {
           : null
       );
     } catch (error) {
-      const message = toUserSafeMessage(error, "Unable to generate content safely.");
+      const message = toUserSafeMessage(error, "ยังสร้างข้อความไม่ได้");
       setGenerationError(message);
       setCreateNotice({ tone: "danger", message });
     } finally {
@@ -261,25 +261,25 @@ function App() {
   }
 
   async function handleGenerateImagePrompt() {
-    if (!form.topic.trim()) return window.alert("Please enter a topic first.");
+    if (!form.topic.trim()) return window.alert("กรุณาใส่หัวข้อก่อน");
     setIsGeneratingImagePrompt(true);
     setGenerationError("");
-    setCreateNotice({ tone: "info", message: "Generating image prompt..." });
+    setCreateNotice({ tone: "info", message: "กำลังช่วยคิดคำอธิบายภาพ..." });
     try {
       const result = await generateImagePrompt({ formData: form, settings });
       if (result.data) {
         updateForm("imagePrompt", result.data);
         setCreateNotice({
           tone: "success",
-          message: `Image prompt prepared with ${result.mode === "mock" ? "Mock" : result.mode}.`,
+          message: `เตรียมคำอธิบายภาพด้วย ${result.mode === "mock" ? "Mock" : result.mode} แล้ว`,
         });
       } else if (result.error) {
-        const message = toUserSafeMessage(result.error, "Unable to generate an image prompt.");
+        const message = toUserSafeMessage(result.error, "ยังสร้างคำอธิบายภาพไม่ได้");
         setGenerationError(message);
         setCreateNotice({ tone: "danger", message });
       }
     } catch (error) {
-      const message = toUserSafeMessage(error, "Unable to generate an image prompt safely.");
+      const message = toUserSafeMessage(error, "ยังสร้างคำอธิบายภาพไม่ได้");
       setGenerationError(message);
       setCreateNotice({ tone: "danger", message });
     } finally {
@@ -288,7 +288,7 @@ function App() {
   }
 
   function handleGenerateImagePreview() {
-    if (!form.imagePrompt.trim()) return window.alert("Please generate an image prompt first.");
+    if (!form.imagePrompt.trim()) return window.alert("กรุณาสร้างคำอธิบายภาพก่อน");
     setIsGeneratingImage(true);
     window.setTimeout(() => {
       updateForm("imageUrl", `https://picsum.photos/seed/${encodeURIComponent(form.topic || "autopost")}/1200/1200`);
@@ -298,11 +298,11 @@ function App() {
 
   async function handleSaveDraft(extraData = {}) {
     if (!form.topic.trim() || !form.content.trim()) {
-      return window.alert("Topic and content are required before saving.");
+      return window.alert("กรุณาใส่หัวข้อและข้อความก่อนบันทึก");
     }
 
     setIsSavingDraft(true);
-    setCreateNotice({ tone: "info", message: "Saving draft..." });
+    setCreateNotice({ tone: "info", message: "กำลังบันทึกร่าง..." });
 
     try {
       const draft = {
@@ -337,9 +337,9 @@ function App() {
         resetForm();
         setCreateNotice({
           tone: "success",
-          message: editingDraft?.source ? "Draft updated in Supabase." : "Draft saved to Supabase.",
+          message: editingDraft?.source ? "อัปเดตร่างงานบน Supabase แล้ว" : "บันทึกร่างลง Supabase แล้ว",
         });
-        window.alert(editingDraft?.source ? "Draft updated in Supabase." : "Draft saved to Supabase.");
+        window.alert(editingDraft?.source ? "อัปเดตร่างงานบน Supabase แล้ว" : "บันทึกร่างลง Supabase แล้ว");
         return;
       }
 
@@ -358,24 +358,24 @@ function App() {
         setCreateNotice({
           tone: "warning",
           message: editingDraft?.source === "local"
-            ? "Cloud save is unavailable right now. Your local draft was updated safely."
-            : "Supabase is not writable right now. Draft was saved locally instead.",
+            ? "บันทึกขึ้นคลาวด์ไม่ได้ตอนนี้ แต่ร่างในเครื่องอัปเดตแล้ว"
+            : "Supabase ยังเขียนข้อมูลไม่ได้ จึงบันทึกไว้ในเครื่องแทน",
         });
         window.alert(
           editingDraft?.source === "local"
-            ? "Cloud save is unavailable right now. Your local draft was updated safely."
-            : "Supabase is unavailable for write access. Draft saved locally instead."
+            ? "บันทึกขึ้นคลาวด์ไม่ได้ตอนนี้ แต่ร่างในเครื่องอัปเดตแล้ว"
+            : "Supabase ยังเขียนข้อมูลไม่ได้ จึงบันทึกไว้ในเครื่องแทน"
         );
         return;
       }
 
-      const message = toUserSafeMessage(remote.error, "Draft save failed.");
+      const message = toUserSafeMessage(remote.error, "บันทึกร่างไม่สำเร็จ");
       setCreateNotice({ tone: "danger", message });
-      window.alert(`Draft save failed: ${message}`);
+      window.alert(`บันทึกร่างไม่สำเร็จ: ${message}`);
     } catch (error) {
-      const message = toUserSafeMessage(error, "Draft save failed.");
+      const message = toUserSafeMessage(error, "บันทึกร่างไม่สำเร็จ");
       setCreateNotice({ tone: "danger", message });
-      window.alert(`Draft save failed: ${message}`);
+      window.alert(`บันทึกร่างไม่สำเร็จ: ${message}`);
     } finally {
       setIsSavingDraft(false);
     }
@@ -389,14 +389,14 @@ function App() {
       if (remote.data) {
         setSettings(sanitizeSettings({ ...stored, ...remote.data }));
         setSettingsSyncMode(remote.mode);
-        setSettingsMessage("Settings saved to Supabase.");
+        setSettingsMessage("บันทึกการตั้งค่าลง Supabase แล้ว");
       } else {
         setSettingsSyncMode(remote.mode);
-        setSettingsMessage(toUserSafeMessage(remote.error, "Settings were saved locally, but Supabase sync is unavailable."));
+        setSettingsMessage(toUserSafeMessage(remote.error, "บันทึกไว้ในเครื่องแล้ว แต่ยังซิงก์ขึ้น Supabase ไม่ได้"));
       }
     } catch (error) {
       setSettingsSyncMode("error");
-      setSettingsMessage(toUserSafeMessage(error, "Settings save failed."));
+      setSettingsMessage(toUserSafeMessage(error, "บันทึกการตั้งค่าไม่สำเร็จ"));
     } finally {
       setIsSavingSettings(false);
     }
@@ -405,7 +405,7 @@ function App() {
   const handlePublishPost = useCallback(async (postId) => {
     try {
       const post = remotePosts.find((p) => p.id === postId);
-      if (!post) return window.alert("Post not found.");
+      if (!post) return window.alert("ไม่พบโพสต์นี้");
       const effectivePublish = resolveEffectivePublishConfig({
         post,
         settings,
@@ -425,7 +425,7 @@ function App() {
             live_page_publish_status: effectivePublish.livePerPagePublishStatus,
           },
         });
-        return window.alert(effectivePublish.blockedReason || effectivePublish.fallbackReason || "This post is not safe to publish with the current configuration.");
+        return window.alert(effectivePublish.blockedReason || effectivePublish.fallbackReason || "โพสต์นี้ยังไม่พร้อมสำหรับการโพสต์");
       }
       if (effectivePublish.fallbackReason) {
         await createOperationLog({
@@ -448,7 +448,7 @@ function App() {
           effectivePublish.effectivePublishSource === "page-specific"
             ? `${effectivePublish.label} (page-specific)`
             : effectivePublish.effectivePublishLabel;
-        if (!window.confirm(`Publish "${post.topic}" to Facebook now? (${targetLabel})`)) return;
+        if (!window.confirm(`ต้องการโพสต์ "${post.topic}" ไปที่ Facebook ตอนนี้หรือไม่? (${targetLabel})`)) return;
       }
       const result = await publishFacebookPost(post, effectivePublish.effectiveSettings);
       if (result.error) {
@@ -464,7 +464,7 @@ function App() {
             live_page_publish_status: effectivePublish.livePerPagePublishStatus,
           },
         });
-        return window.alert(`Publish failed: ${toUserSafeMessage(result.error, "Publish failed.")}`);
+        return window.alert(`โพสต์ไม่สำเร็จ: ${toUserSafeMessage(result.error, "โพสต์ไม่สำเร็จ")}`);
       }
       const update = await updateRemotePostStatus(postId, "posted", { posted_at: new Date().toISOString() });
       if (update.data) {
@@ -485,7 +485,7 @@ function App() {
         const logsResult = await fetchOperationLogs();
         setOperationLogs(logsResult.data || []);
         if (logsResult.mode) setLogsMode(logsResult.mode);
-        window.alert("Facebook publish completed.");
+        window.alert("โพสต์ไปที่ Facebook แล้ว");
       } else {
         await createOperationLog({
           level: "error",
@@ -499,7 +499,7 @@ function App() {
             live_page_publish_status: effectivePublish.livePerPagePublishStatus,
           },
         });
-        window.alert("Facebook publish completed, but the local status could not be updated.");
+        window.alert("โพสต์ไปที่ Facebook แล้ว แต่ยังอัปเดตสถานะในระบบไม่ได้");
       }
     } catch (error) {
       await createOperationLog({
@@ -509,7 +509,7 @@ function App() {
         message: error?.message || "Unexpected manual publish error.",
         metadata: {},
       });
-      window.alert(`Publish failed: ${toUserSafeMessage(error, "Publish failed.")}`);
+      window.alert(`โพสต์ไม่สำเร็จ: ${toUserSafeMessage(error, "โพสต์ไม่สำเร็จ")}`);
     }
   }, [remotePosts, settings]);
 
