@@ -7,7 +7,7 @@ function formatLogTime(value) {
 }
 
 function getCategory(log) {
-  if (log.source === "scheduler") return "scheduler";
+  if (log.source === "scheduler" || log.source === "scheduler_edge") return "scheduler";
   if (log.source === "manual_publish") return "publishing";
   if (log.source === "ai") return "ai";
   if (log.level === "error") return "errors";
@@ -112,7 +112,7 @@ export default function LogsPage({ logs = [], logsMode = "offline" }) {
                        <span className="text-slate-600 shrink-0">[{formatLogTime(log.created_at)}]</span>
                        <span className={`shrink-0 uppercase font-bold ${
                           log.level === "error" ? "text-rose-400" :
-                          log.source === "scheduler" ? "text-cyan-400" :
+                          log.source === "scheduler" || log.source === "scheduler_edge" ? "text-cyan-400" :
                           log.source === "manual_publish" ? "text-emerald-400" :
                           "text-slate-400"
                        }`}>[{log.source}]</span>

@@ -1,12 +1,12 @@
 # Project Status
 
-## Current State: MVP Core Stable
+## Current State: Phase C Stable
 
 AutoPost Studio has completed its UI foundation milestone. The application now has a full studio-grade frontend for AI content creation, workspace planning, scheduling visibility, asset/library browsing, and system log viewing.
 
 No backend, publishing, or scheduler execution logic was changed during the UI foundation work. Mock mode remains the default. Production publishing continues to rely on the existing stable V1 flow.
 
-The current MVP core is now release-locked as stable for:
+The current MVP core is release-locked as stable for:
 
 * text generation
 * draft editing and persistence
@@ -14,6 +14,8 @@ The current MVP core is now release-locked as stable for:
 * preview badge visibility
 * mock/live publish safety visibility
 * scheduler compatibility by scope
+* guarded per-page live publish routing
+* non-blocking operation log persistence
 
 ---
 
@@ -178,8 +180,9 @@ Smallest safe planned Phase C scope:
 
 * introduce a minimal multi-page data model
 * add page-aware token/config routing without changing stable publish semantics
-* add queue processor V2 only after page routing data is stable
-* add logs persistence only after queue behavior is proven stable
+* add guarded per-page publish activation after routing data is stable
+* add non-blocking logs persistence before any queue redesign
+* defer queue processor V2 until routing and logs behavior are proven stable
 
 Phase C must remain planning-gated until a dedicated implementation checkpoint starts.
 
@@ -196,6 +199,7 @@ Current Phase C progress:
 * scheduler loop and Facebook service remain structurally unchanged
 * global V1 publish remains the fallback path when it is the safe default target
 * Batch 4 added a minimal persistent operation log foundation for high-value publish and routing events
+* final Phase C QA confirms draft persistence, page-context reload, guarded publish routing, and non-blocking log behavior remain stable
 
 ---
 
@@ -203,9 +207,9 @@ Current Phase C progress:
 
 ## Immediate Priority
 
-1. Preserve the locked MVP core behavior without architecture expansion.
-2. Validate the new guarded per-page publish path in real use.
-3. Defer queue redesign and analytics until the publish path and log foundation are proven stable.
+1. Preserve the locked MVP core and Phase C behavior without architecture expansion.
+2. Keep queue processor V2, analytics, and scheduler redesign deferred until a separate future checkpoint is explicitly approved.
+3. Limit future work to maintenance, production QA, or intentionally planned post-Phase C expansion.
 
 ## Latest Stable Lock
 
@@ -213,13 +217,14 @@ Latest stable lock checkpoints:
 
 * `9802c7b` `controlled production qa fixes`
 * `94ea0a6` `lock mvp core stable`
-* Phase C Milestone 1 adds only routing foundation and preserves MVP core stability
+* `c66cdb7` `phase c batch 3 controlled per page publish activation`
+* `e11811a` `phase c batch 4 add logs persistence foundation`
 
 ## Deferred Until Controlled Expansion
 
 * Supabase multi-page schema expansion
 * Scheduler redesign
-* Persistent logs storage
+* Queue processor V2
 * Analytics implementation
 * Auth / SaaS / billing
 * Advanced provider failover
@@ -230,7 +235,7 @@ Latest stable lock checkpoints:
 * Supabase schema growth can accidentally couple stable MVP paths to unfinished multi-page data
 * multi-page routing can misroute Facebook credentials if page-context boundaries are unclear
 * queue processor V2 can destabilize the current scheduler if introduced before routing data is trusted
-* logs persistence can add write-path noise before operational flows are fully settled
+* log volume and retention should stay minimal until a future operations/reporting phase exists
 * Facebook publish safety must remain mock-first even after page-aware routing is introduced
 
 ---

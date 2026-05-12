@@ -181,8 +181,8 @@ Smallest safe planned Phase C scope:
 * Batch 1: minimal multi-page schema and page-aware settings/token routing
 * Batch 2: queue/page routing foundation without execution activation
 * Batch 3: controlled per-page publish activation
-* Batch 4: queue processor V2 only after Batch 3 is stable
-* Batch 5: logs persistence after queue behavior is stable
+* Batch 4: logs persistence foundation after Batch 3 routing is stable
+* Batch 5: queue processor V2 only after routing and log behavior are stable
 
 Current Batch 2 status:
 
@@ -208,6 +208,7 @@ Current Batch 4 status:
 * manual publish and scheduled publish success/failure/block/fallback events can be recorded
 * log writes are intentionally non-blocking and fail silently except for dev warnings
 * the existing Logs UI can read persisted operation logs when the table is available
+* final Phase C QA confirms scheduler structure, publish flow, guarded page routing, and log persistence remain stable
 
 Risk areas to watch:
 
@@ -237,6 +238,8 @@ Do not expand into the following until Phase C:
 * analytics data foundation
 
 For the current checkpoint, Batch 4 adds only minimal log persistence. Queue redesign and analytics remain deferred.
+
+Phase C is now considered complete and stable at the current architecture boundary. Future backend expansion should begin only from a fresh planning checkpoint, not from continued momentum inside the current publish path.
 
 This protects the current stable publish flow and avoids unnecessary backend churn.
 

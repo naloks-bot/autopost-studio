@@ -2,7 +2,7 @@
 
 ## Current Status
 
-UI foundation is stable. No backend, publishing, or scheduler execution changes were introduced during the UI phase. Mock mode remains the default. The next work should follow the consolidated low-churn roadmap below.
+UI foundation and controlled Phase C backend expansion are now stable. Mock mode remains the default. The next work should follow the consolidated low-churn roadmap below.
 
 MVP core is currently locked as stable after the controlled QA pass and latest checkpoint commit:
 
@@ -109,13 +109,17 @@ Expand backend capabilities only after MVP stability is proven.
 * Batch 4: logs persistence foundation
 * Batch 5: queue processor V2
 
-### Completed In Batch 4
+### Completed In Phase C
 
+* Batch 1 added the multi-page routing foundation with default compatibility fallback
+* Batch 2 consolidated page context, publish readiness, and dry-run routing diagnostics
+* Batch 3 activated guarded per-page publish routing while preserving mock default and global V1 fallback safety
 * Added migration-safe Supabase SQL for `operation_logs`
 * Added a non-blocking operation log service with silent failure when log storage is unavailable
 * Logged high-value manual publish and scheduled publish success/failure/block/fallback events
 * Connected the existing Logs viewer to persisted logs when available
 * Kept scheduler structure, publish processor structure, and Facebook service behavior unchanged
+* Final QA confirmed create/save/reload draft flow, page-context restore, scheduled publish compatibility, per-page live safety rules, and non-blocking logs behavior
 
 ### Risk Areas
 
@@ -138,7 +142,6 @@ Expand backend capabilities only after MVP stability is proven.
 
 * Supabase `pages` table and per-page token routing
 * Queue processor redesign
-* Persistent logs storage
 * Analytics implementation
 * Auth / SaaS / billing
 * Codex CLI execution
@@ -151,7 +154,7 @@ Expand backend capabilities only after MVP stability is proven.
 ## Ready Now
 
 * MVP core maintenance only
-* Phase C Batch 5 planning only
+* Post-Phase C planning only
 
 ## After Phase A Is Stable
 
