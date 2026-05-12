@@ -195,6 +195,7 @@ Current Phase C progress:
 * live publish can now use page-specific config when the page is fully configured
 * scheduler loop and Facebook service remain structurally unchanged
 * global V1 publish remains the fallback path when it is the safe default target
+* Batch 4 added a minimal persistent operation log foundation for high-value publish and routing events
 
 ---
 
@@ -204,7 +205,7 @@ Current Phase C progress:
 
 1. Preserve the locked MVP core behavior without architecture expansion.
 2. Validate the new guarded per-page publish path in real use.
-3. Defer queue redesign and persistent logs until the publish path is proven stable.
+3. Defer queue redesign and analytics until the publish path and log foundation are proven stable.
 
 ## Latest Stable Lock
 

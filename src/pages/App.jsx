@@ -30,6 +30,7 @@ import {
 } from "../services/supabase.js";
 import { generateImagePrompt, generatePostContent, getTextProviderRuntime } from "../services/ai-generation.js";
 import { publishFacebookPost, validateFacebookConfig } from "../services/facebook.js";
+import { createOperationLog, fetchOperationLogs } from "../services/operation-logs.js";
 import { resolveEffectivePublishConfig } from "../services/page-context.js";
 import { runSchedulerTick } from "../services/scheduler.js";
 
@@ -120,6 +121,8 @@ function App() {
   const [schedulerStatus, setSchedulerStatus] = useState(null);
   const [lastTextGeneration, setLastTextGeneration] = useState(null);
   const [createNotice, setCreateNotice] = useState(null);
+  const [operationLogs, setOperationLogs] = useState([]);
+  const [logsMode, setLogsMode] = useState(hasSupabaseConfig ? "connected" : "offline");
 
   const schedulerLock = useRef(false);
   const dataLock = useRef(false);
@@ -163,9 +166,12 @@ function App() {
         fetchRemoteSettings(),
         fetchRemotePages(),
       ]);
+      const logsResult = await fetchOperationLogs();
       if (postsResult.data) {
         setRemotePosts(postsResult.data);
       }
+      setOperationLogs(logsResult.data || []);
+      if (logsResult.mode) setLogsMode(logsResult.mode);
       if (postsResult.mode) setConnectionMode(postsResult.mode);
       if (postsResult.error && postsResult.mode !== "offline") {
         setConnectionError(toUserSafeMessage(postsResult.error, "Failed to fetch posts from Supabase."));
@@ -366,7 +372,36 @@ function App() {
         pages: settings.workspacePages,
       });
       if (!effectivePublish.canAttemptPublish) {
+        await createOperationLog({
+          level: "warn",
+          source: "manual_publish",
+          event: "publish_blocked",
+          message: effectivePublish.blockedReason || effectivePublish.fallbackReason || "Manual publish was blocked.",
+          page_id: effectivePublish.resolvedPageId,
+          post_id: post.id,
+          metadata: {
+            topic: post.topic,
+            publish_source: effectivePublish.effectivePublishSource,
+            live_page_publish_status: effectivePublish.livePerPagePublishStatus,
+          },
+        });
         return window.alert(effectivePublish.blockedReason || effectivePublish.fallbackReason || "This post is not safe to publish with the current configuration.");
+      }
+      if (effectivePublish.fallbackReason) {
+        await createOperationLog({
+          level: "info",
+          source: "manual_publish",
+          event: "publish_fallback",
+          message: effectivePublish.fallbackReason,
+          page_id: effectivePublish.resolvedPageId,
+          post_id: post.id,
+          metadata: {
+            topic: post.topic,
+            publish_source: effectivePublish.effectivePublishSource,
+            live_page_publish_status: effectivePublish.livePerPagePublishStatus,
+            effective_page_id: effectivePublish.effectivePageId,
+          },
+        });
       }
       if (effectivePublish.effectiveSettings.facebookPublishMode === "live") {
         const targetLabel =
@@ -376,15 +411,64 @@ function App() {
         if (!window.confirm(`Publish "${post.topic}" to Facebook now? (${targetLabel})`)) return;
       }
       const result = await publishFacebookPost(post, effectivePublish.effectiveSettings);
-      if (result.error) return window.alert(`Publish failed: ${toUserSafeMessage(result.error, "Publish failed.")}`);
+      if (result.error) {
+        await createOperationLog({
+          level: "error",
+          source: "manual_publish",
+          event: "publish_failure",
+          message: result.error || `Manual publish failed for "${post.topic}".`,
+          page_id: effectivePublish.resolvedPageId,
+          post_id: post.id,
+          metadata: {
+            publish_source: effectivePublish.effectivePublishSource,
+            live_page_publish_status: effectivePublish.livePerPagePublishStatus,
+          },
+        });
+        return window.alert(`Publish failed: ${toUserSafeMessage(result.error, "Publish failed.")}`);
+      }
       const update = await updateRemotePostStatus(postId, "posted", { posted_at: new Date().toISOString() });
       if (update.data) {
         setRemotePosts((current) => current.map((p) => (p.id === postId ? update.data : p)));
+        await createOperationLog({
+          level: "info",
+          source: "manual_publish",
+          event: "publish_success",
+          message: `Manual publish succeeded for "${post.topic}".`,
+          page_id: effectivePublish.resolvedPageId,
+          post_id: post.id,
+          metadata: {
+            publish_source: effectivePublish.effectivePublishSource,
+            live_page_publish_status: effectivePublish.livePerPagePublishStatus,
+            effective_page_id: effectivePublish.effectivePageId,
+          },
+        });
+        const logsResult = await fetchOperationLogs();
+        setOperationLogs(logsResult.data || []);
+        if (logsResult.mode) setLogsMode(logsResult.mode);
         window.alert("Facebook publish completed.");
       } else {
+        await createOperationLog({
+          level: "error",
+          source: "manual_publish",
+          event: "publish_partial_failure",
+          message: `Manual publish succeeded but status update failed for "${post.topic}".`,
+          page_id: effectivePublish.resolvedPageId,
+          post_id: post.id,
+          metadata: {
+            publish_source: effectivePublish.effectivePublishSource,
+            live_page_publish_status: effectivePublish.livePerPagePublishStatus,
+          },
+        });
         window.alert("Facebook publish completed, but the local status could not be updated.");
       }
     } catch (error) {
+      await createOperationLog({
+        level: "error",
+        source: "manual_publish",
+        event: "publish_error",
+        message: error?.message || "Unexpected manual publish error.",
+        metadata: {},
+      });
       window.alert(`Publish failed: ${toUserSafeMessage(error, "Publish failed.")}`);
     }
   }, [remotePosts, settings]);
@@ -487,7 +571,7 @@ function App() {
               <LibraryPage />
             )}
             {activeTab === "logs" && (
-              <LogsPage />
+              <LogsPage logs={operationLogs} logsMode={logsMode} />
             )}
             {activeTab === "status" && (
               <StatusPage

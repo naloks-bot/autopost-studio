@@ -1,19 +1,41 @@
 import React from "react";
-import { Terminal, Filter, Download, Copy, Info, History, ShieldAlert, Cpu, Share2 } from "lucide-react";
+import { Terminal, Download, Copy, Info, History, ShieldAlert, Cpu, Share2 } from "lucide-react";
 
-export default function LogsPage() {
-  // Mock logs for display
-  const mockLogs = [
-    { id: 1, type: "system", message: "Application initialized in Production mode", time: "19:44:30" },
-    { id: 2, type: "ai", message: "Text provider set to Mock (Safe)", time: "19:44:31" },
-    { id: 3, type: "scheduler", message: "V1 Processor heartbeat detected", time: "19:45:00" },
-    { id: 4, type: "error", message: "Facebook API: Invalid token context (Preview only)", time: "19:50:12" },
-    { id: 5, type: "publish", message: "Mock post simulation successful", time: "20:00:05" },
-  ];
+function formatLogTime(value) {
+  if (!value) return "--:--:--";
+  return new Date(value).toLocaleTimeString("en-GB", { hour12: false });
+}
+
+function getCategory(log) {
+  if (log.source === "scheduler") return "scheduler";
+  if (log.source === "manual_publish") return "publishing";
+  if (log.source === "ai") return "ai";
+  if (log.level === "error") return "errors";
+  return "system";
+}
+
+function getCounts(logs) {
+  return {
+    all: logs.length,
+    ai: logs.filter((log) => getCategory(log) === "ai").length,
+    scheduler: logs.filter((log) => getCategory(log) === "scheduler").length,
+    publishing: logs.filter((log) => getCategory(log) === "publishing").length,
+    errors: logs.filter((log) => log.level === "error").length,
+  };
+}
+
+export default function LogsPage({ logs = [], logsMode = "offline" }) {
+  const counts = getCounts(logs);
+  const hasPersistentLogs = logsMode === "connected" && logs.length > 0;
+  const infoMessage =
+    logsMode === "connected"
+      ? "Persistent operation logs are active. High-value publish and routing events are stored in Supabase."
+      : logsMode === "missing-table"
+        ? "Operation log storage is not ready yet. Run the latest Supabase SQL to enable persistent logs."
+        : "Persistent logs are unavailable right now. The publish and scheduler flows still continue safely.";
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="rounded-2xl border border-white/5 bg-slate-900/40 p-6 shadow-sm">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
            <div className="flex items-center gap-3">
@@ -22,7 +44,7 @@ export default function LogsPage() {
               </div>
               <div>
                  <h2 className="text-xl font-bold text-white tracking-tight">System Logs</h2>
-                 <p className="text-xs text-slate-400">Monitor application activity and AI routing</p>
+                 <p className="text-xs text-slate-400">Monitor publish, scheduler, and routing activity</p>
               </div>
            </div>
            <div className="flex items-center gap-3">
@@ -38,28 +60,29 @@ export default function LogsPage() {
         <div className="mt-6 flex items-start gap-3 p-3 rounded-xl bg-rose-500/5 border border-rose-500/10">
            <Info className="h-5 w-5 text-rose-400 mt-0.5" />
            <div>
-              <p className="text-xs font-semibold text-rose-300">Foundation Mode Active</p>
+              <p className="text-xs font-semibold text-rose-300">
+                {hasPersistentLogs ? "Persistent Logs Active" : "Foundation Mode Active"}
+              </p>
               <p className="text-[10px] text-rose-400/80 leading-relaxed">
-                Logs shown below are session-based mock data for UI demonstration. Persistent system logging is planned for the next architectural phase.
+                {infoMessage}
               </p>
            </div>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        {/* Sidebar Filters */}
         <div className="space-y-4">
            <div className="rounded-2xl border border-white/5 bg-slate-900/40 p-6">
               <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-4">Log Categories</h3>
               <div className="space-y-1">
                  {[
-                   { label: "All Logs", icon: History, count: 5, active: true },
-                   { label: "AI Engines", icon: Cpu, count: 1, active: false },
-                   { label: "Scheduler", icon: History, count: 1, active: false },
-                   { label: "Publishing", icon: Share2, count: 1, active: false },
-                   { label: "Errors", icon: ShieldAlert, count: 1, active: false },
-                 ].map((cat, i) => (
-                    <button key={i} className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs transition ${cat.active ? 'bg-rose-500/10 text-rose-400' : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'}`}>
+                   { label: "All Logs", icon: History, count: counts.all, active: true },
+                   { label: "AI Engines", icon: Cpu, count: counts.ai, active: false },
+                   { label: "Scheduler", icon: History, count: counts.scheduler, active: false },
+                   { label: "Publishing", icon: Share2, count: counts.publishing, active: false },
+                   { label: "Errors", icon: ShieldAlert, count: counts.errors, active: false },
+                 ].map((cat) => (
+                    <button key={cat.label} className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs transition ${cat.active ? "bg-rose-500/10 text-rose-400" : "text-slate-400 hover:bg-white/5 hover:text-slate-200"}`}>
                        <div className="flex items-center gap-2">
                           <cat.icon className="h-3.5 w-3.5" />
                           <span>{cat.label}</span>
@@ -71,28 +94,32 @@ export default function LogsPage() {
            </div>
         </div>
 
-        {/* Log Viewer */}
         <div className="lg:col-span-3">
            <div className="rounded-2xl border border-white/5 bg-slate-950/80 shadow-inner overflow-hidden">
               <div className="bg-white/5 px-4 py-2 flex items-center justify-between border-b border-white/5">
                  <div className="flex items-center gap-2">
                     <div className="h-2 w-2 rounded-full bg-rose-500"></div>
-                    <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Live Terminal Output</span>
+                    <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Operation Log Stream</span>
                  </div>
-                 <span className="text-[9px] text-slate-600">UTC: 2026-05-09 13:02:15</span>
+                 <span className="text-[9px] text-slate-600">Latest first</span>
               </div>
               <div className="p-4 font-mono text-[11px] leading-relaxed space-y-2 h-[400px] overflow-y-auto">
-                 {mockLogs.map(log => (
-                    <div key={log.id} className="flex gap-4 group">
-                       <span className="text-slate-600 shrink-0">[{log.time}]</span>
+                 {logs.length === 0 ? (
+                   <div className="text-slate-500">No persisted operation logs available yet.</div>
+                 ) : (
+                   logs.map((log) => (
+                     <div key={log.id} className="flex gap-4 group">
+                       <span className="text-slate-600 shrink-0">[{formatLogTime(log.created_at)}]</span>
                        <span className={`shrink-0 uppercase font-bold ${
-                          log.type === 'error' ? 'text-rose-400' : 
-                          log.type === 'ai' ? 'text-violet-400' :
-                          log.type === 'publish' ? 'text-emerald-400' : 'text-slate-400'
-                       }`}>[{log.type}]</span>
+                          log.level === "error" ? "text-rose-400" :
+                          log.source === "scheduler" ? "text-cyan-400" :
+                          log.source === "manual_publish" ? "text-emerald-400" :
+                          "text-slate-400"
+                       }`}>[{log.source}]</span>
                        <span className="text-slate-300 group-hover:text-white transition">{log.message}</span>
-                    </div>
-                 ))}
+                     </div>
+                   ))
+                 )}
                  <div className="flex gap-4">
                     <span className="text-rose-500 animate-pulse">_</span>
                  </div>

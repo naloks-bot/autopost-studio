@@ -202,6 +202,13 @@ Current Batch 3 status:
 * default page can still fall back to the stable global V1 config
 * scheduler loop structure and Facebook API service remain unchanged
 
+Current Batch 4 status:
+
+* operation logs now have a minimal persistent foundation in Supabase
+* manual publish and scheduled publish success/failure/block/fallback events can be recorded
+* log writes are intentionally non-blocking and fail silently except for dev warnings
+* the existing Logs UI can read persisted operation logs when the table is available
+
 Risk areas to watch:
 
 * Supabase schema coupling with existing single-page assumptions
@@ -229,7 +236,7 @@ Do not expand into the following until Phase C:
 * persistent logs storage
 * analytics data foundation
 
-For the current checkpoint, Batch 3 activates guarded per-page publish routing only. Queue redesign and log persistence remain deferred.
+For the current checkpoint, Batch 4 adds only minimal log persistence. Queue redesign and analytics remain deferred.
 
 This protects the current stable publish flow and avoids unnecessary backend churn.
 

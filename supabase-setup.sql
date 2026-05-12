@@ -55,9 +55,22 @@ create table if not exists public.pages (
   updated_at timestamptz not null default now()
 );
 
+create table if not exists public.operation_logs (
+  id uuid primary key default gen_random_uuid(),
+  created_at timestamptz not null default now(),
+  level text not null default 'info',
+  source text not null default 'system',
+  event text not null default 'unknown',
+  message text not null default '',
+  page_id text,
+  post_id text,
+  metadata jsonb not null default '{}'::jsonb
+);
+
 alter table public.posts enable row level security;
 alter table public.app_settings enable row level security;
 alter table public.pages enable row level security;
+alter table public.operation_logs enable row level security;
 
 drop policy if exists "anon can read posts" on public.posts;
 drop policy if exists "anon can insert posts" on public.posts;
@@ -96,6 +109,10 @@ drop policy if exists "anon can read pages" on public.pages;
 drop policy if exists "anon can insert pages" on public.pages;
 drop policy if exists "anon can update pages" on public.pages;
 drop policy if exists "anon can delete pages" on public.pages;
+drop policy if exists "anon can read operation logs" on public.operation_logs;
+drop policy if exists "anon can insert operation logs" on public.operation_logs;
+drop policy if exists "anon can update operation logs" on public.operation_logs;
+drop policy if exists "anon can delete operation logs" on public.operation_logs;
 
 create policy "anon can read app settings"
 on public.app_settings
@@ -146,6 +163,18 @@ on public.pages
 for delete
 to anon
 using (true);
+
+create policy "anon can read operation logs"
+on public.operation_logs
+for select
+to anon
+using (true);
+
+create policy "anon can insert operation logs"
+on public.operation_logs
+for insert
+to anon
+with check (true);
 
 insert into public.pages (id, label, description)
 values

@@ -164,6 +164,15 @@ serve(async (req) => {
     }
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const writeOperationLog = async (entry: Record<string, any>) => {
+      const { error } = await supabase.from("operation_logs").insert([entry]);
+      if (error) {
+        const message = String(error.message || "");
+        if (!/relation .*operation_logs.* does not exist/i.test(message)) {
+          console.warn("Operation log write skipped.", error);
+        }
+      }
+    };
 
     // 1. Fetch Settings
     console.log("Fetching app settings...");
@@ -244,6 +253,22 @@ serve(async (req) => {
           throw new Error(publishConfig.reason || "Publish blocked");
         }
 
+        if (publishConfig.reason) {
+          await writeOperationLog({
+            level: "info",
+            source: "scheduler_edge",
+            event: "publish_fallback",
+            message: publishConfig.reason,
+            page_id: publishConfig.resolvedPageId,
+            post_id: String(post.id),
+            metadata: {
+              topic: post.topic,
+              publish_source: publishConfig.effectivePublishSource,
+              live_page_publish_status: publishConfig.livePerPagePublishStatus,
+            },
+          });
+        }
+
         if (publishMode === "live") {
           console.log(`Live publishing post: ${post.id} (${post.topic})`);
 
@@ -286,10 +311,35 @@ serve(async (req) => {
         if (updateError) throw updateError;
 
         postResult.success = true;
+        await writeOperationLog({
+          level: "info",
+          source: "scheduler_edge",
+          event: "publish_success",
+          message: `Scheduled publish succeeded for "${post.topic}".`,
+          page_id: publishConfig.resolvedPageId,
+          post_id: String(post.id),
+          metadata: {
+            publish_source: publishConfig.effectivePublishSource,
+            live_page_publish_status: publishConfig.livePerPagePublishStatus,
+          },
+        });
         console.log(`Post updated successfully: ${post.id}`);
 
       } catch (err) {
         console.error(`Error processing post ${post.id}:`, err.message);
+        await writeOperationLog({
+          level: "error",
+          source: "scheduler_edge",
+          event: publishConfig.canAttemptPublish ? "publish_failure" : "publish_blocked",
+          message: err.message,
+          page_id: publishConfig.resolvedPageId,
+          post_id: String(post.id),
+          metadata: {
+            publish_source: publishConfig.effectivePublishSource,
+            live_page_publish_status: publishConfig.livePerPagePublishStatus,
+            fallback_reason: publishConfig.reason || "",
+          },
+        });
         postResult.error = err.message;
         postResult.fallback_reason = publishConfig.reason || "";
         postResult.success = false;

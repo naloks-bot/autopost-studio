@@ -1,5 +1,6 @@
 import { logger } from "./logger.js";
 import { publishFacebookPost } from "./facebook.js";
+import { createOperationLog } from "./operation-logs.js";
 import { fetchRemotePosts, updateRemotePostStatus } from "./supabase.js";
 import { resolveEffectivePublishConfig } from "./page-context.js";
 
@@ -106,6 +107,19 @@ export async function processScheduledPosts({ posts, settings, onPostPublished }
 
         if (!effectivePublish.canAttemptPublish) {
           logger.warn(`Processor: Blocking post '${post.topic}' due to unsafe publish routing.`, effectivePublish.blockedReason);
+          await createOperationLog({
+            level: "warn",
+            source: "scheduler",
+            event: "publish_blocked",
+            message: effectivePublish.blockedReason || "Scheduled publish was blocked.",
+            page_id: effectivePublish.resolvedPageId,
+            post_id: post.id,
+            metadata: {
+              topic: post.topic,
+              publish_source: effectivePublish.effectivePublishSource,
+              live_page_publish_status: effectivePublish.livePerPagePublishStatus,
+            },
+          });
           summary.failed++;
           summary.results.push({
             id: post.id,
@@ -126,6 +140,20 @@ export async function processScheduledPosts({ posts, settings, onPostPublished }
             source: effectivePublish.effectivePublishSource,
             targetPageId: effectivePublish.effectivePageId,
           });
+          await createOperationLog({
+            level: "info",
+            source: "scheduler",
+            event: "publish_fallback",
+            message: effectivePublish.fallbackReason,
+            page_id: effectivePublish.resolvedPageId,
+            post_id: post.id,
+            metadata: {
+              topic: post.topic,
+              publish_source: effectivePublish.effectivePublishSource,
+              live_page_publish_status: effectivePublish.livePerPagePublishStatus,
+              effective_page_id: effectivePublish.effectivePageId,
+            },
+          });
         }
 
         const publishResult = await publishFacebookPost(post, effectivePublish.effectiveSettings);
@@ -138,6 +166,19 @@ export async function processScheduledPosts({ posts, settings, onPostPublished }
 
           if (updateResult.data) {
             logger.info(`Processor: Successfully published post '${post.topic}'`);
+            await createOperationLog({
+              level: "info",
+              source: "scheduler",
+              event: "publish_success",
+              message: `Scheduled publish succeeded for "${post.topic}".`,
+              page_id: effectivePublish.resolvedPageId,
+              post_id: post.id,
+              metadata: {
+                publish_source: effectivePublish.effectivePublishSource,
+                live_page_publish_status: effectivePublish.livePerPagePublishStatus,
+                effective_page_id: effectivePublish.effectivePageId,
+              },
+            });
             summary.published++;
             summary.results.push({
               id: post.id,
@@ -152,6 +193,18 @@ export async function processScheduledPosts({ posts, settings, onPostPublished }
             if (onPostPublished) onPostPublished(updateResult.data);
           } else {
             logger.error(`Processor: Published post '${post.topic}' but status update failed.`);
+            await createOperationLog({
+              level: "error",
+              source: "scheduler",
+              event: "publish_partial_failure",
+              message: `Scheduled publish succeeded but status update failed for "${post.topic}".`,
+              page_id: effectivePublish.resolvedPageId,
+              post_id: post.id,
+              metadata: {
+                publish_source: effectivePublish.effectivePublishSource,
+                live_page_publish_status: effectivePublish.livePerPagePublishStatus,
+              },
+            });
             summary.failed++;
             summary.results.push({
               id: post.id,
@@ -165,6 +218,18 @@ export async function processScheduledPosts({ posts, settings, onPostPublished }
           }
         } else {
           logger.error(`Processor: Failed to publish post '${post.topic}':`, publishResult.error);
+          await createOperationLog({
+            level: "error",
+            source: "scheduler",
+            event: "publish_failure",
+            message: publishResult.error || `Scheduled publish failed for "${post.topic}".`,
+            page_id: effectivePublish.resolvedPageId,
+            post_id: post.id,
+            metadata: {
+              publish_source: effectivePublish.effectivePublishSource,
+              live_page_publish_status: effectivePublish.livePerPagePublishStatus,
+            },
+          });
           summary.failed++;
           summary.results.push({
             id: post.id,
@@ -178,6 +243,18 @@ export async function processScheduledPosts({ posts, settings, onPostPublished }
         }
       } catch (err) {
         logger.error(`Processor: Unexpected error processing post '${post.topic}':`, err);
+        await createOperationLog({
+          level: "error",
+          source: "scheduler",
+          event: "publish_error",
+          message: err.message || `Unexpected scheduled publish error for "${post.topic}".`,
+          page_id: effectivePublish.resolvedPageId,
+          post_id: post.id,
+          metadata: {
+            publish_source: effectivePublish.effectivePublishSource,
+            live_page_publish_status: effectivePublish.livePerPagePublishStatus,
+          },
+        });
         summary.failed++;
         summary.results.push({
           id: post.id,
