@@ -109,15 +109,14 @@ Expand backend capabilities only after MVP stability is proven.
 * Batch 4: queue processor V2
 * Batch 5: logs persistence foundation
 
-### Completed In Batch 2
+### Completed In Batch 3
 
-* Consolidated the minimal multi-page foundation with safe default fallback pages
-* Preserved single-page compatibility for existing settings and drafts
-* Kept `page_id` persistence for saved drafts
-* Added a shared page-context resolver for scheduled-post routing metadata
-* Added page publish readiness metadata for UI/debug while keeping actual publish execution on global V1
-* Added per-page publish dry-run diagnostics with no Facebook API call and no execution-path change
-* Kept scheduler and Facebook service behavior unchanged
+* Activated guarded per-page publish config selection for manual publish, shared publish processor, and scheduled edge processing
+* Preserved mock mode as the default execution path
+* Kept the global V1 publish path as the safe fallback for the default page
+* Blocked unsafe live publish attempts for unresolved or incomplete non-default pages
+* Surfaced effective publish source, fallback reason, and per-page live status in Settings and Status
+* Kept scheduler structure and Facebook service behavior unchanged
 
 ### Risk Areas
 
@@ -153,7 +152,7 @@ Expand backend capabilities only after MVP stability is proven.
 ## Ready Now
 
 * MVP core maintenance only
-* Phase C Batch 3 planning / controlled activation only
+* Phase C Batch 4 planning only
 
 ## After Phase A Is Stable
 

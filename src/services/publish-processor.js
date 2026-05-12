@@ -1,7 +1,7 @@
 import { logger } from "./logger.js";
-import { publishFacebookPost, validateFacebookConfig } from "./facebook.js";
+import { publishFacebookPost } from "./facebook.js";
 import { fetchRemotePosts, updateRemotePostStatus } from "./supabase.js";
-import { resolvePageContext } from "./page-context.js";
+import { resolveEffectivePublishConfig } from "./page-context.js";
 
 /**
  * Publish Processor Service
@@ -65,11 +65,6 @@ export async function processScheduledPosts({ posts, settings, onPostPublished }
     return { ...summary, status: "disabled" };
   }
 
-  if (!validateFacebookConfig(settings)) {
-    logger.warn("Processor: Facebook configuration incomplete.");
-    return { ...summary, error: "Facebook not configured" };
-  }
-
   isProcessing = true;
   logger.info(`Processor: Starting tick (Mode: ${settings.facebookPublishMode || "mock"})...`);
 
@@ -95,21 +90,45 @@ export async function processScheduledPosts({ posts, settings, onPostPublished }
 
     // 4. Execute Publish Flow
     for (const post of duePosts) {
-      const pageContext = resolvePageContext({
-        pageId: post.page_id,
+      const effectivePublish = resolveEffectivePublishConfig({
+        post,
         settings,
       });
 
       try {
-        logger.debug("Processor: Resolved scheduled post page context.", {
+        logger.debug("Processor: Resolved scheduled post publish config.", {
           postId: post.id,
-          requestedPageId: pageContext.requestedPageId,
-          resolvedPageId: pageContext.resolvedPageId,
-          source: pageContext.source,
-          usesGlobalPublishConfig: pageContext.usesGlobalPublishConfig,
+          requestedPageId: effectivePublish.requestedPageId,
+          resolvedPageId: effectivePublish.resolvedPageId,
+          effectivePublishSource: effectivePublish.effectivePublishSource,
+          livePerPagePublishStatus: effectivePublish.livePerPagePublishStatus,
         });
 
-        const publishResult = await publishFacebookPost(post, settings);
+        if (!effectivePublish.canAttemptPublish) {
+          logger.warn(`Processor: Blocking post '${post.topic}' due to unsafe publish routing.`, effectivePublish.blockedReason);
+          summary.failed++;
+          summary.results.push({
+            id: post.id,
+            status: "blocked",
+            topic: post.topic,
+            page_id: effectivePublish.resolvedPageId,
+            page_label: effectivePublish.label,
+            publish_source: effectivePublish.effectivePublishSource,
+            live_page_publish_status: effectivePublish.livePerPagePublishStatus,
+            error: effectivePublish.blockedReason || effectivePublish.fallbackReason || "Publish blocked",
+          });
+          continue;
+        }
+
+        if (effectivePublish.fallbackReason) {
+          logger.info(`Processor: Using publish fallback for post '${post.topic}'.`, {
+            reason: effectivePublish.fallbackReason,
+            source: effectivePublish.effectivePublishSource,
+            targetPageId: effectivePublish.effectivePageId,
+          });
+        }
+
+        const publishResult = await publishFacebookPost(post, effectivePublish.effectiveSettings);
 
         if (publishResult.data) {
           const postedAt = new Date().toISOString();
@@ -124,8 +143,11 @@ export async function processScheduledPosts({ posts, settings, onPostPublished }
               id: post.id,
               status: "success",
               topic: post.topic,
-              page_id: pageContext.resolvedPageId,
-              page_label: pageContext.label,
+              page_id: effectivePublish.resolvedPageId,
+              page_label: effectivePublish.label,
+              publish_source: effectivePublish.effectivePublishSource,
+              live_page_publish_status: effectivePublish.livePerPagePublishStatus,
+              fallback_reason: effectivePublish.fallbackReason || "",
             });
             if (onPostPublished) onPostPublished(updateResult.data);
           } else {
@@ -134,8 +156,10 @@ export async function processScheduledPosts({ posts, settings, onPostPublished }
             summary.results.push({
               id: post.id,
               status: "partial_failure",
-              page_id: pageContext.resolvedPageId,
-              page_label: pageContext.label,
+              page_id: effectivePublish.resolvedPageId,
+              page_label: effectivePublish.label,
+              publish_source: effectivePublish.effectivePublishSource,
+              live_page_publish_status: effectivePublish.livePerPagePublishStatus,
               error: "Published to FB but failed to update status",
             });
           }
@@ -145,8 +169,10 @@ export async function processScheduledPosts({ posts, settings, onPostPublished }
           summary.results.push({
             id: post.id,
             status: "failure",
-            page_id: pageContext.resolvedPageId,
-            page_label: pageContext.label,
+            page_id: effectivePublish.resolvedPageId,
+            page_label: effectivePublish.label,
+            publish_source: effectivePublish.effectivePublishSource,
+            live_page_publish_status: effectivePublish.livePerPagePublishStatus,
             error: publishResult.error,
           });
         }
@@ -156,8 +182,10 @@ export async function processScheduledPosts({ posts, settings, onPostPublished }
         summary.results.push({
           id: post.id,
           status: "error",
-          page_id: pageContext.resolvedPageId,
-          page_label: pageContext.label,
+          page_id: effectivePublish.resolvedPageId,
+          page_label: effectivePublish.label,
+          publish_source: effectivePublish.effectivePublishSource,
+          live_page_publish_status: effectivePublish.livePerPagePublishStatus,
           error: err.message,
         });
       }

@@ -30,6 +30,7 @@ import {
 } from "../services/supabase.js";
 import { generateImagePrompt, generatePostContent, getTextProviderRuntime } from "../services/ai-generation.js";
 import { publishFacebookPost, validateFacebookConfig } from "../services/facebook.js";
+import { resolveEffectivePublishConfig } from "../services/page-context.js";
 import { runSchedulerTick } from "../services/scheduler.js";
 
 function formatDate(value) {
@@ -359,11 +360,22 @@ function App() {
     try {
       const post = remotePosts.find((p) => p.id === postId);
       if (!post) return window.alert("Post not found.");
-      if (!validateFacebookConfig(settings)) return window.alert("Facebook Page ID and Access Token are required before publishing.");
-      if (settings.facebookPublishMode === "live") {
-        if (!window.confirm(`Publish "${post.topic}" to Facebook now? (LIVE mode)`)) return;
+      const effectivePublish = resolveEffectivePublishConfig({
+        post,
+        settings,
+        pages: settings.workspacePages,
+      });
+      if (!effectivePublish.canAttemptPublish) {
+        return window.alert(effectivePublish.blockedReason || effectivePublish.fallbackReason || "This post is not safe to publish with the current configuration.");
       }
-      const result = await publishFacebookPost(post, settings);
+      if (effectivePublish.effectiveSettings.facebookPublishMode === "live") {
+        const targetLabel =
+          effectivePublish.effectivePublishSource === "page-specific"
+            ? `${effectivePublish.label} (page-specific)`
+            : effectivePublish.effectivePublishLabel;
+        if (!window.confirm(`Publish "${post.topic}" to Facebook now? (${targetLabel})`)) return;
+      }
+      const result = await publishFacebookPost(post, effectivePublish.effectiveSettings);
       if (result.error) return window.alert(`Publish failed: ${toUserSafeMessage(result.error, "Publish failed.")}`);
       const update = await updateRemotePostStatus(postId, "posted", { posted_at: new Date().toISOString() });
       if (update.data) {
@@ -380,7 +392,7 @@ function App() {
   async function handleSchedulerTick() {
     if (schedulerLock.current) return;
     const { remotePosts: currentPosts, settings: currentSettings } = stateRef.current;
-    if (!currentSettings.schedulerEnabled || !validateFacebookConfig(currentSettings) || !currentPosts?.length) return;
+    if (!currentSettings.schedulerEnabled || !currentPosts?.length) return;
     schedulerLock.current = true;
     try {
       const summary = await runSchedulerTick(currentPosts, currentSettings, {

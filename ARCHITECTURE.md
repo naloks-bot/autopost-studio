@@ -194,6 +194,14 @@ Current Batch 2 status:
 * page publish readiness can now be derived safely for UI/debug without activating per-page token execution
 * per-page publish dry runs can now report hypothetical routing safely while live per-page execution stays disabled
 
+Current Batch 3 status:
+
+* guarded publish config selection now resolves mock/global/page-specific execution sources
+* live mode can use page-specific Facebook credentials when the selected page is fully configured
+* unresolved or incomplete non-default page targets block safely instead of silently falling back to the wrong page
+* default page can still fall back to the stable global V1 config
+* scheduler loop structure and Facebook API service remain unchanged
+
 Risk areas to watch:
 
 * Supabase schema coupling with existing single-page assumptions
@@ -221,7 +229,7 @@ Do not expand into the following until Phase C:
 * persistent logs storage
 * analytics data foundation
 
-For the current checkpoint, Batch 2 stops at page-context, readiness, and dry-run metadata. Per-page publish execution, queue redesign, and log persistence remain deferred.
+For the current checkpoint, Batch 3 activates guarded per-page publish routing only. Queue redesign and log persistence remain deferred.
 
 This protects the current stable publish flow and avoids unnecessary backend churn.
 

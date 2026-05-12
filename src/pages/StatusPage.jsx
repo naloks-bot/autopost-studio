@@ -3,7 +3,11 @@ import { Calendar, Clock, Facebook, Globe, Send, Trash2, Database, Laptop, Info,
 import SectionCard from "../components/SectionCard.jsx";
 import ActionButton from "../components/ActionButton.jsx";
 import { validateFacebookConfig } from "../services/facebook.js";
-import { getPagePublishReadiness, runPerPagePublishDryRun } from "../services/page-context.js";
+import {
+  getPagePublishReadiness,
+  resolveEffectivePublishConfig,
+  runPerPagePublishDryRun,
+} from "../services/page-context.js";
 
 function StatusPage({
   allPendingPosts,
@@ -110,6 +114,11 @@ function StatusPage({
               settings,
               pages: workspacePages,
             });
+            const effectivePublish = resolveEffectivePublishConfig({
+              post,
+              settings,
+              pages: workspacePages,
+            });
 
             return (
               <article
@@ -149,7 +158,18 @@ function StatusPage({
                         {pageReadiness.pageConfigReady ? "Page Config Ready" : "Global Fallback"}
                       </span>
                       <span className="rounded-full bg-cyan-500/10 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-cyan-400">
-                        {pageReadiness.effectiveExecutionLabel}
+                        Source: {effectivePublish.effectivePublishLabel}
+                      </span>
+                      <span className={`rounded-full px-2 py-1 text-[10px] font-bold uppercase tracking-wider ${
+                        effectivePublish.livePerPagePublishStatus === "Active"
+                          ? "bg-emerald-500/10 text-emerald-400"
+                          : effectivePublish.livePerPagePublishStatus === "Fallback"
+                            ? "bg-amber-500/10 text-amber-400"
+                            : effectivePublish.livePerPagePublishStatus === "Blocked"
+                              ? "bg-rose-500/10 text-rose-400"
+                              : "bg-slate-500/10 text-slate-400"
+                      }`}>
+                        Per-Page Live: {effectivePublish.livePerPagePublishStatus}
                       </span>
                     </div>
                     <div className="mt-2 rounded-lg border border-cyan-500/10 bg-cyan-500/5 px-3 py-2">
@@ -160,8 +180,10 @@ function StatusPage({
                         Would route to `{pageDryRun.resolvedPageLabel}` ({pageDryRun.resolvedPageId}) | Page ID: {pageDryRun.pageSpecificPageIdReady ? "present" : "missing"} | Token: {pageDryRun.pageSpecificTokenReady ? "present" : "missing"}
                       </p>
                     </div>
-                    {pageReadiness.fallbackReason && (
-                      <p className="mt-2 text-[10px] italic text-slate-500">{pageReadiness.fallbackReason}</p>
+                    {(effectivePublish.fallbackReason || effectivePublish.blockedReason) && (
+                      <p className="mt-2 text-[10px] italic text-slate-500">
+                        {effectivePublish.blockedReason || effectivePublish.fallbackReason}
+                      </p>
                     )}
                   </div>
 
@@ -213,17 +235,23 @@ function StatusPage({
                         fullWidth
                       />
                       <ActionButton
-                        label={settings.facebookPublishMode === "live" ? "Publish Live" : "Test Post"}
+                        label={settings.facebookPublishMode === "live" ? "Publish" : "Test Post"}
                         icon={Send}
                         onClick={() => handlePublishPost(post.id)}
                         variant={settings.facebookPublishMode === "live" ? "emerald" : "secondary"}
-                        disabled={!isFbConfigured}
+                        disabled={!effectivePublish.canAttemptPublish}
                         fullWidth
                       />
-                      {!isFbConfigured && (
-                        <div className="flex items-center gap-1 justify-center text-[9px] font-bold text-rose-400 uppercase">
+                      {!effectivePublish.canAttemptPublish && (
+                        <div className="flex items-center gap-1 justify-center text-[9px] font-bold text-rose-400 uppercase text-center">
                            <AlertCircle className="h-3 w-3" />
-                           Missing Config
+                           {effectivePublish.livePerPagePublishStatus === "Blocked" ? "Blocked" : "Missing Config"}
+                        </div>
+                      )}
+                      {effectivePublish.canAttemptPublish && !isFbConfigured && settings.facebookPublishMode !== "mock" && effectivePublish.effectivePublishSource === "page-specific" && (
+                        <div className="flex items-center gap-1 justify-center text-[9px] font-bold text-emerald-400 uppercase">
+                           <AlertCircle className="h-3 w-3" />
+                           Page Config Active
                         </div>
                       )}
                     </>

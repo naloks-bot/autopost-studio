@@ -4,11 +4,15 @@ import SectionCard from "../components/SectionCard.jsx";
 import ActionButton from "../components/ActionButton.jsx";
 import { validateFacebookConfig } from "../services/facebook.js";
 import { getTextProviderRuntime } from "../services/ai-generation.js";
-import { getPagePublishReadiness, runPerPagePublishDryRun } from "../services/page-context.js";
+import {
+  getPagePublishReadiness,
+  resolveEffectivePublishConfig,
+  runPerPagePublishDryRun,
+} from "../services/page-context.js";
 
 function maskSecret(value) {
-  if (!value) return "ยังไม่ได้กรอก";
-  if (value.length <= 10) return "ตั้งค่าแล้ว";
+  if (!value) return "Not set";
+  if (value.length <= 10) return "Configured";
   return `${value.slice(0, 4)}...${value.slice(-4)}`;
 }
 
@@ -27,11 +31,9 @@ function ProviderBadge({ provider, settings }) {
       ? settings.openaiApiKey 
       : (provider === "gemini" ? settings.geminiApiKey : false);
       
-    if (hasKey) {
-      status = { label: "Ready", color: "text-emerald-400 bg-emerald-400/10" };
-    } else {
-      status = { label: "Requires API key", color: "text-rose-400 bg-rose-400/10" };
-    }
+    status = hasKey
+      ? { label: "Ready", color: "text-emerald-400 bg-emerald-400/10" }
+      : { label: "Requires API key", color: "text-rose-400 bg-rose-400/10" };
   }
 
   return (
@@ -75,10 +77,14 @@ function SettingsPage({
     settings,
     pages: workspacePages,
   });
+  const activePageEffectivePublish = resolveEffectivePublishConfig({
+    pageId: settings.activePageId,
+    settings,
+    pages: workspacePages,
+  });
 
   return (
     <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1.5fr_1fr]">
-      {/* Left Panel: Configuration Form */}
       <div className="space-y-6">
         <div className="rounded-2xl border border-white/5 bg-slate-900/40 p-6 shadow-sm">
           <div className="mb-6 flex items-center gap-2 border-b border-white/5 pb-4">
@@ -89,23 +95,23 @@ function SettingsPage({
           <div className="space-y-4">
             <div className="grid gap-4 md:grid-cols-2">
               <SettingsField
-                label="ชื่อ Workspace"
+                label="Workspace Name"
                 value={settings.workspaceName}
                 onChange={(event) => updateSettingsField("workspaceName", event.target.value)}
                 placeholder="AutoPost Studio"
               />
               <SettingsField
-                label="ชื่อธุรกิจ"
+                label="Business Name"
                 value={settings.businessName}
                 onChange={(event) => updateSettingsField("businessName", event.target.value)}
-                placeholder="ชื่อแบรนด์ของคุณ"
+                placeholder="Your brand or business name"
               />
             </div>
             <SettingsField
-              label="โทนการเขียนหลัก"
+              label="Brand Voice"
               value={settings.brandVoice}
               onChange={(event) => updateSettingsField("brandVoice", event.target.value)}
-              placeholder="เช่น เป็นกันเอง น่าเชื่อถือ"
+              placeholder="Friendly, confident, professional"
             />
           </div>
         </div>
@@ -159,9 +165,9 @@ function SettingsPage({
                     <div className="flex items-center gap-2">
                       <button 
                          onClick={() => {
-                           const status = settings.imageProvider === 'mock' ? 'Success: Mock is ready' :
-                                          settings.openaiApiKey ? 'Success: OpenAI API Key found' : 
-                                          'Error: Missing OpenAI API Key';
+                           const status = settings.imageProvider === "mock" ? "Success: Mock is ready" :
+                                          settings.openaiApiKey ? "Success: OpenAI API Key found" : 
+                                          "Error: Missing OpenAI API Key";
                            window.alert(status);
                          }}
                          className="text-[9px] font-bold text-cyan-500 uppercase hover:underline"
@@ -178,7 +184,7 @@ function SettingsPage({
                     options={[
                       { value: "mock", label: "Mock Mode (Default)" },
                       { value: "gpt-image", label: "GPT Image" },
-                      { value: "dalle", label: "DALL·E" },
+                      { value: "dalle", label: "DALL-E" },
                     ]}
                   />
                   <ProviderHelper provider={settings.imageProvider} />
@@ -239,7 +245,7 @@ function SettingsPage({
                   label="Page Display Name"
                   value={activeWorkspacePage?.label || settings.workspaceName}
                   placeholder="Page Name"
-                  onChange={() => {}} // UI only
+                  onChange={() => {}}
                 />
              </div>
              <div className="grid gap-4 md:grid-cols-2 border-t border-white/5 pt-4">
@@ -248,9 +254,7 @@ function SettingsPage({
                    <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-950/50 border border-white/5">
                       <div className="h-1.5 w-1.5 rounded-full bg-emerald-500"></div>
                       <span className="text-xs text-slate-400">
-                        {activePageReadiness.pageConfigReady
-                          ? "Page-Specific Config Ready"
-                          : "Using Global FB Settings"}
+                        {activePageReadiness.pageConfigReady ? "Page-Specific Config Ready" : "Using Global FB Settings"}
                       </span>
                    </div>
                 </div>
@@ -262,7 +266,7 @@ function SettingsPage({
                 </div>
              </div>
              <p className="text-[10px] text-slate-500 italic">
-               Note: Publishing currently uses the stable Facebook configuration. Multi-page routing is in foundation stage.
+               Publishing now resolves through a guarded page-aware config selector. Global V1 remains the fallback path.
              </p>
              <div className="rounded-xl border border-white/5 bg-slate-950/30 p-3 text-[10px]">
                <div className="flex flex-wrap items-center gap-2">
@@ -274,19 +278,32 @@ function SettingsPage({
                    {activePageReadiness.pageConfigReady ? "Page Ready" : "Page Fallback"}
                  </span>
                  <span className="rounded-full bg-cyan-500/10 px-2 py-0.5 font-bold uppercase tracking-wider text-cyan-400">
-                   Execute: {activePageReadiness.effectiveExecutionLabel}
+                   Execute: {activePageEffectivePublish.effectivePublishLabel}
+                 </span>
+                 <span className={`rounded-full px-2 py-0.5 font-bold uppercase tracking-wider ${
+                   activePageEffectivePublish.livePerPagePublishStatus === "Active"
+                     ? "bg-emerald-500/10 text-emerald-400"
+                     : activePageEffectivePublish.livePerPagePublishStatus === "Fallback"
+                       ? "bg-amber-500/10 text-amber-400"
+                       : activePageEffectivePublish.livePerPagePublishStatus === "Blocked"
+                         ? "bg-rose-500/10 text-rose-400"
+                         : "bg-slate-500/10 text-slate-400"
+                 }`}>
+                   Per-Page Live: {activePageEffectivePublish.livePerPagePublishStatus}
                  </span>
                </div>
                <p className="mt-2 text-slate-400">
-                 Page ID: {activePageReadiness.hasPageSpecificPageId ? "present" : "missing"} · Token: {activePageReadiness.hasPageSpecificToken ? "present" : "missing"}
+                 Page ID: {activePageReadiness.hasPageSpecificPageId ? "present" : "missing"} | Token: {activePageReadiness.hasPageSpecificToken ? "present" : "missing"}
                </p>
-               {activePageReadiness.fallbackReason && (
-                 <p className="mt-1 text-slate-500 italic">{activePageReadiness.fallbackReason}</p>
+               {(activePageEffectivePublish.fallbackReason || activePageEffectivePublish.blockedReason) && (
+                 <p className="mt-1 text-slate-500 italic">
+                   {activePageEffectivePublish.blockedReason || activePageEffectivePublish.fallbackReason}
+                 </p>
                )}
                <div className="mt-3 rounded-lg border border-cyan-500/10 bg-cyan-500/5 p-2">
                  <p className="font-bold uppercase tracking-wider text-cyan-400">{activePageDryRun.dryRunLabel}</p>
                  <p className="mt-1 text-slate-400">
-                   Would resolve to `{activePageDryRun.resolvedPageLabel}` ({activePageDryRun.resolvedPageId}) while actual execution stays on {activePageDryRun.effectiveExecutionLabel}.
+                   Would resolve to `{activePageDryRun.resolvedPageLabel}` ({activePageDryRun.resolvedPageId}) while actual execution uses {activePageEffectivePublish.effectivePublishLabel}.
                  </p>
                </div>
              </div>
@@ -313,13 +330,13 @@ function SettingsPage({
                secret
              />
              <SettingsField
-               label="Page ID"
+               label="Global Page ID"
                value={settings.facebookPageId}
                onChange={(event) => updateSettingsField("facebookPageId", event.target.value)}
                placeholder="Page ID"
              />
              <SettingsField
-               label="Page Access Token"
+               label="Global Page Access Token"
                value={settings.facebookPageAccessToken}
                onChange={(event) => updateSettingsField("facebookPageAccessToken", event.target.value)}
                placeholder="EAAG..."
@@ -330,7 +347,7 @@ function SettingsPage({
 
         <div className="pt-2">
           <ActionButton
-            label="บันทึกการตั้งค่า (Save Settings)"
+            label="Save Settings"
             icon={CheckCircle2}
             isLoading={isSavingSettings}
             onClick={handleSaveSettings}
@@ -346,7 +363,6 @@ function SettingsPage({
         </div>
       </div>
 
-      {/* Right Panel: Summary & Status */}
       <div className="space-y-6">
         <div className="rounded-2xl border border-cyan-500/10 bg-cyan-500/5 p-6 shadow-sm">
           <div className="mb-4 flex items-center gap-2">
@@ -382,7 +398,7 @@ function SettingsPage({
               </div>
               {settings.facebookPublishMode === "live" && (
                 <p className="mt-3 text-[10px] text-rose-400 bg-rose-400/10 p-2 rounded border border-rose-400/20 italic">
-                  ⚠️ ระวัง: การโพสต์จะส่งข้อมูลไปที่ Facebook จริง
+                  Live mode is enabled. Page-specific live publish only activates when the selected page has a complete Facebook page ID and access token.
                 </p>
               )}
             </div>
@@ -394,15 +410,15 @@ function SettingsPage({
                   type="button"
                   onClick={() => updateSettingsField("schedulerEnabled", !settings.schedulerEnabled)}
                   className={`relative inline-flex h-5 w-10 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                    settings.schedulerEnabled ? 'bg-cyan-500' : 'bg-slate-700'
+                    settings.schedulerEnabled ? "bg-cyan-500" : "bg-slate-700"
                   }`}
                 >
                   <span className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                    settings.schedulerEnabled ? 'translate-x-5' : 'translate-x-0'
+                    settings.schedulerEnabled ? "translate-x-5" : "translate-x-0"
                   }`} />
                 </button>
                 <span className="text-xs font-medium text-slate-300">
-                  {settings.schedulerEnabled ? 'เปิดใช้งานอยู่' : 'ปิดใช้งานอยู่'}
+                  {settings.schedulerEnabled ? "Enabled" : "Disabled"}
                 </span>
               </div>
             </div>
@@ -424,14 +440,14 @@ function SettingsPage({
                 <span className="text-[11px] text-slate-300">{maskSecret(settings.geminiApiKey)}</span>
               </div>
               <div className="flex justify-between items-center rounded-lg bg-slate-950/40 p-3">
-                <span className="text-[11px] text-slate-500">FB Page ID</span>
+                <span className="text-[11px] text-slate-500">Global FB Page ID</span>
                 <span className="text-[11px] text-slate-300">{settings.facebookPageId || "-"}</span>
               </div>
               <div className="flex flex-col rounded-lg border border-white/5 bg-slate-950/40 p-3">
                 <div className="flex items-center gap-2">
                    {isFbConfigured ? <CheckCircle2 className="h-3 w-3 text-emerald-500" /> : <AlertCircle className="h-3 w-3 text-amber-500" />}
-                   <span className={`text-[11px] font-bold ${isFbConfigured ? 'text-emerald-500' : 'text-amber-500'}`}>
-                      {isFbConfigured ? 'Facebook: Configured' : 'Facebook: Incomplete'}
+                   <span className={`text-[11px] font-bold ${isFbConfigured ? "text-emerald-500" : "text-amber-500"}`}>
+                      {isFbConfigured ? "Global Facebook Configured" : "Global Facebook Incomplete"}
                    </span>
                 </div>
               </div>
@@ -453,7 +469,7 @@ function SettingsPage({
             <div>
               <p className="text-[10px] uppercase tracking-wide text-slate-500">Anon Key Protection</p>
               <div className="mt-1 flex items-center gap-1.5 text-[11px] text-slate-400">
-                 <div className={`h-1.5 w-1.5 rounded-full ${envSnapshot.hasAnonKey ? 'bg-emerald-500' : 'bg-rose-500'}`}></div>
+                 <div className={`h-1.5 w-1.5 rounded-full ${envSnapshot.hasAnonKey ? "bg-emerald-500" : "bg-rose-500"}`}></div>
                  {envSnapshot.hasAnonKey ? "Loaded securely from .env" : "Missing environment config"}
               </div>
             </div>
