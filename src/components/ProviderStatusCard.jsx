@@ -1,11 +1,13 @@
 import React from "react";
 import { Zap, ShieldCheck, Info } from "lucide-react";
 import { TEXT_PROVIDERS, IMAGE_PROVIDERS } from "../constants/appConstants";
+import { getProviderLabel, getTextProviderRuntime } from "../services/ai-generation.js";
 
-export default function ProviderStatusCard({ settings }) {
+export default function ProviderStatusCard({ settings, textProviderRuntime: runtimeOverride = null }) {
   const textProv = TEXT_PROVIDERS.find(p => p.id === settings.textProvider) || TEXT_PROVIDERS[0];
   const imageProv = IMAGE_PROVIDERS.find(p => p.id === settings.imageProvider) || IMAGE_PROVIDERS[0];
   const isFbLive = settings.facebookPublishMode === "live";
+  const textRuntime = getTextProviderRuntime(settings, runtimeOverride);
 
   function getStatus(providerId, settings) {
     if (providerId === "mock") return { label: "Ready", color: "text-emerald-400 bg-emerald-400/10" };
@@ -20,7 +22,9 @@ export default function ProviderStatusCard({ settings }) {
       : { label: "Requires API Key", color: "text-rose-400 bg-rose-400/10" };
   }
 
-  const textStatus = getStatus(settings.textProvider, settings);
+  const textStatus = textRuntime.tone === "warning"
+    ? { label: textRuntime.statusLabel, color: "text-amber-400 bg-amber-400/10" }
+    : { label: textRuntime.statusLabel, color: "text-emerald-400 bg-emerald-400/10" };
   const imageStatus = getStatus(settings.imageProvider, settings);
 
   return (
@@ -34,11 +38,15 @@ export default function ProviderStatusCard({ settings }) {
         <div className="space-y-1">
           <p className="text-[9px] font-bold text-slate-500 uppercase tracking-tighter">Text Generation</p>
           <div className="flex items-center gap-2">
-            <span className="text-xs font-semibold text-slate-200">{textProv.label}</span>
+            <span className="text-xs font-semibold text-slate-200">
+              {textProv.label}
+              {textRuntime.activeProvider !== settings.textProvider ? ` -> ${getProviderLabel(textRuntime.activeProvider)}` : ""}
+            </span>
             <span className={`px-1.5 py-0.5 rounded-full text-[8px] font-bold uppercase ${textStatus.color}`}>
               {textStatus.label}
             </span>
           </div>
+          <p className="text-[9px] text-slate-500 italic">{textRuntime.detail}</p>
         </div>
 
         <div className="space-y-1">

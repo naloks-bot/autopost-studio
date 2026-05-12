@@ -1,34 +1,126 @@
 import { logger } from "./logger.js";
 
-/**
- * AI Generation Service
- * Handles building prompts and calling AI models (OpenAI/Gemini)
- * Updated: Replaced xAI with Google Gemini 2.5 Flash
- */
+const PROVIDER_LABELS = {
+  mock: "Mock",
+  openai: "OpenAI",
+  gemini: "Gemini",
+  codex: "Codex CLI",
+};
 
-/**
- * Determines the AI provider based on available settings
- * @param {Object} settings - App settings
- * @returns {"openai" | "gemini" | "mock"}
- */
-export function getAIProvider(settings) {
-  const preferred = settings?.aiProvider?.toLowerCase();
-  if (preferred === "openai" && settings.openaiApiKey) return "openai";
-  if (preferred === "gemini" && settings.geminiApiKey) return "gemini";
-  if (preferred === "mock") return "mock";
+function hasOpenAIKey(settings) {
+  return Boolean(settings?.openaiApiKey?.trim());
+}
 
-  // Auto-detection fallback
-  if (settings?.openaiApiKey && settings.openaiApiKey.startsWith("sk-")) {
-    return "openai";
+function hasGeminiKey(settings) {
+  return Boolean(settings?.geminiApiKey?.trim());
+}
+
+function getPreferredTextProvider(settings) {
+  return settings?.textProvider?.toLowerCase() || settings?.aiProvider?.toLowerCase() || "mock";
+}
+
+export function getProviderLabel(provider) {
+  return PROVIDER_LABELS[provider] || "Unknown";
+}
+
+export function getTextProviderRuntime(settings, lastResult = null) {
+  const preferred = getPreferredTextProvider(settings);
+
+  let runtime;
+  if (preferred === "mock") {
+    runtime = {
+      selectedProvider: "mock",
+      activeProvider: "mock",
+      statusLabel: "Ready",
+      detail: "Mock mode active",
+      tone: "ready",
+    };
+  } else if (preferred === "openai") {
+    runtime = hasOpenAIKey(settings)
+      ? {
+          selectedProvider: "openai",
+          activeProvider: "openai",
+          statusLabel: "Ready",
+          detail: "OpenAI key detected",
+          tone: "ready",
+        }
+      : {
+          selectedProvider: "openai",
+          activeProvider: "mock",
+          statusLabel: "Fallback to Mock",
+          detail: "OpenAI key missing",
+          tone: "warning",
+        };
+  } else if (preferred === "gemini") {
+    runtime = hasGeminiKey(settings)
+      ? {
+          selectedProvider: "gemini",
+          activeProvider: "gemini",
+          statusLabel: "Ready",
+          detail: "Gemini key detected",
+          tone: "ready",
+        }
+      : {
+          selectedProvider: "gemini",
+          activeProvider: "mock",
+          statusLabel: "Fallback to Mock",
+          detail: "Gemini key missing",
+          tone: "warning",
+        };
+  } else if (preferred === "codex") {
+    runtime = {
+      selectedProvider: "codex",
+      activeProvider: "mock",
+      statusLabel: "Planned / Mock",
+      detail: "Codex CLI is not active in Phase A",
+      tone: "warning",
+    };
+  } else {
+    runtime = {
+      selectedProvider: "mock",
+      activeProvider: "mock",
+      statusLabel: "Ready",
+      detail: "Mock mode active",
+      tone: "ready",
+    };
   }
-  if (settings?.geminiApiKey && settings.geminiApiKey.length > 20) {
-    return "gemini";
+
+  if (!lastResult || lastResult.requestedProvider !== runtime.selectedProvider) {
+    return runtime;
   }
-  return "mock";
+
+  if (lastResult.mode === "mock" && runtime.selectedProvider !== "mock") {
+    return {
+      ...runtime,
+      activeProvider: "mock",
+      statusLabel: "Fallback Used",
+      detail: lastResult.error || runtime.detail,
+      tone: "warning",
+    };
+  }
+
+  if (lastResult.mode === runtime.selectedProvider && runtime.selectedProvider !== "mock") {
+    return {
+      ...runtime,
+      statusLabel: "Active",
+      detail: `Last run used ${getProviderLabel(runtime.selectedProvider)}`,
+      tone: "ready",
+    };
+  }
+
+  return runtime;
 }
 
 /**
- * Builds a structured prompt for social media post generation
+ * Determines the AI provider based on available settings.
+ * This stays aligned with text routing during Phase A.
+ */
+export function getAIProvider(settings) {
+  return getTextProviderRuntime(settings).activeProvider;
+}
+
+/**
+ * Builds a structured prompt for social media post generation.
  */
 export function buildContentPrompt(formData, settings) {
   const voice = settings.brandVoice || "Professional";
@@ -43,7 +135,7 @@ Platform: Facebook/Instagram`;
 }
 
 /**
- * Builds a prompt for generating an image to accompany the post
+ * Builds a prompt for generating an image to accompany the post.
  */
 export function buildImagePrompt(formData, settings) {
   const topic = formData.topic || "Abstract concept";
@@ -52,14 +144,26 @@ export function buildImagePrompt(formData, settings) {
   return `High-quality social media visual for "${topic}". ${voice} style, clean composition, vibrant colors, premium lighting, 4k resolution, optimized for social media engagement.`;
 }
 
+async function generateMockText(formData, settings, meta = {}) {
+  await new Promise((resolve) => setTimeout(resolve, 1000));
+
+  return {
+    data: `[Mock Generated Content]\n\nTopic: ${formData.topic}\n\nThis is mock AI-generated content for ${settings.businessName || "your business"} using a ${settings.brandVoice || "professional"} brand voice.\n\nThe post highlights the audience problem, introduces the offer clearly, and ends with a strong call to action.`,
+    error: meta.error || null,
+    mode: "mock",
+    requestedProvider: meta.requestedProvider || "mock",
+    fallbackReason: meta.fallbackReason || null,
+  };
+}
+
 /**
- * Real OpenAI API call for text generation
+ * Real OpenAI API call for text generation.
  */
 async function generateWithOpenAI(prompt, apiKey, model = "gpt-4o-mini") {
   if (!apiKey) {
     return {
       data: null,
-      error: "ไม่พบ OpenAI API Key ในการตั้งค่า",
+      error: "OpenAI API key is missing",
       mode: "openai",
     };
   }
@@ -93,7 +197,7 @@ async function generateWithOpenAI(prompt, apiKey, model = "gpt-4o-mini") {
     if (!content) {
       return {
         data: null,
-        error: "OpenAI ไม่ได้ส่งเนื้อหากลับมาในรูปแบบที่ถูกต้อง",
+        error: "OpenAI returned no message content",
         mode: "openai",
       };
     }
@@ -106,20 +210,20 @@ async function generateWithOpenAI(prompt, apiKey, model = "gpt-4o-mini") {
   } catch (error) {
     return {
       data: null,
-      error: `เครือข่ายขัดข้อง: ${error.message}`,
+      error: `Network error: ${error.message}`,
       mode: "openai",
     };
   }
 }
 
 /**
- * Real Google Gemini API call for text generation
+ * Real Google Gemini API call for text generation.
  */
 async function generateWithGemini(prompt, apiKey, model = "gemini-2.5-flash") {
   if (!apiKey) {
     return {
       data: null,
-      error: "ไม่พบ Gemini API Key ในการตั้งค่า",
+      error: "Gemini API key is missing",
       mode: "gemini",
     };
   }
@@ -157,7 +261,7 @@ async function generateWithGemini(prompt, apiKey, model = "gemini-2.5-flash") {
     if (!content) {
       return {
         data: null,
-        error: "Gemini ไม่ได้ส่งเนื้อหากลับมาในรูปแบบที่ถูกต้อง",
+        error: "Gemini returned no message content",
         mode: "gemini",
       };
     }
@@ -170,56 +274,82 @@ async function generateWithGemini(prompt, apiKey, model = "gemini-2.5-flash") {
   } catch (error) {
     return {
       data: null,
-      error: `เครือข่ายขัดข้อง: ${error.message}`,
+      error: `Network error: ${error.message}`,
       mode: "gemini",
     };
   }
 }
 
 /**
- * Generates post content using the appropriate provider
+ * Generates post content using the appropriate provider.
  */
 export async function generatePostContent({ formData, settings }) {
   if (!formData?.topic || formData.topic.trim().length < 5) {
     return {
       data: null,
-      error: "กรุณาใส่หัวข้อโพสต์อย่างน้อย 5 ตัวอักษร เพื่อให้ AI มีข้อมูลเพียงพอในการสร้างเนื้อหา",
+      error: "Please enter at least 5 characters for the topic before generating content.",
       mode: "mock",
+      requestedProvider: getPreferredTextProvider(settings),
+      fallbackReason: null,
     };
   }
 
   try {
-    const provider = getAIProvider(settings);
+    const runtime = getTextProviderRuntime(settings);
     const prompt = buildContentPrompt(formData, settings);
 
+    if (runtime.activeProvider === "mock") {
+      const result = await generateMockText(formData, settings, {
+        requestedProvider: runtime.selectedProvider,
+        error: runtime.selectedProvider === "mock" ? null : `${runtime.detail}. Using Mock fallback.`,
+        fallbackReason: runtime.detail,
+      });
+      logger.info(`Text generation complete. Mode: ${result.mode}`);
+      return result;
+    }
+
     let result;
-    if (provider === "openai") {
+    if (runtime.activeProvider === "openai") {
       result = await generateWithOpenAI(prompt, settings.openaiApiKey, settings.openaiModel);
-    } else if (provider === "gemini") {
-      result = await generateWithGemini(prompt, settings.geminiApiKey, settings.geminiModel);
     } else {
-      // Fallback to Mock
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      const mockData = `[Mock Generated Content]\n\nหัวข้อ: ${formData.topic}\n\nนี่คือตัวอย่างเนื้อหาที่ถูกสร้างขึ้นโดย AI สำหรับ ${settings.businessName || "ธุรกิจของคุณ"} โดยเน้นโทนเสียงแบบ ${settings.brandVoice || "มืออาชีพ"}\n\nเนื้อหาประกอบด้วยการชี้ปัญหาของลูกค้า แนะนำบริการ และปิดท้ายด้วย Call to Action ที่ชัดเจน!`;
-      result = { data: mockData, error: null, mode: "mock" };
+      result = await generateWithGemini(prompt, settings.geminiApiKey, settings.geminiModel);
+    }
+
+    if (!result.data) {
+      logger.warn(`Primary text provider failed. Falling back to mock. Provider: ${runtime.selectedProvider}`);
+      result = await generateMockText(formData, settings, {
+        requestedProvider: runtime.selectedProvider,
+        error: `${getProviderLabel(runtime.selectedProvider)} failed. Using Mock fallback. ${result.error}`,
+        fallbackReason: result.error,
+      });
+    } else {
+      result = {
+        ...result,
+        requestedProvider: runtime.selectedProvider,
+        fallbackReason: null,
+      };
     }
 
     logger.info(`Text generation complete. Mode: ${result.mode}`);
     return result;
   } catch (err) {
     logger.error("Text generation failed:", err);
-    return { data: null, error: err.message, mode: "mock" };
+    return generateMockText(formData, settings, {
+      requestedProvider: getPreferredTextProvider(settings),
+      error: `Unexpected error. Using Mock fallback. ${err.message}`,
+      fallbackReason: err.message,
+    });
   }
 }
 
 /**
- * Generates an image prompt using the appropriate provider
+ * Generates an image prompt using the appropriate provider.
  */
 export async function generateImagePrompt({ formData, settings }) {
   if (!formData?.topic || formData.topic.trim().length < 5) {
     return {
       data: null,
-      error: "กรุณาใส่หัวข้อโพสต์อย่างน้อย 5 ตัวอักษร ก่อนสร้าง Prompt รูป",
+      error: "Please enter at least 5 characters for the topic before generating an image prompt.",
       mode: "mock",
     };
   }
@@ -245,7 +375,6 @@ export async function generateImagePrompt({ formData, settings }) {
     };
   }
 
-  // Fallback to Mock
   await new Promise((resolve) => setTimeout(resolve, 800));
   const mockPrompt = `Premium visual of ${formData.topic}, ${settings.brandVoice || "elegant"} aesthetic, professional photography style.`;
 

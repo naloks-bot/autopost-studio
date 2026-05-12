@@ -48,7 +48,7 @@ export default function PromptAssistCard({ settings, metadata }) {
         </div>
         <div className="flex items-center gap-1.5 text-slate-500">
            <Info className="h-3 w-3" />
-           <p className="text-[9px] italic line-clamp-1">Planning mode: Routing to AI engine coming in future phase.</p>
+           <p className="text-[9px] italic line-clamp-1">Phase A: Text routing is active. Image routing remains on the existing stable flow.</p>
         </div>
       </div>
     </div>

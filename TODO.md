@@ -1,85 +1,115 @@
-# AutoPost Studio — MVP Production Activation Plan
+# TODO
 
-## Foundation Status: ✅ STABLE
+## Current Status
 
-UI Foundation work is complete (Batches 1–4). No backend, publishing, or scheduler logic was changed during the UI foundation phase. Mock mode remains the default. Production publishing uses the existing stable V1 flow.
-
----
-
-## UI Foundation — Completed (Batches 1–4)
-
-| Area | Status |
-|---|---|
-| AI Provider System V2 UI (dropdowns, badges, status) | ✅ Complete |
-| Multi-Page Workspace UI (selector, context card, settings) | ✅ Complete |
-| Content Metadata UI (Type, Tone, Length, CTA) | ✅ Complete |
-| Prompt Assist (brief generator, copy button) | ✅ Complete |
-| AI Image Studio UI (aspect ratio, style presets) | ✅ Complete |
-| Preview Studio UI (mobile/desktop post preview) | ✅ Complete |
-| Scheduler / Queue UI (dashboard, slots, status badges) | ✅ Complete |
-| AI Library UI (images, prompts, captions, templates) | ✅ Complete |
-| System Logs Viewer UI (terminal, categories, filters) | ✅ Complete |
-| Production UI QA Pass | ✅ Complete |
+UI foundation is stable. No backend, publishing, or scheduler execution changes were introduced during the UI phase. Mock mode remains the default. The next work should follow the consolidated low-churn roadmap below.
 
 ---
 
-## MVP Production Activation Plan
+# Development Rules
 
-### Batch 5 — Real AI Routing MVP
-> Connect existing provider selectors to real generation services.
-
-- Route text generation to Gemini API (when key is present)
-- Route text generation to OpenAI API (when key is present)
-- Mock fallback when no key is configured
-- Use existing `ai-generation.js` service; no new services yet
-- **No Codex CLI execution yet**
-- **No provider failover engine yet**
-
-### Batch 6 — Real Image + End-to-End Publish QA
-> Wire image provider selector into existing image generation flow.
-
-- Connect image provider selector to current image generation service
-- Align GPT Image / DALL·E naming if supported by existing service
-- Full end-to-end QA: Generate → Preview → Save Draft → Schedule → Publish
-- Keep existing scheduler backend unchanged
-
-### Batch 7 — Production Activation + Safety Hardening
-> Final safety checks before calling the system production-ready.
-
-- Settings validation (API key presence checks with clear error messages)
-- Mock / Live mode safety review
-- Final build, git tag, and docs
+1. Prefer large safe batches over micro-phases.
+2. Preserve stable publish flow and scheduler stability.
+3. Never weaken mock-mode safety.
+4. Prefer extension over replacement.
+5. Avoid unnecessary rewrites, abstractions, and file churn.
+6. Commit only at meaningful milestones.
+7. Update docs only after meaningful milestones, and keep all three project docs synchronized.
+8. Do not expand backend/database architecture before the controlled expansion phase unless required for production safety.
 
 ---
 
-## Deferred / Post-MVP
+# Roadmap
 
-> ⚠️ Do NOT start the following without a dedicated controlled phase.
+## Phase A - MVP Production Activation
 
-- Supabase `pages` table + per-page token routing
-- Scheduler queue processor V2 (Edge Functions)
-- Real persistent logging system
-- AI Library database storage
-- Analytics system
-- Auth / SaaS / Billing infrastructure
-- Codex CLI real execution
-- Advanced provider failover engine
+Goal:
+Production-safe real AI generation MVP with minimal architecture changes.
+
+### In Scope
+
+* Connect text provider routing to existing real generation services
+* Add runtime validation for provider readiness
+* Ensure provider badges/status reflect actual routing state
+* Connect image provider selection to the current image generation flow
+* Run end-to-end generation QA across generate, preview, draft, schedule, and publish flows
+
+### Completed In This Milestone
+
+* Real text provider routing through the existing `ai-generation.js` service
+* Gemini API routing
+* OpenAI API routing
+* Safe Mock fallback for unavailable or failing text providers
+* Runtime text provider status updates in the current UI
+
+### Constraints
+
+* Use existing stable services where possible
+* No major refactor
+* No scheduler redesign
+* No database expansion unless absolutely necessary for MVP safety
+
+## Phase B - Production Safety + Stabilization
+
+Goal:
+Stable low-cost production operation.
+
+### In Scope
+
+* Improve error handling
+* Harden validation paths
+* Perform scheduler QA
+* Perform publish QA
+* Harden settings behavior
+* Stabilize build/release behavior
+
+### Constraints
+
+* Focus on reliability, not feature expansion
+* Preserve current stable backend behavior
+
+## Phase C - Controlled Backend Expansion
+
+Goal:
+Expand backend capabilities only after MVP stability is proven.
+
+### In Scope
+
+* Multi-page database architecture
+* Queue processor V2
+* Logs persistence
+* Analytics foundation
+
+### Constraints
+
+* No premature optimization
+* No unnecessary schema growth
+* No scheduler redesign before proven need
 
 ---
 
-## Development Rules
+# Deferred Until Phase C or Later
 
-1. Minimal safe changes only
-2. Preserve stable backend behavior
-3. Never break mock mode
-4. Build test every batch
-5. Update docs every batch
-6. Commit & push every batch
-7. Prefer large safe UI batches over tiny fragmented phases
-8. Backend/database/API changes must be done in dedicated controlled phases only
+* Supabase `pages` table and per-page token routing
+* Queue processor redesign
+* Persistent logs storage
+* Analytics implementation
+* Auth / SaaS / billing
+* Codex CLI execution
+* Advanced provider failover
 
 ---
 
-## Architecture Freeze Note
+# Milestone Tracking
 
-> ⚠️ Do not start backend or database routing work without a dedicated controlled phase. Mock mode and production safety are the default.
+## Ready Now
+
+* Phase A implementation batch
+
+## After Phase A Is Stable
+
+* Phase B stabilization batch
+
+## After Phase B Is Stable
+
+* Phase C controlled backend expansion

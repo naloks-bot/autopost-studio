@@ -9,6 +9,7 @@ import WorkspaceContextCard from "../components/WorkspaceContextCard.jsx";
 import PromptAssistCard from "../components/PromptAssistCard.jsx";
 import ImageStudioCard from "../components/ImageStudioCard.jsx";
 import PreviewStudioCard from "../components/PreviewStudioCard.jsx";
+import { getProviderLabel } from "../services/ai-generation.js";
 
 function CreatePage({
   form,
@@ -23,6 +24,7 @@ function CreatePage({
   isGeneratingImage: isGeneratingImageProp,
   isSavingDraft,
   generationError,
+  textProviderRuntime,
 }) {
   const [generatedImage, setGeneratedImage] = useState(null);
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
@@ -104,7 +106,7 @@ function CreatePage({
       {/* Left Panel: Inputs & Controls */}
       <div className="space-y-6">
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-1">
-          <ProviderStatusCard settings={settings} />
+          <ProviderStatusCard settings={settings} textProviderRuntime={textProviderRuntime} />
           <WorkspaceContextCard settings={settings} />
         </div>
 
@@ -163,7 +165,9 @@ function CreatePage({
           <div className="mb-4 flex items-center justify-between">
             <h3 className="text-sm font-semibold text-cyan-400 uppercase tracking-wider">Topic & Content</h3>
             <div className="flex items-center gap-2">
-               <span className="text-[9px] font-bold text-slate-500 uppercase">Provider: {settings.textProvider}</span>
+               <span className="text-[9px] font-bold text-slate-500 uppercase">
+                 Provider: {getProviderLabel(textProviderRuntime?.activeProvider || settings.textProvider)}
+               </span>
             </div>
           </div>
           <textarea

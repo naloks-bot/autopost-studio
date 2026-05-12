@@ -20,7 +20,7 @@ import {
   saveRemoteSettings,
   updateRemotePostStatus,
 } from "../services/supabase.js";
-import { generateImagePrompt, generatePostContent } from "../services/ai-generation.js";
+import { generateImagePrompt, generatePostContent, getTextProviderRuntime } from "../services/ai-generation.js";
 import { publishFacebookPost, validateFacebookConfig } from "../services/facebook.js";
 import { runSchedulerTick } from "../services/scheduler.js";
 
@@ -108,6 +108,7 @@ function App() {
   const [isSavingSettings, setIsSavingSettings] = useState(false);
   const [generationError, setGenerationError] = useState("");
   const [schedulerStatus, setSchedulerStatus] = useState(null);
+  const [lastTextGeneration, setLastTextGeneration] = useState(null);
 
   const schedulerLock = useRef(false);
   const dataLock = useRef(false);
@@ -189,7 +190,8 @@ function App() {
     setGenerationError("");
     const result = await generatePostContent({ formData: form, settings });
     if (result.data) updateForm("content", result.data);
-    else if (result.error) setGenerationError(result.error);
+    setLastTextGeneration(result);
+    setGenerationError(result.error || "");
     setIsGenerating(false);
   }
 
@@ -305,6 +307,7 @@ function App() {
 
   const currentSettingsStatus = statusCopy[settingsSyncMode] ?? statusCopy.error;
   const SettingsStatusIcon = currentSettingsStatus.icon;
+  const textProviderRuntime = getTextProviderRuntime(settings, lastTextGeneration);
 
   return (
     <div className="flex h-screen overflow-hidden bg-slate-950 font-sans text-slate-200">
@@ -321,7 +324,7 @@ function App() {
           onToggleTheme={() => setIsDark(!isDark)}
           connectionMode={connectionMode}
           fbMode={validateFacebookConfig(settings) ? settings.facebookPublishMode : "missing"}
-          aiProvider={settings.aiProvider}
+          textProviderRuntime={textProviderRuntime}
           onOpenGuide={() => setIsGuideOpen(true)}
           settings={settings}
           onPageChange={(val) => updateSettingsField("activePageId", val)}
@@ -336,6 +339,7 @@ function App() {
                 handleGenerateImagePreview={handleGenerateImagePreview} handleSaveDraft={handleSaveDraft}
                 isGenerating={isGenerating} isGeneratingImagePrompt={isGeneratingImagePrompt}
                 isGeneratingImage={isGeneratingImage} isSavingDraft={isSavingDraft} generationError={generationError}
+                textProviderRuntime={textProviderRuntime}
               />
             )}
             {activeTab === "settings" && (

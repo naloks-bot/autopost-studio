@@ -1,14 +1,30 @@
-# Roadmap Consolidation
+# Architecture
 
-The roadmap has been consolidated into larger safe batches to reduce command overhead.
+## Operating Principle
 
-### Batch Execution Plan — Tonight's Session Complete ✅
-*   **Batch 1**: Content + Image Workflow V2 + Preview Studio UI — ✅ Complete
-*   **Batch 2**: Scheduler + Queue UI Foundation — ✅ Complete
-*   **Batch 3**: AI Library + Logs UI Foundation — ✅ Complete
-*   **Batch 4**: Final QA + Docs Stabilization — ✅ Complete
+AutoPost Studio is being built as an AI-assisted Facebook content operating system with a strict bias toward low-cost, production-safe, minimal-churn development.
 
-> ⚠️ **Architecture Freeze Note**: Do not start backend/database routing work without a dedicated controlled phase. Mock mode and production safety remain the default.
+The architecture must optimize for:
+
+* stable publishing behavior
+* safe mock-mode defaults
+* minimal backend churn
+* controlled expansion
+* rollback-friendly milestones
+
+---
+
+# Development Strategy
+
+## Permanent Workflow Rules
+
+1. Prefer large safe batches over fragmented micro-phases.
+2. Extend stable systems instead of replacing them.
+3. Avoid unnecessary abstractions, rewrites, and speculative architecture.
+4. Keep documentation updates milestone-based, not tweak-based.
+5. Commit only at meaningful stable checkpoints.
+
+These workflow rules are part of the architecture strategy because they directly protect system stability and keep the codebase lean.
 
 ---
 
@@ -16,18 +32,16 @@ The roadmap has been consolidated into larger safe batches to reduce command ove
 
 ## System Direction
 
-AutoPost Studio is evolving into a:
+The target system direction remains:
 
-AI-powered Facebook Content Operating System
-
-The system architecture is designed around:
-
-* Low-cost AI operations
-* Multi-page management
-* AI-assisted content generation
-* Automated publishing workflows
+* Multi-provider AI routing
+* Multi-page workspace support
+* Automated but production-safe publishing workflows
 * Persistent cloud-backed operations
-* Future scalability
+* Future queue-driven scheduling
+* Centralized content operations
+
+This direction is valid, but implementation must remain staged and controlled.
 
 ---
 
@@ -37,13 +51,12 @@ The system architecture is designed around:
 
 Responsible for:
 
-* Text generation
-* Prompt generation
-* Image generation
-* AI routing
-* Model selection
-* Provider failover
-* AI memory systems
+* text generation
+* prompt generation
+* image generation
+* provider routing
+* runtime validation
+* model/provider selection
 
 ### Current Providers
 
@@ -51,227 +64,141 @@ Responsible for:
 * Gemini API
 * OpenAI API
 
-### Planned Providers
+### Deferred Providers
 
 * Codex CLI
-* Local models
-* Additional image providers
-
----
+* local models
+* additional image providers
+* advanced failover logic
 
 ## 2. Content Operations Layer
 
 Responsible for:
 
-* Draft management
-* Scheduling
-* Queue processing
-* Publishing
-* Retry systems
-* Logs
-* Automation workflows
-
----
+* draft management
+* scheduling
+* publishing
+* workflow safety
+* validation and error handling
 
 ## 3. Workspace Layer
 
 Responsible for:
 
-* Multi-page support
-* Facebook page management
-* Page-specific AI memory
-* Per-page configurations
-* Per-page automation rules
+* page targeting
+* page-specific settings
+* future multi-page management
+* page-aware content context
 
 ---
 
 # Frontend Architecture
 
-## App Shell
+## Current Stable UI Foundation
 
 * Persistent sidebar
 * Compact header
 * Two-panel workflows
-* Independent scroll regions
-* Modal-based guidance system
+* Prompt Assist flow
+* Image Studio controls
+* Preview Studio
+* Scheduler dashboard visibility
+* AI Library UI
+* Logs viewer UI
 
-## Current Pages
-
-* Create Draft
-* Status
-* Settings
-* Guide Modal
-
-## Planned Pages
-
-* My Pages
-* Scheduler
-* AI Library
-* Logs
-* Analytics
+This UI foundation is considered stable and should be reused during MVP activation instead of being reworked.
 
 ---
 
-# AI Provider System V2 (UI FOUNDATION COMPLETE)
+# Phased Architecture Plan
 
-## Goals
+## Phase A - MVP Production Activation
 
-* Low-cost AI routing (UI Foundation implemented)
-* Runtime provider visibility (Implemented in Create/Settings)
-* Flexible provider switching (UI implemented)
-* Provider validation UI (Implemented in Settings)
-* Future-proof architecture (Constants & Helpers in place)
+Phase A is intentionally narrow. It should connect the existing UI foundation to real AI generation with minimal architecture changes.
 
----
+Scope:
 
-## Text Generation Flow
+* AI provider routing
+* runtime validation
+* provider badge/status accuracy
+* image routing connection
+* end-to-end generation QA
 
-Planned supported providers:
+Architecture rule:
+Use existing services and stable flows wherever possible. Do not introduce large new provider frameworks or backend redesigns during this phase.
 
-* Mock
-* Gemini API
-* OpenAI API
-* Codex CLI
+Current Phase A progress:
 
-The generation service will:
+* Text provider routing is active through the existing `ai-generation.js` service.
+* OpenAI and Gemini now use real text generation requests when configured.
+* Missing or failing text providers fall back safely to Mock mode.
+* Scheduler, publish flow, and Supabase schema remain untouched.
 
-* Detect provider availability
-* Route generation requests
-* Validate provider configuration
-* Return standardized responses
+## Phase B - Production Safety + Stabilization
 
----
+Phase B hardens real-world operation after Phase A is working.
 
-## Image Generation Flow
+Scope:
 
-# AI Image Studio (UI FOUNDATION COMPLETE)
+* error handling
+* validation hardening
+* scheduler QA
+* publish QA
+* settings hardening
+* build stabilization
 
-The Image Studio provides a controlled environment for visual content creation:
+Architecture rule:
+Focus on operational stability, not feature expansion.
 
-*   **Aspect Ratio Support**: 1:1, 4:5, 9:16, 16:9
-*   **Style Presets**: Realistic, Cinematic, Product Promo, Minimal, Fun / Meme
-*   **Prompt Assist**: Integrated metadata-aware briefing.
-*   **Preview Studio**: Real-time visualization of image/content relationship.
+## Phase C - Controlled Backend Expansion
 
-The UI foundation is now in place for future multi-provider routing.
-* Image regeneration
+Phase C begins only after MVP activation and stabilization are proven stable.
 
----
+Scope:
 
-# Multi-Page Workspace Architecture (UI FOUNDATION COMPLETE)
+* multi-page database architecture
+* queue processor V2
+* logs persistence
+* analytics foundation
 
-Each workspace page will contain:
-
-* Page identity
-* Facebook token
-* Brand tone
-* Audience profile
-* Storytelling style
-* Visual style memory
-* Scheduling rules
-
-The content system must always know:
-
-* Which page is targeted
-* Which AI provider generated content
-* Which visual style belongs to the page
-
-The UI foundation is now in place with a global page selector and workspace context tracking.
+Architecture rule:
+Backend expansion must remain controlled. Avoid premature optimization, unnecessary schema growth, or scheduler redesigns before the MVP proves stable.
 
 ---
 
-# Scheduler Architecture V2 (UI FOUNDATION COMPLETE)
+# Data and Backend Guidance
 
-The scheduler system will evolve into:
-
-* Queue-driven architecture
-* Multi-page publishing
-* Time-slot management
-* Retry handling
-* Publish tracking
-
-The UI foundation is now implemented with a dedicated Scheduler Dashboard and Queue Planning visibility.
-
----
-
-# Planned Scheduler Flow
-
-1. Content enters queue
-2. Queue assigned to page
-3. Scheduler validates timing
-4. Publish processor executes post
-5. Logs stored
-6. Analytics updated
-
-# Content Data Model V2 (UI FOUNDATION COMPLETE)
-
-The new model supports granular control over content structure:
-
-* **Content Type**: General Post, Promo, Storytelling, Engagement Question, Announcement
-* **Tone**: Friendly, Professional, Funny, Emotional, Bold
-* **Length**: Short, Medium, Long
-* **CTA**: None, Comment, Share, Inbox, Visit Link
-
-The UI foundation is now implemented with metadata controls and preview visibility tags.
-
----
-
-# Supabase Usage
-
-Supabase remains the operational backbone.
-
-## Current Usage
+## Current Supabase Usage
 
 * Draft storage
 * Settings storage
 * Metadata persistence
 * Generated image tracking
 
-## Planned Usage
+## Deferred Supabase Expansion
 
-* Multi-page data
-* Scheduler queues
-* AI libraries
-* Logs
-* Analytics
-* Cleanup jobs
+Do not expand into the following until Phase C:
 
----
+* multi-page page tables
+* queue processor redesign
+* persistent logs storage
+* analytics data foundation
 
-# Storage Optimization Strategy
-
-Because the system targets low-cost/free operation:
-
-* Old successful posts will auto-clean after 7 days
-* Logs may auto-expire
-* AI image cache may be configurable
-* Supabase free-tier limits must always be respected
+This protects the current stable publish flow and avoids unnecessary backend churn.
 
 ---
 
 # Safety Architecture
 
-The system is intentionally designed to default to safe operation.
+The system must continue to default to safe operation.
 
-## Safety Features
+## Safety Requirements
 
-* Mock publish mode
-* Scheduler enable toggle
-* Manual publish confirmation
-* Provider validation
-* Fail-safe fallbacks
-
----
-
-# Content Workflow V2 (UI FOUNDATION COMPLETE)
-
-The workflow now includes a "Prompt Assist" layer that:
-
-*   **Summarizes Context**: Combines Workspace, Provider, and Content Metadata.
-*   **Generates Briefs**: Creates human-readable summaries of the desired content.
-*   **Enables Manual Flow**: Allows users to copy briefs for manual AI assistance while the automated routing is being built.
-
-This ensures a smooth transition to full AI orchestration in later phases.
+* Mock mode remains the safest default path.
+* Existing publish flow must remain stable.
+* Scheduler behavior must not be destabilized by MVP AI work.
+* Validation should fail safely with clear user feedback.
+* Real-provider activation must be key-gated and production-aware.
 
 ---
 
@@ -279,9 +206,9 @@ This ensures a smooth transition to full AI orchestration in later phases.
 
 1. Minimal-cost operation
 2. Fail-safe publishing
-3. Provider flexibility
-4. Multi-page scalability
-5. Modular AI architecture
+3. Minimal architecture churn
+4. Controlled backend expansion
+5. Provider flexibility without over-engineering
 6. Workflow-first UX
 7. Stable production behavior
 
@@ -289,10 +216,8 @@ This ensures a smooth transition to full AI orchestration in later phases.
 
 # Long-Term Vision
 
-The long-term vision is:
+The long-term vision remains a centralized AI content operating dashboard for multiple Facebook pages, but the path to that outcome must stay disciplined:
 
-* A centralized AI content operating dashboard
-* Capable of managing multiple Facebook pages
-* With AI-assisted automation
-* While maintaining extremely low operational cost
-* And remaining accessible to non-technical users
+* stabilize MVP first
+* harden production safety second
+* expand backend only when justified

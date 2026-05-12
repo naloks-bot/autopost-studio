@@ -6,7 +6,7 @@ function Header({
   onToggleTheme, 
   connectionMode, 
   fbMode, 
-  aiProvider,
+  textProviderRuntime,
   onOpenGuide,
   settings,
   onPageChange
@@ -36,8 +36,17 @@ function Header({
   };
 
   const getAiConfig = () => {
-    const label = aiProvider === "openai" ? "AI: OpenAI" : aiProvider === "gemini" ? "AI: Gemini" : "AI: Mock";
-    return { label, color: "bg-violet-500/10 text-violet-400 border-violet-500/20" };
+    const activeProvider = textProviderRuntime?.activeProvider || "mock";
+    const statusLabel = textProviderRuntime?.statusLabel || "Ready";
+    const label = activeProvider === "openai"
+      ? "AI: OpenAI"
+      : activeProvider === "gemini"
+        ? "AI: Gemini"
+        : "AI: Mock";
+    const color = textProviderRuntime?.tone === "warning"
+      ? "bg-amber-500/10 text-amber-400 border-amber-500/20"
+      : "bg-violet-500/10 text-violet-400 border-violet-500/20";
+    return { label: `${label} · ${statusLabel}`, color };
   };
 
   const db = getSupabaseConfig();

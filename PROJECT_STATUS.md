@@ -1,14 +1,10 @@
 # Project Status
 
-## Current State: Foundation Version Stable ✅
+## Current State: UI Foundation Stable
 
-AutoPost Studio has completed its **UI Foundation phase** (Batches 1–4). The application now has a full studio-grade frontend for AI content creation, multi-page workspace planning, scheduling, library management, and system logging.
+AutoPost Studio has completed its UI foundation milestone. The application now has a full studio-grade frontend for AI content creation, workspace planning, scheduling visibility, asset/library browsing, and system log viewing.
 
-**No backend, publishing, or scheduler logic was changed during the UI foundation phase.**
-Mock mode remains the default. Production publishing uses the existing stable V1 flow.
-
-### Next: MVP Production Activation (Batches 5–7)
-Connect the UI foundations to real backend services in controlled, safe phases.
+No backend, publishing, or scheduler execution logic was changed during the UI foundation work. Mock mode remains the default. Production publishing continues to rely on the existing stable V1 flow.
 
 ---
 
@@ -28,15 +24,17 @@ Connect the UI foundations to real backend services in controlled, safe phases.
 Currently supports:
 
 * Mock mode
-* OpenAI API
-* Gemini API
+* OpenAI API routing via existing generation service
+* Gemini API routing via existing generation service
+* Safe mock fallback when the selected text provider is unavailable
+* Runtime provider status updates in Create Draft and Settings
 
 ## AI Image Generation
 
 Currently supports:
 
 * Mock generation
-* DALL·E / OpenAI image generation flow
+* OpenAI image generation flow
 * Supabase image storage mirroring
 
 ## Publishing System
@@ -57,15 +55,58 @@ Currently supports:
 
 ---
 
-# Current Architecture Direction (IMPORTANT)
+# Workflow Optimization Rules
 
-The project is no longer designed as:
+These rules are now permanent and apply to all future development work.
 
-* single-page
-* single-provider
-* single-workflow
+## Primary Objective
 
-The new architecture direction is:
+Minimize:
+
+* token usage
+* phase fragmentation
+* unnecessary commits
+* unnecessary prompts
+* duplicated documentation work
+
+While preserving:
+
+* project stability
+* production safety
+* clean architecture
+* rollback safety
+
+## Execution Strategy
+
+1. Prefer large safe batches over tiny micro-phases.
+2. Combine related safe tasks when they share the same stability boundary.
+3. Commit only at meaningful milestones.
+4. Update documentation only after meaningful milestones, not after every small tweak.
+5. Prefer extension over replacement.
+6. Preserve stable publish flow, scheduler stability, and mock-mode safety.
+7. Avoid unnecessary rewrites, abstractions, and speculative systems.
+8. Keep file churn and refactors minimal unless stability clearly improves.
+
+## Commit Policy
+
+Create commits only for:
+
+* major stable milestones
+* architecture checkpoints
+* production-safe checkpoints
+* important feature completion
+
+Do not commit every small implementation step.
+
+## Documentation Policy
+
+Update `PROJECT_STATUS.md`, `ARCHITECTURE.md`, and `TODO.md` only after meaningful milestones so all three remain synchronized.
+
+---
+
+# Current Architecture Direction
+
+The project direction remains:
 
 * Multi-page workspace system
 * Multi-provider AI routing
@@ -74,237 +115,79 @@ The new architecture direction is:
 * Queue-driven scheduling system
 * Centralized content operations
 
-This direction MUST be preserved in all future phases.
+This direction should be preserved, but expansion must remain controlled. Stable working systems should be extended rather than replaced.
 
 ---
 
-# Upcoming Architecture Goals
+# Consolidated Roadmap
 
-## AI Provider System V2
+## Phase A - MVP Production Activation
 
-Planned provider routing system supporting:
+Combined into one controlled implementation batch:
 
-### Text Providers
+* AI provider routing
+* Runtime validation
+* Provider badges/status confirmation
+* Image routing connection
+* End-to-end generation QA
 
-* Mock
-* Gemini API
-* OpenAI API
-* Codex CLI
-* Future local models
+Goal:
+Production-safe real AI generation MVP with minimal architecture changes.
 
-### Image Providers
+## Phase B - Production Safety + Stabilization
 
-* Mock
-* GPT Image
-* DALL·E
-* Future providers
+Combined into one stabilization batch:
 
-### Planned Features
+* Error handling improvements
+* Validation hardening
+* Scheduler QA
+* Publish QA
+* Settings hardening
+* Build stabilization
 
-* Provider visibility
-* Runtime status badges
-* API validation
-* Cost-aware routing
-* Codex CLI status detection
-* AI model selection
-* Provider failover support
+Goal:
+Stable low-cost production operation without backend redesign.
 
----
+## Phase C - Controlled Backend Expansion
 
-# Multi-Page Workspace System (PLANNED)
+This phase starts only after Phase A and Phase B are stable.
 
-The system will support:
+Includes:
 
-* Multiple Facebook pages
-* Page selector dropdown
-* Per-page AI memory
-* Per-page posting strategy
-* Per-page visual style
-* Per-page scheduling queues
+* multi-page database architecture
+* queue processor V2
+* logs persistence
+* analytics foundation
 
-Each page will contain:
-
-* page_id
-* page_name
-* page_access_token
-* target audience
-* storytelling style
-* content tone
-* hashtags preset
-* visual identity
-* posting strategy
-
----
-
-# Content Workflow V2 (PLANNED)
-
-The Create Content page will evolve into a full AI content pipeline.
-
-## Planned Content Controls
-
-* Content type dropdown
-* Tone selector
-* Content length selector
-* CTA selector
-* Hashtag controls
-* Link controls
-
-## Planned Image Controls
-
-* Upload image
-* AI image generation
-* Model selection
-* Aspect ratio selection
-* Style presets
-* Text overlay generation
-* Prompt assist
-* Auto prompt generation
-
-## Planned Preview Studio
-
-* Mobile preview
-* Desktop preview
-* Crop preview
-* Final publish preview
-
----
-
-# Scheduler System V2 (PLANNED)
-
-The scheduler system will evolve into a queue-based publishing engine.
-
-## Planned Features
-
-* Multi-page queue management
-* Posting slot configuration
-* Retry system
-* Failure recovery
-* Publish history
-* Queue overview
-* Timezone support
-* Auto spacing logic
-
----
-
-# AI Library System (PLANNED)
-
-Planned centralized asset management:
-
-* Generated images
-* Saved prompts
-* Generated captions
-* Successful posts
-* Reusable templates
-
-Features:
-
-* Search
-* Filtering
-* Regeneration
-* Reuse workflow
-
----
-
-# Logs System (PLANNED)
-
-Centralized operational logs:
-
-* App logs
-* Scheduler logs
-* AI generation logs
-* Publish logs
-* Error logs
-
-Features:
-
-* Clear logs
-* Copy error
-* Export logs
-* Filtering
-
----
-
-# Analytics System (PLANNED)
-
-Analytics will be implemented only after:
-
-* Workflow stabilization
-* Multi-page support
-* Scheduler V2 completion
+Goal:
+Expand backend capability in a controlled way without premature architecture growth.
 
 ---
 
 # Current Development Priority
 
-## HIGH PRIORITY
+## Immediate Priority
 
-1. AI Provider System V2
-2. Multi-page workspace architecture
-3. Content Workflow V2
-4. Scheduler System V2
+1. Finish the remaining Phase A validation and end-to-end QA with minimal architecture churn.
+2. Complete Phase B to harden production safety.
+3. Defer Phase C until MVP behavior is stable in real use.
 
-## MEDIUM PRIORITY
+## Deferred Until Controlled Expansion
 
-5. AI Library
-6. Logs system
-
-## LOW PRIORITY
-
-7. Analytics
-8. Multi-user auth
-9. SaaS architecture
+* Supabase multi-page schema expansion
+* Scheduler redesign
+* Persistent logs storage
+* Analytics implementation
+* Auth / SaaS / billing
+* Advanced provider failover
+* Codex CLI execution
 
 ---
 
-# Current Development Rules
+# Guardrails
 
-1. Minimal safe changes only
-2. Never break stable publishing logic
-3. Never modify backend architecture without planning
-4. Preserve mock mode for low-cost testing
-5. Prioritize workflow clarity over feature quantity
-6. Maintain production-safe operation defaults
-
----
-
-# Foundation Complete — MVP Production Activation Plan
-
-## UI Foundations Complete (Batches 1–4) ✅
-
-All UI-only, no backend changes made.
-
-| Batch | Content | Status |
-|---|---|---|
-| 1 | Content + Image Workflow V2 + Preview Studio | ✅ |
-| 2 | Scheduler + Queue UI | ✅ |
-| 3 | AI Library + Logs UI | ✅ |
-| 4 | Final QA + Docs Stabilization | ✅ |
-
-## Next: MVP Production Activation (Batches 5–7)
-
-**Batch 5 — Real AI Routing MVP**
-- Connect provider selectors to existing generation services
-- Gemini text routing (key-gated)
-- OpenAI text routing (key-gated)
-- Mock fallback default
-
-**Batch 6 — Real Image + End-to-End Publish QA**
-- Wire image provider selector to existing image service
-- Full flow QA: Generate → Preview → Draft → Schedule → Publish
-
-**Batch 7 — Production Activation + Safety Hardening**
-- API key validation, error messages, mock/live safety review
-- Final build, git tag, docs
-
-## Deferred / Post-MVP
-
-> ⚠️ Do not start without a dedicated controlled phase.
-
-- Supabase `pages` table + per-page token routing
-- Scheduler queue processor V2 (Edge Functions)
-- Real logs persistence
-- AI Library database storage
-- Analytics, Auth, SaaS, Billing
-- Codex CLI execution
-- Advanced provider failover
-
+1. Never break stable publishing logic.
+2. Never weaken mock mode as the default safety path.
+3. Avoid backend or database expansion during Phase A unless absolutely required for MVP safety.
+4. Avoid over-engineering and unnecessary architecture expansion.
+5. Preserve rollback safety by batching only related, production-safe changes.

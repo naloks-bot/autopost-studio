@@ -3,6 +3,7 @@ import { AlertCircle, CheckCircle2, KeyRound, ShieldCheck, Zap, Database, Facebo
 import SectionCard from "../components/SectionCard.jsx";
 import ActionButton from "../components/ActionButton.jsx";
 import { validateFacebookConfig } from "../services/facebook.js";
+import { getTextProviderRuntime } from "../services/ai-generation.js";
 
 function maskSecret(value) {
   if (!value) return "ยังไม่ได้กรอก";
@@ -11,12 +12,15 @@ function maskSecret(value) {
 }
 
 function ProviderBadge({ provider, settings }) {
+  const textRuntime = provider === "mock" || provider === "openai" || provider === "gemini" || provider === "codex"
+    ? getTextProviderRuntime({ ...settings, textProvider: provider })
+    : null;
   let status = { label: "Unknown", color: "text-slate-400 bg-slate-400/10" };
   
-  if (provider === "mock") {
-    status = { label: "Ready", color: "text-emerald-400 bg-emerald-400/10" };
-  } else if (provider === "codex") {
-    status = { label: "Local workflow", color: "text-amber-400 bg-amber-400/10" };
+  if (textRuntime) {
+    status = textRuntime.tone === "warning"
+      ? { label: textRuntime.statusLabel, color: "text-amber-400 bg-amber-400/10" }
+      : { label: textRuntime.statusLabel, color: "text-emerald-400 bg-emerald-400/10" };
   } else {
     const hasKey = (provider === "openai" || provider === "gpt-image" || provider === "dalle") 
       ? settings.openaiApiKey 
@@ -105,10 +109,10 @@ function SettingsPage({
                     <div className="flex items-center gap-2">
                       <button 
                         onClick={() => {
-                          const status = settings.textProvider === 'mock' ? 'Success: Mock is ready' :
-                                         settings.textProvider === 'codex' ? 'Local workflow planned' :
-                                         (settings.textProvider === 'openai' ? settings.openaiApiKey : settings.geminiApiKey) ? 'Success: API Key found' : 
-                                         'Error: Missing API Key';
+                          const runtime = getTextProviderRuntime(settings);
+                          const status = runtime.tone === "warning"
+                            ? `Warning: ${runtime.detail}`
+                            : `Success: ${runtime.detail}`;
                           window.alert(status);
                         }}
                         className="text-[9px] font-bold text-cyan-500 uppercase hover:underline"
