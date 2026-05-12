@@ -78,3 +78,27 @@ export function getPagePublishReadiness({ pageId, settings = {}, pages = [] } = 
       settings.facebookPublishMode === "live" ? "Global V1 Live" : "Global V1 Mock Safe",
   };
 }
+
+export function runPerPagePublishDryRun({ post = null, pageId, settings = {}, pages = [] } = {}) {
+  const readiness = getPagePublishReadiness({
+    pageId: pageId || post?.page_id,
+    settings,
+    pages,
+  });
+
+  return {
+    requestedPageId: readiness.requestedPageId,
+    resolvedPageId: readiness.resolvedPageId,
+    resolvedPageLabel: readiness.label,
+    pageSpecificPageIdReady: readiness.hasPageSpecificPageId,
+    pageSpecificTokenReady: readiness.hasPageSpecificToken,
+    fallbackReason: readiness.fallbackReason,
+    wouldUsePageContext: readiness.label,
+    effectiveExecutionMode: readiness.effectiveExecutionMode,
+    effectiveExecutionLabel: readiness.effectiveExecutionLabel,
+    isDryRunOnly: true,
+    dryRunLabel: "Dry run only — live per-page publish is disabled",
+    willCallFacebookApi: false,
+    willPublish: false,
+  };
+}

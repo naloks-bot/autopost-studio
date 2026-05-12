@@ -4,7 +4,7 @@ import SectionCard from "../components/SectionCard.jsx";
 import ActionButton from "../components/ActionButton.jsx";
 import { validateFacebookConfig } from "../services/facebook.js";
 import { getTextProviderRuntime } from "../services/ai-generation.js";
-import { getPagePublishReadiness } from "../services/page-context.js";
+import { getPagePublishReadiness, runPerPagePublishDryRun } from "../services/page-context.js";
 
 function maskSecret(value) {
   if (!value) return "ยังไม่ได้กรอก";
@@ -66,6 +66,11 @@ function SettingsPage({
   const isFbConfigured = validateFacebookConfig(settings);
   const currentTextRuntime = getTextProviderRuntime(settings);
   const activePageReadiness = getPagePublishReadiness({
+    pageId: settings.activePageId,
+    settings,
+    pages: workspacePages,
+  });
+  const activePageDryRun = runPerPagePublishDryRun({
     pageId: settings.activePageId,
     settings,
     pages: workspacePages,
@@ -278,6 +283,12 @@ function SettingsPage({
                {activePageReadiness.fallbackReason && (
                  <p className="mt-1 text-slate-500 italic">{activePageReadiness.fallbackReason}</p>
                )}
+               <div className="mt-3 rounded-lg border border-cyan-500/10 bg-cyan-500/5 p-2">
+                 <p className="font-bold uppercase tracking-wider text-cyan-400">{activePageDryRun.dryRunLabel}</p>
+                 <p className="mt-1 text-slate-400">
+                   Would resolve to: {activePageDryRun.resolvedPageLabel} ({activePageDryRun.resolvedPageId})
+                 </p>
+               </div>
              </div>
           </div>
         </div>

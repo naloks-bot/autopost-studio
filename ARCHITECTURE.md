@@ -190,6 +190,7 @@ Current Milestone 1 status:
 * publish and scheduler execution still use the existing stable flow
 * scheduled-post processing can now resolve normalized page context for metadata/debug without changing publish token execution
 * page publish readiness can now be derived safely for UI/debug without activating per-page token execution
+* per-page publish dry runs can now report hypothetical routing safely while live per-page execution stays disabled
 
 Risk areas to watch:
 

@@ -115,6 +115,7 @@ Expand backend capabilities only after MVP stability is proven.
 * Added `page_id` persistence for newly saved drafts
 * Added a shared page-context resolver for future scheduled-post routing without activating per-page live publish tokens
 * Added page publish readiness metadata for UI/debug while keeping actual publish execution on global V1
+* Added per-page publish dry-run diagnostics with no Facebook API call and no execution-path change
 
 ### Risk Areas
 

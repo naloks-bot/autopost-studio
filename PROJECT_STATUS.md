@@ -191,6 +191,7 @@ Current Phase C progress:
 * scheduler flow and publish flow remain unchanged
 * Milestone 2A now includes a shared page-context resolver for safe metadata-only scheduled-post context
 * Milestone 2B now reports page publish readiness metadata while keeping actual publish execution on global V1
+* Milestone 2C now adds per-page publish dry-run diagnostics without calling Facebook or changing execution
 
 ---
 

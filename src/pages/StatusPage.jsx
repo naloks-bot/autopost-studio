@@ -3,7 +3,7 @@ import { Calendar, Clock, Facebook, Globe, Send, Trash2, Database, Laptop, Info,
 import SectionCard from "../components/SectionCard.jsx";
 import ActionButton from "../components/ActionButton.jsx";
 import { validateFacebookConfig } from "../services/facebook.js";
-import { getPagePublishReadiness } from "../services/page-context.js";
+import { getPagePublishReadiness, runPerPagePublishDryRun } from "../services/page-context.js";
 
 function StatusPage({
   allPendingPosts,
@@ -108,6 +108,11 @@ function StatusPage({
               settings,
               pages: workspacePages,
             });
+            const pageDryRun = runPerPagePublishDryRun({
+              post,
+              settings,
+              pages: workspacePages,
+            });
 
             return (
             <article
@@ -151,6 +156,14 @@ function StatusPage({
                     <span className="rounded-full bg-cyan-500/10 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-cyan-400">
                       {pageReadiness.effectiveExecutionLabel}
                     </span>
+                  </div>
+                  <div className="mt-2 rounded-lg border border-cyan-500/10 bg-cyan-500/5 px-3 py-2">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-cyan-400">
+                      {pageDryRun.dryRunLabel}
+                    </p>
+                    <p className="mt-1 text-[10px] text-slate-400">
+                      Would route to: {pageDryRun.resolvedPageLabel} ({pageDryRun.resolvedPageId}) · Page ID: {pageDryRun.pageSpecificPageIdReady ? "present" : "missing"} · Token: {pageDryRun.pageSpecificTokenReady ? "present" : "missing"}
+                    </p>
                   </div>
                   {pageReadiness.fallbackReason && (
                     <p className="mt-2 text-[10px] italic text-slate-500">{pageReadiness.fallbackReason}</p>
