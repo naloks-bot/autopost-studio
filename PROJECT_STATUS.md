@@ -183,6 +183,13 @@ Smallest safe planned Phase C scope:
 
 Phase C must remain planning-gated until a dedicated implementation checkpoint starts.
 
+Current Phase C progress:
+
+* Milestone 1 multi-page routing foundation is now in place
+* workspace pages now have a backward-compatible foundation with default fallback pages
+* new drafts now persist `page_id` without requiring migration of existing posts/settings
+* scheduler flow and publish flow remain unchanged
+
 ---
 
 # Current Development Priority
@@ -199,6 +206,7 @@ Latest stable lock checkpoints:
 
 * `9802c7b` `controlled production qa fixes`
 * `94ea0a6` `lock mvp core stable`
+* Phase C Milestone 1 adds only routing foundation and preserves MVP core stability
 
 ## Deferred Until Controlled Expansion
 

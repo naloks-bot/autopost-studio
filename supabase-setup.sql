@@ -30,9 +30,25 @@ create table if not exists public.app_settings (
   brand_voice text not null default '',
   default_topic_hint text not null default '',
   openai_api_key text not null default '',
-  xai_api_key text not null default '',
+  gemini_api_key text not null default '',
   facebook_app_id text not null default '',
   facebook_app_secret text not null default '',
+  facebook_page_id text not null default '',
+  facebook_page_access_token text not null default '',
+  facebook_publish_mode text not null default 'mock',
+  scheduler_enabled boolean not null default false,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+alter table public.app_settings add column if not exists gemini_api_key text not null default '';
+alter table public.app_settings add column if not exists facebook_publish_mode text not null default 'mock';
+alter table public.app_settings add column if not exists scheduler_enabled boolean not null default false;
+
+create table if not exists public.pages (
+  id text primary key,
+  label text not null,
+  description text not null default '',
   facebook_page_id text not null default '',
   facebook_page_access_token text not null default '',
   created_at timestamptz not null default now(),
@@ -41,6 +57,7 @@ create table if not exists public.app_settings (
 
 alter table public.posts enable row level security;
 alter table public.app_settings enable row level security;
+alter table public.pages enable row level security;
 
 drop policy if exists "anon can read posts" on public.posts;
 drop policy if exists "anon can insert posts" on public.posts;
@@ -75,6 +92,10 @@ using (true);
 drop policy if exists "anon can read app settings" on public.app_settings;
 drop policy if exists "anon can upsert app settings" on public.app_settings;
 drop policy if exists "anon can delete app settings" on public.app_settings;
+drop policy if exists "anon can read pages" on public.pages;
+drop policy if exists "anon can insert pages" on public.pages;
+drop policy if exists "anon can update pages" on public.pages;
+drop policy if exists "anon can delete pages" on public.pages;
 
 create policy "anon can read app settings"
 on public.app_settings
@@ -100,3 +121,34 @@ on public.app_settings
 for delete
 to anon
 using (id = 'default');
+
+create policy "anon can read pages"
+on public.pages
+for select
+to anon
+using (true);
+
+create policy "anon can insert pages"
+on public.pages
+for insert
+to anon
+with check (true);
+
+create policy "anon can update pages"
+on public.pages
+for update
+to anon
+using (true)
+with check (true);
+
+create policy "anon can delete pages"
+on public.pages
+for delete
+to anon
+using (true);
+
+insert into public.pages (id, label, description)
+values
+  ('default', 'Default Page', 'Current stable Facebook settings'),
+  ('demo-mock', 'Demo / Mock Page', 'Simulation for workspace testing')
+on conflict (id) do nothing;

@@ -14,6 +14,7 @@ import { getProviderLabel } from "../services/ai-generation.js";
 function CreatePage({
   form,
   settings,
+  activeWorkspacePage,
   updateForm,
   handleGenerateContent,
   handleGenerateImagePrompt,
@@ -108,7 +109,7 @@ function CreatePage({
       <div className="space-y-6">
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-1">
           <ProviderStatusCard settings={settings} textProviderRuntime={textProviderRuntime} />
-          <WorkspaceContextCard settings={settings} />
+          <WorkspaceContextCard settings={settings} activeWorkspacePage={activeWorkspacePage} />
         </div>
 
         <div className="rounded-2xl border border-white/5 bg-slate-900/40 p-6 shadow-sm">
@@ -160,7 +161,7 @@ function CreatePage({
           </div>
         </div>
 
-        <PromptAssistCard settings={settings} metadata={metadata} />
+        <PromptAssistCard settings={settings} metadata={metadata} activeWorkspacePage={activeWorkspacePage} />
 
         <div className="rounded-2xl border border-white/5 bg-slate-900/40 p-6 shadow-sm">
           <div className="mb-4 flex items-center justify-between">
@@ -222,7 +223,7 @@ function CreatePage({
 
       {/* Right Panel: Preview & Studio */}
       <div className="flex flex-col space-y-6 lg:h-[calc(100vh-10rem)]">
-         <PreviewStudioCard form={form} settings={settings} metadata={metadata} imageForm={imageForm} textProviderRuntime={textProviderRuntime} />
+         <PreviewStudioCard form={form} settings={settings} metadata={metadata} imageForm={imageForm} textProviderRuntime={textProviderRuntime} activeWorkspacePage={activeWorkspacePage} />
 
          <div className="rounded-2xl border border-white/5 bg-slate-900/40 p-4 shadow-sm">
             <ActionButton

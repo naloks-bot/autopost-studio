@@ -9,10 +9,18 @@ import Sidebar from "../components/Sidebar.jsx";
 import Header from "../components/Header.jsx";
 import GuideModal from "../components/GuideModal.jsx";
 import { initialForm, statusCopy } from "../constants/appConstants.js";
-import { defaultSettings, getAppSettings, saveAppSettings } from "../services/app-settings.js";
+import {
+  defaultSettings,
+  getActiveWorkspacePage,
+  getAppSettings,
+  getWorkspacePages,
+  saveAppSettings,
+  sanitizeSettings,
+} from "../services/app-settings.js";
 import { getLocalDrafts, removeLocalDraft, saveLocalDraft } from "../services/local-drafts.js";
 import {
   fetchRemotePosts,
+  fetchRemotePages,
   fetchRemoteSettings,
   getSupabaseEnvSnapshot,
   hasSupabaseConfig,
@@ -149,9 +157,10 @@ function App() {
     try {
       const localSettings = getAppSettings();
       setLocalDrafts(getLocalDrafts());
-      const [postsResult, settingsResult] = await Promise.all([
+      const [postsResult, settingsResult, pagesResult] = await Promise.all([
         fetchRemotePosts(),
         fetchRemoteSettings(),
+        fetchRemotePages(),
       ]);
       if (postsResult.data) {
         setRemotePosts(postsResult.data);
@@ -161,10 +170,13 @@ function App() {
         setConnectionError(toUserSafeMessage(postsResult.error, "Failed to fetch posts from Supabase."));
       }
       if (settingsResult.mode) setSettingsSyncMode(settingsResult.mode);
+      const workspacePages = pagesResult.data?.length
+        ? pagesResult.data
+        : localSettings.workspacePages;
       if (settingsResult.data) {
-        setSettings({ ...localSettings, ...settingsResult.data });
+        setSettings(sanitizeSettings({ ...localSettings, ...settingsResult.data, workspacePages }));
       } else {
-        setSettings(localSettings);
+        setSettings(sanitizeSettings({ ...localSettings, workspacePages }));
       }
     } catch (err) {
       console.error("Critical error loading data:", err);
@@ -186,15 +198,23 @@ function App() {
   }, []);
 
   const updateSettingsField = useCallback((key, value) => {
-    setSettings((current) => ({ ...current, [key]: value }));
+    setSettings((current) => sanitizeSettings({ ...current, [key]: value }));
   }, []);
 
   const handleLoadDraftToEditor = useCallback((draft) => {
+    const nextPageId = draft.page_id || "default";
     setForm({
       topic: draft.topic || "",
       content: draft.content || "",
       imagePrompt: draft.image_prompt || "",
       imageUrl: draft.image_url || "",
+    });
+    setSettings((current) => {
+      const workspacePages = getWorkspacePages(current);
+      const activePageId = workspacePages.some((page) => page.id === nextPageId)
+        ? nextPageId
+        : current.activePageId;
+      return sanitizeSettings({ ...current, activePageId });
     });
     setGenerationError("");
     setCreateNotice({ tone: "info", message: "Draft loaded into the editor." });
@@ -271,11 +291,15 @@ function App() {
 
     try {
       const draft = {
+        page_id: settings.activePageId || "default",
         topic: form.topic.trim(),
         content: form.content.trim(),
         image_prompt: extraData.image_prompt || form.imagePrompt.trim(),
         image_url: extraData.image_url || form.imageUrl.trim(),
         image_provider: extraData.image_provider || null,
+        image_revised_prompt: extraData.image_revised_prompt || null,
+        image_storage_path: extraData.image_storage_path || null,
+        image_storage_mode: extraData.image_storage_mode || null,
         status: "draft",
         created_at: new Date().toISOString(),
       };
@@ -316,7 +340,7 @@ function App() {
       const stored = saveAppSettings(settings);
       const remote = await saveRemoteSettings(stored);
       if (remote.data) {
-        setSettings(remote.data);
+        setSettings(sanitizeSettings({ ...stored, ...remote.data }));
         setSettingsSyncMode(remote.mode);
         setSettingsMessage("Settings saved to Supabase.");
       } else {
@@ -382,6 +406,8 @@ function App() {
   const currentSettingsStatus = statusCopy[settingsSyncMode] ?? statusCopy.error;
   const SettingsStatusIcon = currentSettingsStatus.icon;
   const textProviderRuntime = getTextProviderRuntime(settings, lastTextGeneration);
+  const workspacePages = getWorkspacePages(settings);
+  const activeWorkspacePage = getActiveWorkspacePage(settings);
 
   return (
     <div className="flex h-screen overflow-hidden bg-slate-950 font-sans text-slate-200">
@@ -401,6 +427,7 @@ function App() {
           textProviderRuntime={textProviderRuntime}
           onOpenGuide={() => setIsGuideOpen(true)}
           settings={settings}
+          workspacePages={workspacePages}
           onPageChange={(val) => updateSettingsField("activePageId", val)}
         />
 
@@ -410,6 +437,8 @@ function App() {
               <CreatePage
                 form={form}
                 settings={settings}
+                workspacePages={workspacePages}
+                activeWorkspacePage={activeWorkspacePage}
                 updateForm={updateForm}
                 handleGenerateContent={handleGenerateContent}
                 handleGenerateImagePrompt={handleGenerateImagePrompt}
@@ -431,6 +460,8 @@ function App() {
                 settingsMessage={settingsMessage}
                 SettingsField={SettingsField}
                 settings={settings}
+                workspacePages={workspacePages}
+                activeWorkspacePage={activeWorkspacePage}
                 updateSettingsField={updateSettingsField}
                 envSnapshot={envSnapshot}
                 handleSaveSettings={handleSaveSettings}
@@ -456,6 +487,7 @@ function App() {
                 handleLoadDraftToEditor={handleLoadDraftToEditor}
                 handlePublishPost={handlePublishPost}
                 settings={settings}
+                workspacePages={workspacePages}
                 schedulerStatus={schedulerStatus}
               />
             )}

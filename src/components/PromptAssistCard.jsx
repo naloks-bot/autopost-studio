@@ -1,11 +1,11 @@
 import React, { useState } from "react";
 import { Copy, CheckCircle2, MessageSquare, Info } from "lucide-react";
-import { WORKSPACE_PAGES, CONTENT_TYPES, CONTENT_TONES, CONTENT_LENGTHS, CONTENT_CTAS } from "../constants/appConstants";
+import { CONTENT_TYPES, CONTENT_TONES, CONTENT_LENGTHS, CONTENT_CTAS } from "../constants/appConstants";
 
-export default function PromptAssistCard({ settings, metadata }) {
+export default function PromptAssistCard({ settings, metadata, activeWorkspacePage }) {
   const [copied, setCopied] = useState(false);
   
-  const pageLabel = WORKSPACE_PAGES.find(p => p.id === settings.activePageId)?.label || "Default Page";
+  const pageLabel = activeWorkspacePage?.label || "Default Page";
   const typeLabel = CONTENT_TYPES.find(t => t.id === metadata.type)?.label || "General";
   const toneLabel = CONTENT_TONES.find(t => t.id === metadata.tone)?.label || "Friendly";
   const lengthLabel = CONTENT_LENGTHS.find(l => l.id === metadata.length)?.label || "Medium";

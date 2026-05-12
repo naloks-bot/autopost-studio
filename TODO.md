@@ -107,6 +107,13 @@ Expand backend capabilities only after MVP stability is proven.
 * Milestone 2: queue processor V2
 * Milestone 3: logs persistence foundation
 
+### Completed In This Milestone
+
+* Added a minimal multi-page foundation with safe default fallback pages
+* Added page-aware workspace context loading without changing stable publish behavior
+* Preserved single-page compatibility for existing settings and drafts
+* Added `page_id` persistence for newly saved drafts
+
 ### Risk Areas
 
 * Supabase schema expansion
@@ -141,7 +148,7 @@ Expand backend capabilities only after MVP stability is proven.
 ## Ready Now
 
 * MVP core maintenance only
-* Phase C planning only
+* Phase C Milestone 2 planning only
 
 ## After Phase A Is Stable
 

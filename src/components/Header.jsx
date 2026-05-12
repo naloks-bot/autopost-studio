@@ -1,5 +1,4 @@
 import { Moon, Sun, Database, Share2, BrainCircuit, HelpCircle, Layers } from "lucide-react";
-import { WORKSPACE_PAGES } from "../constants/appConstants";
 
 function Header({
   isDark,
@@ -9,6 +8,7 @@ function Header({
   textProviderRuntime,
   onOpenGuide,
   settings,
+  workspacePages,
   onPageChange
 }) {
   const StatusChip = ({ icon: Icon, label, colorClass }) => (
@@ -69,7 +69,7 @@ function Header({
             onChange={(e) => onPageChange(e.target.value)}
             className="bg-transparent text-[11px] font-bold text-slate-300 outline-none cursor-pointer uppercase tracking-tight"
           >
-            {WORKSPACE_PAGES.map((p) => (
+            {workspacePages.map((p) => (
               <option key={p.id} value={p.id} className="bg-slate-900 text-white">{p.label}</option>
             ))}
           </select>

@@ -5,6 +5,8 @@ const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
 const POSTS_SELECT =
   "id, page_id, topic, content, image_prompt, image_url, image_provider, image_revised_prompt, image_storage_path, image_storage_mode, status, scheduled_at, posted_at, created_at";
+const PAGES_SELECT =
+  "id, label, description, facebook_page_id, facebook_page_access_token, created_at, updated_at";
 const SETTINGS_SELECT =
   "id, workspace_name, business_name, brand_voice, default_topic_hint, openai_api_key, gemini_api_key, facebook_app_id, facebook_app_secret, facebook_page_id, facebook_page_access_token, facebook_publish_mode, scheduler_enabled, created_at, updated_at";
 
@@ -28,7 +30,7 @@ export function getSupabaseEnvSnapshot() {
 export function normalizePost(post) {
   return {
     id: post.id ?? `local-${Date.now()}`,
-    page_id: post.page_id ?? null,
+    page_id: post.page_id ?? "default",
     topic: post.topic ?? "",
     content: post.content ?? "",
     image_prompt: post.image_prompt ?? "",
@@ -42,6 +44,16 @@ export function normalizePost(post) {
     posted_at: post.posted_at ?? null,
     created_at: post.created_at ?? new Date().toISOString(),
     source: post.source ?? "remote",
+  };
+}
+
+function normalizeWorkspacePage(record) {
+  return {
+    id: record.id ?? "default",
+    label: record.label ?? "Untitled Page",
+    description: record.description ?? "",
+    facebookPageId: record.facebook_page_id ?? "",
+    facebookPageAccessToken: record.facebook_page_access_token ?? "",
   };
 }
 
@@ -91,6 +103,33 @@ export async function fetchRemotePosts() {
   logger.info(`Fetched ${data?.length || 0} posts from Supabase.`);
   return {
     data: (data ?? []).map((post) => normalizePost({ ...post, source: "remote" })),
+    error: null,
+    mode: "connected",
+  };
+}
+
+export async function fetchRemotePages() {
+  if (!supabase) {
+    return {
+      data: [],
+      error: new Error("Missing Supabase environment variables."),
+      mode: "offline",
+    };
+  }
+
+  logger.info("Fetching remote workspace pages...");
+  const { data, error } = await supabase
+    .from("pages")
+    .select(PAGES_SELECT)
+    .order("created_at", { ascending: true });
+
+  if (error) {
+    return { data: [], error, mode: classifySupabaseError(error) };
+  }
+
+  logger.info(`Fetched ${data?.length || 0} workspace pages from Supabase.`);
+  return {
+    data: (data ?? []).map((page) => normalizeWorkspacePage(page)),
     error: null,
     mode: "connected",
   };

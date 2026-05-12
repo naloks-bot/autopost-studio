@@ -55,6 +55,8 @@ function SettingsPage({
   settingsMessage,
   SettingsField,
   settings,
+  workspacePages,
+  activeWorkspacePage,
   updateSettingsField,
   envSnapshot,
   handleSaveSettings,
@@ -217,14 +219,14 @@ function SettingsPage({
                   value={settings.activePageId}
                   onChange={(event) => updateSettingsField("activePageId", event.target.value)}
                   type="select"
-                  options={[
-                    { value: "default", label: "Default Page (Stable)" },
-                    { value: "demo-mock", label: "Demo / Mock Page" },
-                  ]}
+                  options={workspacePages.map((page) => ({
+                    value: page.id,
+                    label: page.label,
+                  }))}
                 />
                 <SettingsField
                   label="Page Display Name"
-                  value={settings.activePageId === 'default' ? settings.workspaceName : "Demo Page"}
+                  value={activeWorkspacePage?.label || settings.workspaceName}
                   placeholder="Page Name"
                   onChange={() => {}} // UI only
                 />
@@ -234,7 +236,11 @@ function SettingsPage({
                    <span className="text-[10px] font-bold uppercase text-slate-500 tracking-wider">Token Context</span>
                    <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-950/50 border border-white/5">
                       <div className="h-1.5 w-1.5 rounded-full bg-emerald-500"></div>
-                      <span className="text-xs text-slate-400">Using Global FB Settings</span>
+                      <span className="text-xs text-slate-400">
+                        {activeWorkspacePage?.facebookPageId && activeWorkspacePage?.facebookPageAccessToken
+                          ? "Page-Specific Foundation Ready"
+                          : "Using Global FB Settings"}
+                      </span>
                    </div>
                 </div>
                 <div className="flex flex-col gap-1">

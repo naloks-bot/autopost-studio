@@ -1,11 +1,10 @@
 import React, { useState } from "react";
 import { Smartphone, Monitor, Facebook, Info } from "lucide-react";
-import { WORKSPACE_PAGES } from "../constants/appConstants";
 import { getProviderLabel } from "../services/ai-generation.js";
 
-export default function PreviewStudioCard({ form, settings, metadata, imageForm, textProviderRuntime }) {
+export default function PreviewStudioCard({ form, settings, metadata, imageForm, textProviderRuntime, activeWorkspacePage }) {
   const [device, setDevice] = useState("mobile");
-  const activePage = WORKSPACE_PAGES.find(p => p.id === settings.activePageId) || WORKSPACE_PAGES[0];
+  const activePage = activeWorkspacePage;
 
   return (
     <div className="flex flex-col h-full rounded-2xl border border-white/10 bg-slate-900/60 shadow-xl overflow-hidden">
@@ -39,7 +38,7 @@ export default function PreviewStudioCard({ form, settings, metadata, imageForm,
                     <Facebook className="h-5 w-5 text-blue-500" />
                  </div>
                  <div>
-                    <p className="text-[13px] font-bold text-white leading-tight">{activePage.label}</p>
+                    <p className="text-[13px] font-bold text-white leading-tight">{activePage?.label || "Default Page"}</p>
                     <p className="text-[11px] text-slate-400">Just now · 🌎</p>
                  </div>
               </div>

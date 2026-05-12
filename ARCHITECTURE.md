@@ -182,6 +182,13 @@ Smallest safe planned Phase C scope:
 * Milestone 2: queue processor V2 on top of stable page-aware routing
 * Milestone 3: logs persistence after queue behavior is stable
 
+Current Milestone 1 status:
+
+* workspace page context is now loaded through a minimal page foundation
+* default single-page behavior remains the compatibility path
+* draft persistence now carries `page_id`
+* publish and scheduler execution still use the existing stable flow
+
 Risk areas to watch:
 
 * Supabase schema coupling with existing single-page assumptions
@@ -205,10 +212,11 @@ Risk areas to watch:
 
 Do not expand into the following until Phase C:
 
-* multi-page page tables
 * queue processor redesign
 * persistent logs storage
 * analytics data foundation
+
+For the current checkpoint, only the smallest `pages` foundation is allowed. Per-page publish execution, queue redesign, and log persistence remain deferred.
 
 This protects the current stable publish flow and avoids unnecessary backend churn.
 
