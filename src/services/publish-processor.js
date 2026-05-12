@@ -1,6 +1,7 @@
 import { logger } from "./logger.js";
 import { publishFacebookPost, validateFacebookConfig } from "./facebook.js";
 import { fetchRemotePosts, updateRemotePostStatus } from "./supabase.js";
+import { resolvePageContext } from "./page-context.js";
 
 /**
  * Publish Processor Service
@@ -94,7 +95,20 @@ export async function processScheduledPosts({ posts, settings, onPostPublished }
 
     // 4. Execute Publish Flow
     for (const post of duePosts) {
+      const pageContext = resolvePageContext({
+        pageId: post.page_id,
+        settings,
+      });
+
       try {
+        logger.debug("Processor: Resolved scheduled post page context.", {
+          postId: post.id,
+          requestedPageId: pageContext.requestedPageId,
+          resolvedPageId: pageContext.resolvedPageId,
+          source: pageContext.source,
+          usesGlobalPublishConfig: pageContext.usesGlobalPublishConfig,
+        });
+
         const publishResult = await publishFacebookPost(post, settings);
 
         if (publishResult.data) {
@@ -106,7 +120,13 @@ export async function processScheduledPosts({ posts, settings, onPostPublished }
           if (updateResult.data) {
             logger.info(`Processor: Successfully published post '${post.topic}'`);
             summary.published++;
-            summary.results.push({ id: post.id, status: "success", topic: post.topic });
+            summary.results.push({
+              id: post.id,
+              status: "success",
+              topic: post.topic,
+              page_id: pageContext.resolvedPageId,
+              page_label: pageContext.label,
+            });
             if (onPostPublished) onPostPublished(updateResult.data);
           } else {
             logger.error(`Processor: Published post '${post.topic}' but status update failed.`);
@@ -114,18 +134,32 @@ export async function processScheduledPosts({ posts, settings, onPostPublished }
             summary.results.push({
               id: post.id,
               status: "partial_failure",
+              page_id: pageContext.resolvedPageId,
+              page_label: pageContext.label,
               error: "Published to FB but failed to update status",
             });
           }
         } else {
           logger.error(`Processor: Failed to publish post '${post.topic}':`, publishResult.error);
           summary.failed++;
-          summary.results.push({ id: post.id, status: "failure", error: publishResult.error });
+          summary.results.push({
+            id: post.id,
+            status: "failure",
+            page_id: pageContext.resolvedPageId,
+            page_label: pageContext.label,
+            error: publishResult.error,
+          });
         }
       } catch (err) {
         logger.error(`Processor: Unexpected error processing post '${post.topic}':`, err);
         summary.failed++;
-        summary.results.push({ id: post.id, status: "error", error: err.message });
+        summary.results.push({
+          id: post.id,
+          status: "error",
+          page_id: pageContext.resolvedPageId,
+          page_label: pageContext.label,
+          error: err.message,
+        });
       }
     }
   } catch (globalErr) {

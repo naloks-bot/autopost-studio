@@ -113,6 +113,7 @@ Expand backend capabilities only after MVP stability is proven.
 * Added page-aware workspace context loading without changing stable publish behavior
 * Preserved single-page compatibility for existing settings and drafts
 * Added `page_id` persistence for newly saved drafts
+* Added a shared page-context resolver for future scheduled-post routing without activating per-page live publish tokens
 
 ### Risk Areas
 

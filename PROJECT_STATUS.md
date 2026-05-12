@@ -189,6 +189,7 @@ Current Phase C progress:
 * workspace pages now have a backward-compatible foundation with default fallback pages
 * new drafts now persist `page_id` without requiring migration of existing posts/settings
 * scheduler flow and publish flow remain unchanged
+* Milestone 2A now includes a shared page-context resolver for safe metadata-only scheduled-post context
 
 ---
 

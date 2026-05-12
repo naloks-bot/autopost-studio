@@ -188,6 +188,7 @@ Current Milestone 1 status:
 * default single-page behavior remains the compatibility path
 * draft persistence now carries `page_id`
 * publish and scheduler execution still use the existing stable flow
+* scheduled-post processing can now resolve normalized page context for metadata/debug without changing publish token execution
 
 Risk areas to watch:
 
