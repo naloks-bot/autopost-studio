@@ -174,6 +174,15 @@ Includes:
 Goal:
 Expand backend capability in a controlled way without premature architecture growth.
 
+Smallest safe planned Phase C scope:
+
+* introduce a minimal multi-page data model
+* add page-aware token/config routing without changing stable publish semantics
+* add queue processor V2 only after page routing data is stable
+* add logs persistence only after queue behavior is proven stable
+
+Phase C must remain planning-gated until a dedicated implementation checkpoint starts.
+
 ---
 
 # Current Development Priority
@@ -186,9 +195,10 @@ Expand backend capability in a controlled way without premature architecture gro
 
 ## Latest Stable Lock
 
-Latest QA fix checkpoint:
+Latest stable lock checkpoints:
 
 * `9802c7b` `controlled production qa fixes`
+* `94ea0a6` `lock mvp core stable`
 
 ## Deferred Until Controlled Expansion
 
@@ -199,6 +209,14 @@ Latest QA fix checkpoint:
 * Auth / SaaS / billing
 * Advanced provider failover
 * Codex CLI execution
+
+## Phase C Planning Risks
+
+* Supabase schema growth can accidentally couple stable MVP paths to unfinished multi-page data
+* multi-page routing can misroute Facebook credentials if page-context boundaries are unclear
+* queue processor V2 can destabilize the current scheduler if introduced before routing data is trusted
+* logs persistence can add write-path noise before operational flows are fully settled
+* Facebook publish safety must remain mock-first even after page-aware routing is introduced
 
 ---
 

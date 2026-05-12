@@ -7,6 +7,7 @@ UI foundation is stable. No backend, publishing, or scheduler execution changes 
 MVP core is currently locked as stable after the controlled QA pass and latest checkpoint commit:
 
 * `9802c7b` `controlled production qa fixes`
+* `94ea0a6` `lock mvp core stable`
 
 ---
 
@@ -93,11 +94,33 @@ Expand backend capabilities only after MVP stability is proven.
 * Logs persistence
 * Analytics foundation
 
+### Planning-Only Starting Scope
+
+* Minimal multi-page schema only
+* Page-aware settings/token routing only
+* Queue processor V2 only after routing is stable
+* Logs persistence only after queue behavior is stable
+
+### Fewest Meaningful Milestones
+
+* Milestone 1: multi-page schema + page-aware routing
+* Milestone 2: queue processor V2
+* Milestone 3: logs persistence foundation
+
+### Risk Areas
+
+* Supabase schema expansion
+* Multi-page routing safety
+* Scheduler queue V2 stability
+* Logs persistence write-path complexity
+* Facebook publish safety under page-aware routing
+
 ### Constraints
 
 * No premature optimization
 * No unnecessary schema growth
 * No scheduler redesign before proven need
+* Do not start implementation without a dedicated controlled checkpoint
 
 ---
 
@@ -118,6 +141,7 @@ Expand backend capabilities only after MVP stability is proven.
 ## Ready Now
 
 * MVP core maintenance only
+* Phase C planning only
 
 ## After Phase A Is Stable
 

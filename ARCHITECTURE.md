@@ -173,6 +173,23 @@ Scope:
 Architecture rule:
 Backend expansion must remain controlled. Avoid premature optimization, unnecessary schema growth, or scheduler redesigns before the MVP proves stable.
 
+Planning rule:
+Do not start Phase C implementation from general momentum alone. A dedicated planning checkpoint must explicitly choose the first implementation milestone before any schema or queue work begins.
+
+Smallest safe planned Phase C scope:
+
+* Milestone 1: minimal multi-page schema and page-aware settings/token routing
+* Milestone 2: queue processor V2 on top of stable page-aware routing
+* Milestone 3: logs persistence after queue behavior is stable
+
+Risk areas to watch:
+
+* Supabase schema coupling with existing single-page assumptions
+* multi-page routing mistakes causing wrong-token publish behavior
+* queue processor changes destabilizing the current scheduler path
+* logs persistence increasing write complexity before operations are settled
+* Facebook publish safety regression during routing changes
+
 ---
 
 # Data and Backend Guidance
