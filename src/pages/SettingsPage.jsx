@@ -286,7 +286,7 @@ function SettingsPage({
                <div className="mt-3 rounded-lg border border-cyan-500/10 bg-cyan-500/5 p-2">
                  <p className="font-bold uppercase tracking-wider text-cyan-400">{activePageDryRun.dryRunLabel}</p>
                  <p className="mt-1 text-slate-400">
-                   Would resolve to: {activePageDryRun.resolvedPageLabel} ({activePageDryRun.resolvedPageId})
+                   Would resolve to `{activePageDryRun.resolvedPageLabel}` ({activePageDryRun.resolvedPageId}) while actual execution stays on {activePageDryRun.effectiveExecutionLabel}.
                  </p>
                </div>
              </div>

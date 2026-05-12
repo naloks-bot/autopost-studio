@@ -178,16 +178,18 @@ Do not start Phase C implementation from general momentum alone. A dedicated pla
 
 Smallest safe planned Phase C scope:
 
-* Milestone 1: minimal multi-page schema and page-aware settings/token routing
-* Milestone 2: queue processor V2 on top of stable page-aware routing
-* Milestone 3: logs persistence after queue behavior is stable
+* Batch 1: minimal multi-page schema and page-aware settings/token routing
+* Batch 2: queue/page routing foundation without execution activation
+* Batch 3: controlled per-page publish activation
+* Batch 4: queue processor V2 only after Batch 3 is stable
+* Batch 5: logs persistence after queue behavior is stable
 
-Current Milestone 1 status:
+Current Batch 2 status:
 
 * workspace page context is now loaded through a minimal page foundation
 * default single-page behavior remains the compatibility path
 * draft persistence now carries `page_id`
-* publish and scheduler execution still use the existing stable flow
+* publish and scheduler execution still use the stable global V1 flow
 * scheduled-post processing can now resolve normalized page context for metadata/debug without changing publish token execution
 * page publish readiness can now be derived safely for UI/debug without activating per-page token execution
 * per-page publish dry runs can now report hypothetical routing safely while live per-page execution stays disabled
@@ -219,7 +221,7 @@ Do not expand into the following until Phase C:
 * persistent logs storage
 * analytics data foundation
 
-For the current checkpoint, only the smallest `pages` foundation is allowed. Per-page publish execution, queue redesign, and log persistence remain deferred.
+For the current checkpoint, Batch 2 stops at page-context, readiness, and dry-run metadata. Per-page publish execution, queue redesign, and log persistence remain deferred.
 
 This protects the current stable publish flow and avoids unnecessary backend churn.
 

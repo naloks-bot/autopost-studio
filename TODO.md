@@ -103,19 +103,21 @@ Expand backend capabilities only after MVP stability is proven.
 
 ### Fewest Meaningful Milestones
 
-* Milestone 1: multi-page schema + page-aware routing
-* Milestone 2: queue processor V2
-* Milestone 3: logs persistence foundation
+* Batch 1: multi-page schema + page-aware routing
+* Batch 2: queue/page routing foundation wrap-up
+* Batch 3: controlled per-page publish activation
+* Batch 4: queue processor V2
+* Batch 5: logs persistence foundation
 
-### Completed In This Milestone
+### Completed In Batch 2
 
-* Added a minimal multi-page foundation with safe default fallback pages
-* Added page-aware workspace context loading without changing stable publish behavior
+* Consolidated the minimal multi-page foundation with safe default fallback pages
 * Preserved single-page compatibility for existing settings and drafts
-* Added `page_id` persistence for newly saved drafts
-* Added a shared page-context resolver for future scheduled-post routing without activating per-page live publish tokens
+* Kept `page_id` persistence for saved drafts
+* Added a shared page-context resolver for scheduled-post routing metadata
 * Added page publish readiness metadata for UI/debug while keeping actual publish execution on global V1
 * Added per-page publish dry-run diagnostics with no Facebook API call and no execution-path change
+* Kept scheduler and Facebook service behavior unchanged
 
 ### Risk Areas
 
@@ -151,7 +153,7 @@ Expand backend capabilities only after MVP stability is proven.
 ## Ready Now
 
 * MVP core maintenance only
-* Phase C Milestone 2 planning only
+* Phase C Batch 3 planning / controlled activation only
 
 ## After Phase A Is Stable
 

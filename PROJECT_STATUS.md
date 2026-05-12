@@ -185,13 +185,13 @@ Phase C must remain planning-gated until a dedicated implementation checkpoint s
 
 Current Phase C progress:
 
-* Milestone 1 multi-page routing foundation is now in place
+* Batch 1 completed the minimal multi-page routing foundation
+* Batch 2 completed the queue/page routing foundation wrap-up without activating live per-page publishing
 * workspace pages now have a backward-compatible foundation with default fallback pages
 * new drafts now persist `page_id` without requiring migration of existing posts/settings
-* scheduler flow and publish flow remain unchanged
-* Milestone 2A now includes a shared page-context resolver for safe metadata-only scheduled-post context
-* Milestone 2B now reports page publish readiness metadata while keeping actual publish execution on global V1
-* Milestone 2C now adds per-page publish dry-run diagnostics without calling Facebook or changing execution
+* scheduled-post processing can resolve safe page context metadata
+* page publish readiness and per-page dry-run diagnostics are available for UI/debug only
+* scheduler flow and actual publish flow remain on the stable global V1 path
 
 ---
 
@@ -200,8 +200,8 @@ Current Phase C progress:
 ## Immediate Priority
 
 1. Preserve the locked MVP core behavior without architecture expansion.
-2. Defer Phase C until MVP behavior is stable in real use.
-3. Keep future changes low-churn and production-safe.
+2. Keep Phase C Batch 2 consolidated and stable.
+3. Prepare one controlled activation batch for per-page publish execution behind explicit safeguards.
 
 ## Latest Stable Lock
 

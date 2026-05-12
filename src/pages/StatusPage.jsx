@@ -41,7 +41,6 @@ function StatusPage({
         </div>
       </div>
 
-      {/* Stats Section */}
       <div className="grid gap-4 sm:grid-cols-3">
         <div className="rounded-2xl border border-white/5 bg-slate-900/40 p-5 shadow-sm">
           <div className="flex items-center justify-between">
@@ -76,7 +75,6 @@ function StatusPage({
         </div>
       </div>
 
-      {/* Scheduler Info */}
       {schedulerStatus && (
         <div className="flex items-center gap-3 rounded-2xl border border-cyan-500/20 bg-cyan-500/10 p-4 text-xs text-cyan-400 shadow-sm">
           <div className="flex h-8 w-8 items-center justify-center rounded-full bg-cyan-500/20">
@@ -85,13 +83,12 @@ function StatusPage({
           <div>
             <p className="font-bold uppercase tracking-tight">Active Scheduler Service</p>
             <p className="mt-0.5 opacity-80">
-              Last sync: {formatDate(schedulerStatus.lastRun)} — Processed: {schedulerStatus.published} OK, {schedulerStatus.failed} Failed
+              Last sync: {formatDate(schedulerStatus.lastRun)} - Processed: {schedulerStatus.published} OK, {schedulerStatus.failed} Failed
             </p>
           </div>
         </div>
       )}
 
-      {/* Content List */}
       <div className="space-y-4">
         <h3 className="text-sm font-semibold text-slate-300 uppercase tracking-widest pl-1">Active Drafts Queue</h3>
         
@@ -115,135 +112,132 @@ function StatusPage({
             });
 
             return (
-            <article
-              key={post.id}
-              className="group relative flex flex-col gap-6 overflow-hidden rounded-[2rem] border border-white/5 bg-slate-900/60 p-6 transition-all hover:bg-slate-900/80 lg:flex-row"
-            >
-              {/* Thumbnail */}
-              {(post.image_url) && (
-                <div className="h-32 w-full shrink-0 overflow-hidden rounded-2xl lg:h-32 lg:w-48">
-                   <img
-                    src={post.image_url}
-                    alt="Preview"
-                    className="h-full w-full object-cover transition duration-500 group-hover:scale-110"
-                  />
-                </div>
-              )}
+              <article
+                key={post.id}
+                className="group relative flex flex-col gap-6 overflow-hidden rounded-[2rem] border border-white/5 bg-slate-900/60 p-6 transition-all hover:bg-slate-900/80 lg:flex-row"
+              >
+                {(post.image_url) && (
+                  <div className="h-32 w-full shrink-0 overflow-hidden rounded-2xl lg:h-32 lg:w-48">
+                    <img
+                      src={post.image_url}
+                      alt="Preview"
+                      className="h-full w-full object-cover transition duration-500 group-hover:scale-110"
+                    />
+                  </div>
+                )}
 
-              {/* Details */}
-              <div className="flex flex-1 flex-col justify-between">
-                <div>
-                  <div className="flex items-center gap-3">
-                    <h3 className="text-lg font-bold text-white">{post.topic || "Untitled Post"}</h3>
-                    <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
-                      post.source === "local" ? "bg-amber-500/10 text-amber-400 border border-amber-500/20" : "bg-cyan-500/10 text-cyan-400 border border-cyan-500/20"
-                    }`}>
-                      {post.source === "local" ? "Local" : "Supabase"}
-                    </span>
-                  </div>
-                  <p className="mt-2 text-sm leading-relaxed text-slate-400 line-clamp-2">{post.content}</p>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    <span className="rounded-full border border-white/5 bg-slate-950/40 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                      Page: {pageReadiness.label}
-                    </span>
-                    <span className={`rounded-full px-2 py-1 text-[10px] font-bold uppercase tracking-wider ${
-                      pageReadiness.pageConfigReady
-                        ? "bg-emerald-500/10 text-emerald-400"
-                        : "bg-amber-500/10 text-amber-400"
-                    }`}>
-                      {pageReadiness.pageConfigReady ? "Page Config Ready" : "Global Fallback"}
-                    </span>
-                    <span className="rounded-full bg-cyan-500/10 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-cyan-400">
-                      {pageReadiness.effectiveExecutionLabel}
-                    </span>
-                  </div>
-                  <div className="mt-2 rounded-lg border border-cyan-500/10 bg-cyan-500/5 px-3 py-2">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-cyan-400">
-                      {pageDryRun.dryRunLabel}
-                    </p>
-                    <p className="mt-1 text-[10px] text-slate-400">
-                      Would route to: {pageDryRun.resolvedPageLabel} ({pageDryRun.resolvedPageId}) · Page ID: {pageDryRun.pageSpecificPageIdReady ? "present" : "missing"} · Token: {pageDryRun.pageSpecificTokenReady ? "present" : "missing"}
-                    </p>
-                  </div>
-                  {pageReadiness.fallbackReason && (
-                    <p className="mt-2 text-[10px] italic text-slate-500">{pageReadiness.fallbackReason}</p>
-                  )}
-                </div>
-
-                <div className="mt-4 flex flex-wrap items-center gap-4 border-t border-white/5 pt-4">
-                  <div className="flex items-center gap-1.5 text-[10px] font-medium text-slate-500 uppercase tracking-tight">
-                    <Calendar className="h-3 w-3" />
-                    <span>Created: {formatDate(post.created_at)}</span>
-                  </div>
-                  {post.scheduled_at && post.status === "scheduled" && (
-                    <div className="flex items-center gap-1.5 text-[10px] font-bold text-amber-400 uppercase tracking-tight">
-                      <Clock className="h-3 w-3" />
-                      <span>Scheduled: {formatDate(post.scheduled_at)}</span>
+                <div className="flex flex-1 flex-col justify-between">
+                  <div>
+                    <div className="flex items-center gap-3">
+                      <h3 className="text-lg font-bold text-white">{post.topic || "Untitled Post"}</h3>
+                      <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
+                        post.source === "local" ? "bg-amber-500/10 text-amber-400 border border-amber-500/20" : "bg-cyan-500/10 text-cyan-400 border border-cyan-500/20"
+                      }`}>
+                        {post.source === "local" ? "Local" : "Supabase"}
+                      </span>
                     </div>
-                  )}
-                  {post.image_provider && (
+                    <p className="mt-2 text-sm leading-relaxed text-slate-400 line-clamp-2">{post.content}</p>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <span className="rounded-full border border-white/5 bg-slate-950/40 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                        Page: {pageReadiness.label}
+                      </span>
+                      <span className={`rounded-full px-2 py-1 text-[10px] font-bold uppercase tracking-wider ${
+                        pageReadiness.pageConfigReady
+                          ? "bg-emerald-500/10 text-emerald-400"
+                          : "bg-amber-500/10 text-amber-400"
+                      }`}>
+                        {pageReadiness.pageConfigReady ? "Page Config Ready" : "Global Fallback"}
+                      </span>
+                      <span className="rounded-full bg-cyan-500/10 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-cyan-400">
+                        {pageReadiness.effectiveExecutionLabel}
+                      </span>
+                    </div>
+                    <div className="mt-2 rounded-lg border border-cyan-500/10 bg-cyan-500/5 px-3 py-2">
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-cyan-400">
+                        {pageDryRun.dryRunLabel}
+                      </p>
+                      <p className="mt-1 text-[10px] text-slate-400">
+                        Would route to `{pageDryRun.resolvedPageLabel}` ({pageDryRun.resolvedPageId}) | Page ID: {pageDryRun.pageSpecificPageIdReady ? "present" : "missing"} | Token: {pageDryRun.pageSpecificTokenReady ? "present" : "missing"}
+                      </p>
+                    </div>
+                    {pageReadiness.fallbackReason && (
+                      <p className="mt-2 text-[10px] italic text-slate-500">{pageReadiness.fallbackReason}</p>
+                    )}
+                  </div>
+
+                  <div className="mt-4 flex flex-wrap items-center gap-4 border-t border-white/5 pt-4">
                     <div className="flex items-center gap-1.5 text-[10px] font-medium text-slate-500 uppercase tracking-tight">
-                      <ImageIcon className="h-3 w-3" />
-                      <span>{post.image_provider}</span>
+                      <Calendar className="h-3 w-3" />
+                      <span>Created: {formatDate(post.created_at)}</span>
                     </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Actions */}
-              <div className="flex shrink-0 flex-col justify-center gap-2 lg:w-48 lg:border-l lg:border-white/5 lg:pl-6">
-                {post.source === "local" ? (
-                  <>
-                    <ActionButton
-                      label="Edit Draft"
-                      icon={Pencil}
-                      onClick={() => handleLoadDraftToEditor(post)}
-                      variant="outline"
-                      fullWidth
-                    />
-                    <ActionButton
-                      label="Delete Local"
-                      icon={Trash2}
-                      onClick={() => handleDeleteLocalDraft(post.id)}
-                      variant="danger"
-                      fullWidth
-                    />
-                  </>
-                ) : (
-                  <>
-                    <ActionButton
-                      label="Edit Draft"
-                      icon={Pencil}
-                      onClick={() => handleLoadDraftToEditor(post)}
-                      variant="outline"
-                      fullWidth
-                    />
-                    <ActionButton
-                      label={settings.facebookPublishMode === "live" ? "Publish Live" : "Test Post"}
-                      icon={Send}
-                      onClick={() => handlePublishPost(post.id)}
-                      variant={settings.facebookPublishMode === "live" ? "emerald" : "secondary"}
-                      disabled={!isFbConfigured}
-                      fullWidth
-                    />
-                    {!isFbConfigured && (
-                      <div className="flex items-center gap-1 justify-center text-[9px] font-bold text-rose-400 uppercase">
-                         <AlertCircle className="h-3 w-3" />
-                         Missing Config
+                    {post.scheduled_at && post.status === "scheduled" && (
+                      <div className="flex items-center gap-1.5 text-[10px] font-bold text-amber-400 uppercase tracking-tight">
+                        <Clock className="h-3 w-3" />
+                        <span>Scheduled: {formatDate(post.scheduled_at)}</span>
                       </div>
                     )}
-                  </>
-                )}
-              </div>
-            </article>
-          )})
+                    {post.image_provider && (
+                      <div className="flex items-center gap-1.5 text-[10px] font-medium text-slate-500 uppercase tracking-tight">
+                        <ImageIcon className="h-3 w-3" />
+                        <span>{post.image_provider}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex shrink-0 flex-col justify-center gap-2 lg:w-48 lg:border-l lg:border-white/5 lg:pl-6">
+                  {post.source === "local" ? (
+                    <>
+                      <ActionButton
+                        label="Edit Draft"
+                        icon={Pencil}
+                        onClick={() => handleLoadDraftToEditor(post)}
+                        variant="outline"
+                        fullWidth
+                      />
+                      <ActionButton
+                        label="Delete Local"
+                        icon={Trash2}
+                        onClick={() => handleDeleteLocalDraft(post.id)}
+                        variant="danger"
+                        fullWidth
+                      />
+                    </>
+                  ) : (
+                    <>
+                      <ActionButton
+                        label="Edit Draft"
+                        icon={Pencil}
+                        onClick={() => handleLoadDraftToEditor(post)}
+                        variant="outline"
+                        fullWidth
+                      />
+                      <ActionButton
+                        label={settings.facebookPublishMode === "live" ? "Publish Live" : "Test Post"}
+                        icon={Send}
+                        onClick={() => handlePublishPost(post.id)}
+                        variant={settings.facebookPublishMode === "live" ? "emerald" : "secondary"}
+                        disabled={!isFbConfigured}
+                        fullWidth
+                      />
+                      {!isFbConfigured && (
+                        <div className="flex items-center gap-1 justify-center text-[9px] font-bold text-rose-400 uppercase">
+                           <AlertCircle className="h-3 w-3" />
+                           Missing Config
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              </article>
+            );
+          })
         )}
       </div>
     </div>
   );
 }
 
-// Helper icon component for StatusPage
 function ImageIcon({ className }) {
   return (
     <svg 
