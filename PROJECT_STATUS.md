@@ -1,10 +1,19 @@
 # Project Status
 
-## Current State: UI Foundation Stable
+## Current State: MVP Core Stable
 
 AutoPost Studio has completed its UI foundation milestone. The application now has a full studio-grade frontend for AI content creation, workspace planning, scheduling visibility, asset/library browsing, and system log viewing.
 
 No backend, publishing, or scheduler execution logic was changed during the UI foundation work. Mock mode remains the default. Production publishing continues to rely on the existing stable V1 flow.
+
+The current MVP core is now release-locked as stable for:
+
+* text generation
+* draft editing and persistence
+* persisted draft reload/edit
+* preview badge visibility
+* mock/live publish safety visibility
+* scheduler compatibility by scope
 
 ---
 
@@ -171,9 +180,15 @@ Expand backend capability in a controlled way without premature architecture gro
 
 ## Immediate Priority
 
-1. Preserve the controlled QA fixes for draft reload, preview visibility, and stable safety messaging.
-2. Preserve the stabilized Phase A and Phase B runtime behavior.
-3. Defer Phase C until MVP behavior is stable in real use.
+1. Preserve the locked MVP core behavior without architecture expansion.
+2. Defer Phase C until MVP behavior is stable in real use.
+3. Keep future changes low-churn and production-safe.
+
+## Latest Stable Lock
+
+Latest QA fix checkpoint:
+
+* `9802c7b` `controlled production qa fixes`
 
 ## Deferred Until Controlled Expansion
 

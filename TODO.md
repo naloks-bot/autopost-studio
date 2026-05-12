@@ -4,6 +4,10 @@
 
 UI foundation is stable. No backend, publishing, or scheduler execution changes were introduced during the UI phase. Mock mode remains the default. The next work should follow the consolidated low-churn roadmap below.
 
+MVP core is currently locked as stable after the controlled QA pass and latest checkpoint commit:
+
+* `9802c7b` `controlled production qa fixes`
+
 ---
 
 # Development Rules
@@ -113,7 +117,7 @@ Expand backend capabilities only after MVP stability is proven.
 
 ## Ready Now
 
-* Phase A implementation batch
+* MVP core maintenance only
 
 ## After Phase A Is Stable
 

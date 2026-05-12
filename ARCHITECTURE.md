@@ -157,6 +157,7 @@ Current Phase B progress:
 * Create Draft handlers now use compact user-safe errors and defensive try/catch protection.
 * Controlled QA fixes now cover persisted draft reload/edit and preview-side provider visibility.
 * Scheduler, publish flow, backend structure, and Supabase schema remain unchanged.
+* MVP core is now release-locked as stable without backend or architecture expansion.
 
 ## Phase C - Controlled Backend Expansion
 
