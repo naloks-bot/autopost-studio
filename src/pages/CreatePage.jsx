@@ -222,8 +222,8 @@ function CreatePage({
 
       {/* Right Panel: Preview & Studio */}
       <div className="flex flex-col space-y-6 lg:h-[calc(100vh-10rem)]">
-         <PreviewStudioCard form={form} settings={settings} metadata={metadata} imageForm={imageForm} />
-         
+         <PreviewStudioCard form={form} settings={settings} metadata={metadata} imageForm={imageForm} textProviderRuntime={textProviderRuntime} />
+
          <div className="rounded-2xl border border-white/5 bg-slate-900/40 p-4 shadow-sm">
             <ActionButton
               label="Save Draft to Supabase"

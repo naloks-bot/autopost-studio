@@ -75,6 +75,12 @@ export const statusCopy = {
     icon: Database,
     tone: "text-sky-100 border-sky-400/30 bg-sky-500/10",
   },
+  empty: {
+    label: "ยังไม่มีค่าบนคลาวด์",
+    detail: "ใช้ค่า local/default ได้ตามปกติ",
+    icon: Cloud,
+    tone: "text-cyan-100 border-cyan-400/30 bg-cyan-500/10",
+  },
   offline: {
     label: "โหมดออฟไลน์",
     detail: "เก็บข้อมูลไว้ในเครื่องชั่วคราว",

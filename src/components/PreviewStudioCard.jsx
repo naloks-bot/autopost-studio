@@ -1,8 +1,9 @@
 import React, { useState } from "react";
 import { Smartphone, Monitor, Facebook, Info } from "lucide-react";
 import { WORKSPACE_PAGES } from "../constants/appConstants";
+import { getProviderLabel } from "../services/ai-generation.js";
 
-export default function PreviewStudioCard({ form, settings, metadata, imageForm }) {
+export default function PreviewStudioCard({ form, settings, metadata, imageForm, textProviderRuntime }) {
   const [device, setDevice] = useState("mobile");
   const activePage = WORKSPACE_PAGES.find(p => p.id === settings.activePageId) || WORKSPACE_PAGES[0];
 
@@ -79,6 +80,12 @@ export default function PreviewStudioCard({ form, settings, metadata, imageForm 
            <span className="text-[8px] font-bold text-slate-500 uppercase px-1.5 py-0.5 rounded border border-white/5">TONE: {metadata.tone}</span>
            <span className="text-[8px] font-bold text-slate-500 uppercase px-1.5 py-0.5 rounded border border-white/5">CTA: {metadata.cta}</span>
            <span className="text-[8px] font-bold text-sky-500 uppercase px-1.5 py-0.5 rounded border border-sky-500/20 bg-sky-500/5">RATIO: {imageForm.aspectRatio}</span>
+           <span className="text-[8px] font-bold text-violet-400 uppercase px-1.5 py-0.5 rounded border border-violet-500/20 bg-violet-500/5">
+             TEXT: {getProviderLabel(textProviderRuntime?.activeProvider || settings.textProvider)}
+           </span>
+           <span className="text-[8px] font-bold text-emerald-400 uppercase px-1.5 py-0.5 rounded border border-emerald-500/20 bg-emerald-500/5">
+             PUBLISH: {settings.facebookPublishMode === "live" ? "LIVE" : "MOCK SAFE"}
+           </span>
         </div>
         <div className="flex items-center gap-1.5 text-slate-500">
            <Info className="h-3 w-3" />

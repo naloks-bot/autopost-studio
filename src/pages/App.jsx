@@ -189,6 +189,18 @@ function App() {
     setSettings((current) => ({ ...current, [key]: value }));
   }, []);
 
+  const handleLoadDraftToEditor = useCallback((draft) => {
+    setForm({
+      topic: draft.topic || "",
+      content: draft.content || "",
+      imagePrompt: draft.image_prompt || "",
+      imageUrl: draft.image_url || "",
+    });
+    setGenerationError("");
+    setCreateNotice({ tone: "info", message: "Draft loaded into the editor." });
+    setActiveTab("create");
+  }, []);
+
   async function handleGenerateContent() {
     if (!form.topic.trim()) return window.alert("Please enter a topic first.");
     setIsGenerating(true);
@@ -441,6 +453,7 @@ function App() {
                 localDrafts={localDrafts}
                 formatDate={formatDate}
                 handleDeleteLocalDraft={handleDeleteLocalDraft}
+                handleLoadDraftToEditor={handleLoadDraftToEditor}
                 handlePublishPost={handlePublishPost}
                 settings={settings}
                 schedulerStatus={schedulerStatus}

@@ -70,6 +70,7 @@ Stable low-cost production operation.
 * Compact user-safe notices for generation and draft save flows
 * Defensive handler hardening to reduce UI crash risk
 * Stability review of generate, save, preview, scheduler compatibility, and publish compatibility without backend changes
+* Controlled QA fixes for persisted draft reload/edit and preview-side provider visibility
 
 ### Constraints
 

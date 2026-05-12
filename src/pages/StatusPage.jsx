@@ -1,5 +1,5 @@
 import React from "react";
-import { Calendar, Clock, Facebook, Globe, Send, Trash2, Database, Laptop, Info, AlertCircle } from "lucide-react";
+import { Calendar, Clock, Facebook, Globe, Send, Trash2, Database, Laptop, Info, AlertCircle, Pencil } from "lucide-react";
 import SectionCard from "../components/SectionCard.jsx";
 import ActionButton from "../components/ActionButton.jsx";
 import { validateFacebookConfig } from "../services/facebook.js";
@@ -10,6 +10,7 @@ function StatusPage({
   localDrafts,
   formatDate,
   handleDeleteLocalDraft,
+  handleLoadDraftToEditor,
   handlePublishPost,
   settings,
   schedulerStatus,
@@ -152,15 +153,31 @@ function StatusPage({
               {/* Actions */}
               <div className="flex shrink-0 flex-col justify-center gap-2 lg:w-48 lg:border-l lg:border-white/5 lg:pl-6">
                 {post.source === "local" ? (
-                  <ActionButton
-                    label="Delete Local"
-                    icon={Trash2}
-                    onClick={() => handleDeleteLocalDraft(post.id)}
-                    variant="danger"
-                    fullWidth
-                  />
+                  <>
+                    <ActionButton
+                      label="Edit Draft"
+                      icon={Pencil}
+                      onClick={() => handleLoadDraftToEditor(post)}
+                      variant="outline"
+                      fullWidth
+                    />
+                    <ActionButton
+                      label="Delete Local"
+                      icon={Trash2}
+                      onClick={() => handleDeleteLocalDraft(post.id)}
+                      variant="danger"
+                      fullWidth
+                    />
+                  </>
                 ) : (
                   <>
+                    <ActionButton
+                      label="Edit Draft"
+                      icon={Pencil}
+                      onClick={() => handleLoadDraftToEditor(post)}
+                      variant="outline"
+                      fullWidth
+                    />
                     <ActionButton
                       label={settings.facebookPublishMode === "live" ? "Publish Live" : "Test Post"}
                       icon={Send}

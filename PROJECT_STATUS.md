@@ -44,6 +44,7 @@ Currently supports:
 * Facebook page publishing
 * Scheduled posting
 * Draft save system
+* Draft reload/edit from persisted queue
 * Manual publish
 * Mock/live publish protection
 * Scheduler enable/disable control
@@ -170,7 +171,7 @@ Expand backend capability in a controlled way without premature architecture gro
 
 ## Immediate Priority
 
-1. Finish any remaining end-to-end QA observations with minimal architecture churn.
+1. Preserve the controlled QA fixes for draft reload, preview visibility, and stable safety messaging.
 2. Preserve the stabilized Phase A and Phase B runtime behavior.
 3. Defer Phase C until MVP behavior is stable in real use.
 

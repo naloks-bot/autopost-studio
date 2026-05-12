@@ -155,6 +155,7 @@ Current Phase B progress:
 * Provider validation now exposes clearer missing-key and fallback behavior.
 * Runtime safety visibility is more consistent across header, create flow, and publish mode surfaces.
 * Create Draft handlers now use compact user-safe errors and defensive try/catch protection.
+* Controlled QA fixes now cover persisted draft reload/edit and preview-side provider visibility.
 * Scheduler, publish flow, backend structure, and Supabase schema remain unchanged.
 
 ## Phase C - Controlled Backend Expansion
