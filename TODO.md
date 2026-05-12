@@ -63,6 +63,14 @@ Stable low-cost production operation.
 * Harden settings behavior
 * Stabilize build/release behavior
 
+### Completed In This Milestone
+
+* Clearer provider validation safeguards for missing keys and fallback cases
+* Safer runtime provider and publish-mode visibility
+* Compact user-safe notices for generation and draft save flows
+* Defensive handler hardening to reduce UI crash risk
+* Stability review of generate, save, preview, scheduler compatibility, and publish compatibility without backend changes
+
 ### Constraints
 
 * Focus on reliability, not feature expansion

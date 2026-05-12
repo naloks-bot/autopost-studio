@@ -10,16 +10,16 @@ export default function ProviderStatusCard({ settings, textProviderRuntime: runt
   const textRuntime = getTextProviderRuntime(settings, runtimeOverride);
 
   function getStatus(providerId, settings) {
-    if (providerId === "mock") return { label: "Ready", color: "text-emerald-400 bg-emerald-400/10" };
-    if (providerId === "codex") return { label: "Local workflow", color: "text-amber-400 bg-amber-400/10" };
+    if (providerId === "mock") return { label: "Mock Ready", color: "text-emerald-400 bg-emerald-400/10", detail: "Safe local simulation" };
+    if (providerId === "codex") return { label: "Planned", color: "text-amber-400 bg-amber-400/10", detail: "Not active in this milestone" };
     
     const hasKey = (providerId === "openai" || providerId === "gpt-image" || providerId === "dalle") 
       ? settings.openaiApiKey 
       : (providerId === "gemini" ? settings.geminiApiKey : false);
       
     return hasKey 
-      ? { label: "Ready", color: "text-emerald-400 bg-emerald-400/10" }
-      : { label: "Requires API Key", color: "text-rose-400 bg-rose-400/10" };
+      ? { label: "Ready", color: "text-emerald-400 bg-emerald-400/10", detail: "API key detected" }
+      : { label: "Key Missing", color: "text-rose-400 bg-rose-400/10", detail: "Will not run live provider requests" };
   }
 
   const textStatus = textRuntime.tone === "warning"
@@ -57,6 +57,7 @@ export default function ProviderStatusCard({ settings, textProviderRuntime: runt
               {imageStatus.label}
             </span>
           </div>
+          <p className="text-[9px] text-slate-500 italic">{imageStatus.detail}</p>
         </div>
       </div>
 
@@ -64,12 +65,12 @@ export default function ProviderStatusCard({ settings, textProviderRuntime: runt
         <div className="flex items-center gap-1.5">
           <ShieldCheck className={`h-3 w-3 ${isFbLive ? 'text-rose-500' : 'text-emerald-500'}`} />
           <span className={`text-[10px] font-bold uppercase tracking-tight ${isFbLive ? 'text-rose-500' : 'text-emerald-500'}`}>
-            Publish Mode: {isFbLive ? 'LIVE' : 'MOCK'}
+            Publish Mode: {isFbLive ? 'LIVE' : 'MOCK SAFE'}
           </span>
         </div>
         <div className="flex items-center gap-1 text-slate-500">
           <Info className="h-3 w-3" />
-          <span className="text-[9px] italic">Routing logic: V1 Stable</span>
+          <span className="text-[9px] italic">Routing stays inside the stable V1 flow.</span>
         </div>
       </div>
     </div>

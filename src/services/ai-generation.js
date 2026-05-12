@@ -7,6 +7,26 @@ const PROVIDER_LABELS = {
   codex: "Codex CLI",
 };
 
+function compactProviderError(message, fallback = "Provider request failed.") {
+  const next = String(message || "").replace(/\s+/g, " ").trim();
+  if (!next) return fallback;
+  if (next.length <= 140) return next;
+  return `${next.slice(0, 137)}...`;
+}
+
+function createGenerationResult(payload) {
+  return {
+    data: payload.data ?? null,
+    error: payload.error ?? null,
+    mode: payload.mode || "mock",
+    status: payload.status || "success",
+    requestedProvider: payload.requestedProvider || payload.mode || "mock",
+    fallbackReason: payload.fallbackReason || null,
+    noticeTone: payload.noticeTone || null,
+    noticeMessage: payload.noticeMessage || null,
+  };
+}
+
 function hasOpenAIKey(settings) {
   return Boolean(settings?.openaiApiKey?.trim());
 }
@@ -31,7 +51,7 @@ export function getTextProviderRuntime(settings, lastResult = null) {
     runtime = {
       selectedProvider: "mock",
       activeProvider: "mock",
-      statusLabel: "Ready",
+      statusLabel: "Mock Ready",
       detail: "Mock mode active",
       tone: "ready",
     };
@@ -47,7 +67,7 @@ export function getTextProviderRuntime(settings, lastResult = null) {
       : {
           selectedProvider: "openai",
           activeProvider: "mock",
-          statusLabel: "Fallback to Mock",
+          statusLabel: "Mock Fallback",
           detail: "OpenAI key missing",
           tone: "warning",
         };
@@ -63,7 +83,7 @@ export function getTextProviderRuntime(settings, lastResult = null) {
       : {
           selectedProvider: "gemini",
           activeProvider: "mock",
-          statusLabel: "Fallback to Mock",
+          statusLabel: "Mock Fallback",
           detail: "Gemini key missing",
           tone: "warning",
         };
@@ -71,7 +91,7 @@ export function getTextProviderRuntime(settings, lastResult = null) {
     runtime = {
       selectedProvider: "codex",
       activeProvider: "mock",
-      statusLabel: "Planned / Mock",
+      statusLabel: "Mock Fallback",
       detail: "Codex CLI is not active in Phase A",
       tone: "warning",
     };
@@ -79,7 +99,7 @@ export function getTextProviderRuntime(settings, lastResult = null) {
     runtime = {
       selectedProvider: "mock",
       activeProvider: "mock",
-      statusLabel: "Ready",
+      statusLabel: "Mock Ready",
       detail: "Mock mode active",
       tone: "ready",
     };
@@ -93,8 +113,8 @@ export function getTextProviderRuntime(settings, lastResult = null) {
     return {
       ...runtime,
       activeProvider: "mock",
-      statusLabel: "Fallback Used",
-      detail: lastResult.error || runtime.detail,
+      statusLabel: "Mock Fallback",
+      detail: lastResult.noticeMessage || lastResult.error || runtime.detail,
       tone: "warning",
     };
   }
@@ -103,7 +123,7 @@ export function getTextProviderRuntime(settings, lastResult = null) {
     return {
       ...runtime,
       statusLabel: "Active",
-      detail: `Last run used ${getProviderLabel(runtime.selectedProvider)}`,
+      detail: lastResult.noticeMessage || `Last run used ${getProviderLabel(runtime.selectedProvider)}`,
       tone: "ready",
     };
   }
@@ -147,13 +167,16 @@ export function buildImagePrompt(formData, settings) {
 async function generateMockText(formData, settings, meta = {}) {
   await new Promise((resolve) => setTimeout(resolve, 1000));
 
-  return {
+  return createGenerationResult({
     data: `[Mock Generated Content]\n\nTopic: ${formData.topic}\n\nThis is mock AI-generated content for ${settings.businessName || "your business"} using a ${settings.brandVoice || "professional"} brand voice.\n\nThe post highlights the audience problem, introduces the offer clearly, and ends with a strong call to action.`,
     error: meta.error || null,
     mode: "mock",
+    status: meta.status || "success",
     requestedProvider: meta.requestedProvider || "mock",
     fallbackReason: meta.fallbackReason || null,
-  };
+    noticeTone: meta.noticeTone || null,
+    noticeMessage: meta.noticeMessage || null,
+  });
 }
 
 /**
@@ -163,7 +186,7 @@ async function generateWithOpenAI(prompt, apiKey, model = "gpt-4o-mini") {
   if (!apiKey) {
     return {
       data: null,
-      error: "OpenAI API key is missing",
+      error: "OpenAI API key is missing.",
       mode: "openai",
     };
   }
@@ -197,7 +220,7 @@ async function generateWithOpenAI(prompt, apiKey, model = "gpt-4o-mini") {
     if (!content) {
       return {
         data: null,
-        error: "OpenAI returned no message content",
+        error: "OpenAI returned no message content.",
         mode: "openai",
       };
     }
@@ -210,7 +233,7 @@ async function generateWithOpenAI(prompt, apiKey, model = "gpt-4o-mini") {
   } catch (error) {
     return {
       data: null,
-      error: `Network error: ${error.message}`,
+      error: `Network error: ${compactProviderError(error.message, "Unable to reach OpenAI.")}`,
       mode: "openai",
     };
   }
@@ -223,7 +246,7 @@ async function generateWithGemini(prompt, apiKey, model = "gemini-2.5-flash") {
   if (!apiKey) {
     return {
       data: null,
-      error: "Gemini API key is missing",
+      error: "Gemini API key is missing.",
       mode: "gemini",
     };
   }
@@ -261,7 +284,7 @@ async function generateWithGemini(prompt, apiKey, model = "gemini-2.5-flash") {
     if (!content) {
       return {
         data: null,
-        error: "Gemini returned no message content",
+        error: "Gemini returned no message content.",
         mode: "gemini",
       };
     }
@@ -274,7 +297,7 @@ async function generateWithGemini(prompt, apiKey, model = "gemini-2.5-flash") {
   } catch (error) {
     return {
       data: null,
-      error: `Network error: ${error.message}`,
+      error: `Network error: ${compactProviderError(error.message, "Unable to reach Gemini.")}`,
       mode: "gemini",
     };
   }
@@ -285,13 +308,16 @@ async function generateWithGemini(prompt, apiKey, model = "gemini-2.5-flash") {
  */
 export async function generatePostContent({ formData, settings }) {
   if (!formData?.topic || formData.topic.trim().length < 5) {
-    return {
+    return createGenerationResult({
       data: null,
       error: "Please enter at least 5 characters for the topic before generating content.",
       mode: "mock",
+      status: "blocked",
       requestedProvider: getPreferredTextProvider(settings),
       fallbackReason: null,
-    };
+      noticeTone: "danger",
+      noticeMessage: "Topic is too short. Add a clearer topic before generating.",
+    });
   }
 
   try {
@@ -303,6 +329,12 @@ export async function generatePostContent({ formData, settings }) {
         requestedProvider: runtime.selectedProvider,
         error: runtime.selectedProvider === "mock" ? null : `${runtime.detail}. Using Mock fallback.`,
         fallbackReason: runtime.detail,
+        status: runtime.selectedProvider === "mock" ? "success" : "fallback",
+        noticeTone: runtime.selectedProvider === "mock" ? "info" : "warning",
+        noticeMessage:
+          runtime.selectedProvider === "mock"
+            ? "Generated in Mock mode."
+            : `${getProviderLabel(runtime.selectedProvider)} is not ready. Generated in Mock mode instead.`,
       });
       logger.info(`Text generation complete. Mode: ${result.mode}`);
       return result;
@@ -319,15 +351,24 @@ export async function generatePostContent({ formData, settings }) {
       logger.warn(`Primary text provider failed. Falling back to mock. Provider: ${runtime.selectedProvider}`);
       result = await generateMockText(formData, settings, {
         requestedProvider: runtime.selectedProvider,
-        error: `${getProviderLabel(runtime.selectedProvider)} failed. Using Mock fallback. ${result.error}`,
+        error: `${getProviderLabel(runtime.selectedProvider)} failed. Using Mock fallback. ${compactProviderError(result.error)}`,
         fallbackReason: result.error,
+        status: "fallback",
+        noticeTone: "warning",
+        noticeMessage: `${getProviderLabel(runtime.selectedProvider)} failed. Mock content was generated to keep the flow safe.`,
       });
     } else {
-      result = {
+      result = createGenerationResult({
         ...result,
+        status: "success",
         requestedProvider: runtime.selectedProvider,
         fallbackReason: null,
-      };
+        noticeTone: result.mode === "mock" ? "info" : "success",
+        noticeMessage:
+          result.mode === "mock"
+            ? "Generated in Mock mode."
+            : `Generated with ${getProviderLabel(result.mode)}.`,
+      });
     }
 
     logger.info(`Text generation complete. Mode: ${result.mode}`);
@@ -336,8 +377,11 @@ export async function generatePostContent({ formData, settings }) {
     logger.error("Text generation failed:", err);
     return generateMockText(formData, settings, {
       requestedProvider: getPreferredTextProvider(settings),
-      error: `Unexpected error. Using Mock fallback. ${err.message}`,
+      error: `Unexpected error. Using Mock fallback. ${compactProviderError(err.message)}`,
       fallbackReason: err.message,
+      status: "fallback",
+      noticeTone: "warning",
+      noticeMessage: "The provider failed unexpectedly. Mock content was generated to keep the flow safe.",
     });
   }
 }

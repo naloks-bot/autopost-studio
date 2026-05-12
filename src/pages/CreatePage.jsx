@@ -25,6 +25,7 @@ function CreatePage({
   isSavingDraft,
   generationError,
   textProviderRuntime,
+  createNotice,
 }) {
   const [generatedImage, setGeneratedImage] = useState(null);
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
@@ -185,9 +186,35 @@ function CreatePage({
               fullWidth
             />
           </div>
+          {createNotice && (
+            <div
+              className={`mt-3 rounded border p-2 text-xs italic ${
+                createNotice.tone === "danger"
+                  ? "border-rose-400/20 bg-rose-400/10 text-rose-400"
+                  : createNotice.tone === "warning"
+                    ? "border-amber-400/20 bg-amber-400/10 text-amber-300"
+                    : createNotice.tone === "success"
+                      ? "border-emerald-400/20 bg-emerald-400/10 text-emerald-300"
+                      : "border-cyan-400/20 bg-cyan-400/10 text-cyan-300"
+              }`}
+            >
+              {createNotice.message}
+            </div>
+          )}
           {generationError && (
             <p className="mt-3 text-xs text-rose-400 bg-rose-400/10 p-2 rounded border border-rose-400/20 italic">{generationError}</p>
           )}
+          <div className="mt-3 flex flex-wrap gap-2 text-[10px] font-bold uppercase tracking-tight text-slate-500">
+            <span className="rounded-full border border-white/10 bg-slate-950/50 px-2 py-1">
+              Text Runtime: {getProviderLabel(textProviderRuntime?.activeProvider || "mock")}
+            </span>
+            <span className="rounded-full border border-white/10 bg-slate-950/50 px-2 py-1">
+              Preview: Live
+            </span>
+            <span className="rounded-full border border-white/10 bg-slate-950/50 px-2 py-1">
+              Publish: {settings.facebookPublishMode === "live" ? "Live" : "Mock Safe"}
+            </span>
+          </div>
         </div>
 
         <ImageStudioCard settings={settings} imageForm={imageForm} updateImageForm={updateImageForm} />

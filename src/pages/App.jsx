@@ -32,10 +32,11 @@ function formatDate(value) {
   }).format(new Date(value));
 }
 
-function maskSecret(value) {
-  if (!value) return "ยังไม่ได้กรอก";
-  if (value.length <= 10) return "ตั้งค่าแล้ว";
-  return `${value.slice(0, 4)}...${value.slice(-4)}`;
+function toUserSafeMessage(error, fallback = "Something went wrong. Please try again.") {
+  const raw = typeof error === "string" ? error : error?.message;
+  const next = String(raw || fallback).replace(/\s+/g, " ").trim();
+  if (!next) return fallback;
+  return next.length <= 160 ? next : `${next.slice(0, 157)}...`;
 }
 
 function SettingsField({ label, value, onChange, placeholder, multiline = false, secret = false, type = "text", options = [] }) {
@@ -109,6 +110,7 @@ function App() {
   const [generationError, setGenerationError] = useState("");
   const [schedulerStatus, setSchedulerStatus] = useState(null);
   const [lastTextGeneration, setLastTextGeneration] = useState(null);
+  const [createNotice, setCreateNotice] = useState(null);
 
   const schedulerLock = useRef(false);
   const dataLock = useRef(false);
@@ -155,7 +157,9 @@ function App() {
         setRemotePosts(postsResult.data);
       }
       if (postsResult.mode) setConnectionMode(postsResult.mode);
-      if (postsResult.error && postsResult.mode !== "offline") setConnectionError(postsResult.error.message);
+      if (postsResult.error && postsResult.mode !== "offline") {
+        setConnectionError(toUserSafeMessage(postsResult.error, "Failed to fetch posts from Supabase."));
+      }
       if (settingsResult.mode) setSettingsSyncMode(settingsResult.mode);
       if (settingsResult.data) {
         setSettings({ ...localSettings, ...settingsResult.data });
@@ -178,6 +182,7 @@ function App() {
   const resetForm = useCallback(() => {
     setForm(initialForm);
     setGenerationError("");
+    setCreateNotice(null);
   }, []);
 
   const updateSettingsField = useCallback((key, value) => {
@@ -185,28 +190,58 @@ function App() {
   }, []);
 
   async function handleGenerateContent() {
-    if (!form.topic.trim()) return window.alert("กรุณาใส่หัวข้อก่อน");
+    if (!form.topic.trim()) return window.alert("Please enter a topic first.");
     setIsGenerating(true);
     setGenerationError("");
-    const result = await generatePostContent({ formData: form, settings });
-    if (result.data) updateForm("content", result.data);
-    setLastTextGeneration(result);
-    setGenerationError(result.error || "");
-    setIsGenerating(false);
+    setCreateNotice({ tone: "info", message: "Generating content..." });
+    try {
+      const result = await generatePostContent({ formData: form, settings });
+      if (result.data) updateForm("content", result.data);
+      setLastTextGeneration(result);
+      setGenerationError(result.status === "blocked" ? result.error || "" : "");
+      setCreateNotice(
+        result.noticeMessage
+          ? { tone: result.noticeTone || "info", message: result.noticeMessage }
+          : null
+      );
+    } catch (error) {
+      const message = toUserSafeMessage(error, "Unable to generate content safely.");
+      setGenerationError(message);
+      setCreateNotice({ tone: "danger", message });
+    } finally {
+      setIsGenerating(false);
+    }
   }
 
   async function handleGenerateImagePrompt() {
-    if (!form.topic.trim()) return window.alert("กรุณาใส่หัวข้อก่อน");
+    if (!form.topic.trim()) return window.alert("Please enter a topic first.");
     setIsGeneratingImagePrompt(true);
     setGenerationError("");
-    const result = await generateImagePrompt({ formData: form, settings });
-    if (result.data) updateForm("imagePrompt", result.data);
-    else if (result.error) setGenerationError(result.error);
-    setIsGeneratingImagePrompt(false);
+    setCreateNotice({ tone: "info", message: "Generating image prompt..." });
+    try {
+      const result = await generateImagePrompt({ formData: form, settings });
+      if (result.data) {
+        updateForm("imagePrompt", result.data);
+        setCreateNotice({
+          tone: "success",
+          message: `Image prompt prepared with ${result.mode === "mock" ? "Mock" : result.mode}.`,
+        });
+      } else if (result.error) {
+        const message = toUserSafeMessage(result.error, "Unable to generate an image prompt.");
+        setGenerationError(message);
+        setCreateNotice({ tone: "danger", message });
+      }
+    } catch (error) {
+      const message = toUserSafeMessage(error, "Unable to generate an image prompt safely.");
+      setGenerationError(message);
+      setCreateNotice({ tone: "danger", message });
+    } finally {
+      setIsGeneratingImagePrompt(false);
+    }
   }
 
   function handleGenerateImagePreview() {
-    if (!form.imagePrompt.trim()) return window.alert("กรุณาสร้าง prompt รูปก่อน");
+    if (!form.imagePrompt.trim()) return window.alert("Please generate an image prompt first.");
     setIsGeneratingImage(true);
     window.setTimeout(() => {
       updateForm("imageUrl", `https://picsum.photos/seed/${encodeURIComponent(form.topic || "autopost")}/1200/1200`);
@@ -215,67 +250,94 @@ function App() {
   }
 
   async function handleSaveDraft(extraData = {}) {
-    if (!form.topic.trim() || !form.content.trim()) return window.alert("ต้องมีทั้งหัวข้อและเนื้อหาก่อนบันทึก");
+    if (!form.topic.trim() || !form.content.trim()) {
+      return window.alert("Topic and content are required before saving.");
+    }
+
     setIsSavingDraft(true);
-    const draft = {
-      topic: form.topic.trim(),
-      content: form.content.trim(),
-      image_prompt: extraData.image_prompt || form.imagePrompt.trim(),
-      image_url: extraData.image_url || form.imageUrl.trim(),
-      image_provider: extraData.image_provider || null,
-      status: "draft",
-      created_at: new Date().toISOString(),
-    };
-    const remote = await insertRemoteDraft(draft);
-    if (remote.data) {
-      setRemotePosts((current) => [remote.data, ...current]);
-      resetForm();
+    setCreateNotice({ tone: "info", message: "Saving draft..." });
+
+    try {
+      const draft = {
+        topic: form.topic.trim(),
+        content: form.content.trim(),
+        image_prompt: extraData.image_prompt || form.imagePrompt.trim(),
+        image_url: extraData.image_url || form.imageUrl.trim(),
+        image_provider: extraData.image_provider || null,
+        status: "draft",
+        created_at: new Date().toISOString(),
+      };
+
+      const remote = await insertRemoteDraft(draft);
+      if (remote.data) {
+        setRemotePosts((current) => [remote.data, ...current]);
+        resetForm();
+        setCreateNotice({ tone: "success", message: "Draft saved to Supabase." });
+        window.alert("Draft saved to Supabase.");
+        return;
+      }
+
+      if (["read-only", "offline", "missing-table"].includes(remote.mode)) {
+        const localEntry = saveLocalDraft(draft);
+        setLocalDrafts((current) => localEntry ? [localEntry, ...current] : current);
+        resetForm();
+        setCreateNotice({ tone: "warning", message: "Supabase is not writable right now. Draft was saved locally instead." });
+        window.alert("Supabase is unavailable for write access. Draft saved locally instead.");
+        return;
+      }
+
+      const message = toUserSafeMessage(remote.error, "Draft save failed.");
+      setCreateNotice({ tone: "danger", message });
+      window.alert(`Draft save failed: ${message}`);
+    } catch (error) {
+      const message = toUserSafeMessage(error, "Draft save failed.");
+      setCreateNotice({ tone: "danger", message });
+      window.alert(`Draft save failed: ${message}`);
+    } finally {
       setIsSavingDraft(false);
-      window.alert("บันทึก draft ลง Supabase สำเร็จ");
-      return;
     }
-    if (["read-only", "offline", "missing-table"].includes(remote.mode)) {
-      const localEntry = saveLocalDraft(draft);
-      setLocalDrafts((current) => localEntry ? [localEntry, ...current] : current);
-      resetForm();
-      setIsSavingDraft(false);
-      window.alert("บันทึกลง Supabase ไม่ได้ จึงเก็บ draft ไว้ในเครื่องก่อน");
-      return;
-    }
-    setIsSavingDraft(false);
-    window.alert(`บันทึกไม่สำเร็จ: ${remote.error?.message ?? "Unknown error"}`);
   }
 
   async function handleSaveSettings() {
     setIsSavingSettings(true);
-    const stored = saveAppSettings(settings);
-    const remote = await saveRemoteSettings(stored);
-    if (remote.data) {
-      setSettings(remote.data);
-      setSettingsSyncMode(remote.mode);
-      setSettingsMessage("บันทึกการตั้งค่าลง Supabase สำเร็จ");
-    } else {
-      setSettingsSyncMode(remote.mode);
-      setSettingsMessage(remote.error?.message ?? "บันทึกลง local สำเร็จ แต่ sync ไป Supabase ไม่ได้");
+    try {
+      const stored = saveAppSettings(settings);
+      const remote = await saveRemoteSettings(stored);
+      if (remote.data) {
+        setSettings(remote.data);
+        setSettingsSyncMode(remote.mode);
+        setSettingsMessage("Settings saved to Supabase.");
+      } else {
+        setSettingsSyncMode(remote.mode);
+        setSettingsMessage(toUserSafeMessage(remote.error, "Settings were saved locally, but Supabase sync is unavailable."));
+      }
+    } catch (error) {
+      setSettingsSyncMode("error");
+      setSettingsMessage(toUserSafeMessage(error, "Settings save failed."));
+    } finally {
+      setIsSavingSettings(false);
     }
-    setIsSavingSettings(false);
   }
 
   const handlePublishPost = useCallback(async (postId) => {
-    const post = remotePosts.find((p) => p.id === postId);
-    if (!post) return window.alert("ไม่พบโพสต์ที่ต้องการเผยแพร่");
-    if (!validateFacebookConfig(settings)) return window.alert("กรุณาตั้งค่า Facebook Page ID และ Access Token ก่อน");
-    if (settings.facebookPublishMode === "live") {
-      if (!window.confirm(`ยืนยันการโพสต์ "${post.topic}" ลง Facebook จริง? (โหมด LIVE)`)) return;
-    }
-    const result = await publishFacebookPost(post, settings);
-    if (result.error) return window.alert(`เผยแพร่ไม่สำเร็จ: ${result.error}`);
-    const update = await updateRemotePostStatus(postId, "posted", { posted_at: new Date().toISOString() });
-    if (update.data) {
-      setRemotePosts((current) => current.map((p) => (p.id === postId ? update.data : p)));
-      window.alert("เผยแพร่ลง Facebook สำเร็จ!");
-    } else {
-      window.alert("เผยแพร่สำเร็จแล้ว แต่ไม่สามารถอัปเดตสถานะในระบบได้");
+    try {
+      const post = remotePosts.find((p) => p.id === postId);
+      if (!post) return window.alert("Post not found.");
+      if (!validateFacebookConfig(settings)) return window.alert("Facebook Page ID and Access Token are required before publishing.");
+      if (settings.facebookPublishMode === "live") {
+        if (!window.confirm(`Publish "${post.topic}" to Facebook now? (LIVE mode)`)) return;
+      }
+      const result = await publishFacebookPost(post, settings);
+      if (result.error) return window.alert(`Publish failed: ${toUserSafeMessage(result.error, "Publish failed.")}`);
+      const update = await updateRemotePostStatus(postId, "posted", { posted_at: new Date().toISOString() });
+      if (update.data) {
+        setRemotePosts((current) => current.map((p) => (p.id === postId ? update.data : p)));
+        window.alert("Facebook publish completed.");
+      } else {
+        window.alert("Facebook publish completed, but the local status could not be updated.");
+      }
+    } catch (error) {
+      window.alert(`Publish failed: ${toUserSafeMessage(error, "Publish failed.")}`);
     }
   }, [remotePosts, settings]);
 
@@ -311,16 +373,16 @@ function App() {
 
   return (
     <div className="flex h-screen overflow-hidden bg-slate-950 font-sans text-slate-200">
-      <Sidebar 
-        activeTab={activeTab} 
-        setActiveTab={setActiveTab} 
-        workspaceName={settings.workspaceName} 
+      <Sidebar
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        workspaceName={settings.workspaceName}
         onOpenGuide={() => setIsGuideOpen(true)}
       />
-      
+
       <div className="flex flex-1 flex-col lg:pl-64">
-        <Header 
-          isDark={isDark} 
+        <Header
+          isDark={isDark}
           onToggleTheme={() => setIsDark(!isDark)}
           connectionMode={connectionMode}
           fbMode={validateFacebookConfig(settings) ? settings.facebookPublishMode : "missing"}
@@ -329,31 +391,42 @@ function App() {
           settings={settings}
           onPageChange={(val) => updateSettingsField("activePageId", val)}
         />
-        
+
         <main className="flex-1 overflow-y-auto p-6 lg:p-8">
           <div className="mx-auto max-w-5xl">
             {activeTab === "create" && (
               <CreatePage
-                form={form} settings={settings} updateForm={updateForm}
-                handleGenerateContent={handleGenerateContent} handleGenerateImagePrompt={handleGenerateImagePrompt}
-                handleGenerateImagePreview={handleGenerateImagePreview} handleSaveDraft={handleSaveDraft}
-                isGenerating={isGenerating} isGeneratingImagePrompt={isGeneratingImagePrompt}
-                isGeneratingImage={isGeneratingImage} isSavingDraft={isSavingDraft} generationError={generationError}
+                form={form}
+                settings={settings}
+                updateForm={updateForm}
+                handleGenerateContent={handleGenerateContent}
+                handleGenerateImagePrompt={handleGenerateImagePrompt}
+                handleGenerateImagePreview={handleGenerateImagePreview}
+                handleSaveDraft={handleSaveDraft}
+                isGenerating={isGenerating}
+                isGeneratingImagePrompt={isGeneratingImagePrompt}
+                isGeneratingImage={isGeneratingImage}
+                isSavingDraft={isSavingDraft}
+                generationError={generationError}
                 textProviderRuntime={textProviderRuntime}
+                createNotice={createNotice}
               />
             )}
             {activeTab === "settings" && (
               <SettingsPage
-                currentSettingsStatus={currentSettingsStatus} SettingsStatusIcon={SettingsStatusIcon}
-                settingsMessage={settingsMessage} SettingsField={SettingsField} settings={settings}
-                updateSettingsField={updateSettingsField} envSnapshot={envSnapshot}
-                handleSaveSettings={handleSaveSettings} isSavingSettings={isSavingSettings}
+                currentSettingsStatus={currentSettingsStatus}
+                SettingsStatusIcon={SettingsStatusIcon}
+                settingsMessage={settingsMessage}
+                SettingsField={SettingsField}
+                settings={settings}
+                updateSettingsField={updateSettingsField}
+                envSnapshot={envSnapshot}
+                handleSaveSettings={handleSaveSettings}
+                isSavingSettings={isSavingSettings}
               />
             )}
             {activeTab === "scheduler" && (
-              <SchedulerPage 
-                settings={settings}
-              />
+              <SchedulerPage settings={settings} />
             )}
             {activeTab === "library" && (
               <LibraryPage />
@@ -363,18 +436,23 @@ function App() {
             )}
             {activeTab === "status" && (
               <StatusPage
-                allPendingPosts={allPendingPosts} remotePosts={remotePosts} localDrafts={localDrafts}
-                formatDate={formatDate} handleDeleteLocalDraft={handleDeleteLocalDraft}
-                handlePublishPost={handlePublishPost} settings={settings} schedulerStatus={schedulerStatus}
+                allPendingPosts={allPendingPosts}
+                remotePosts={remotePosts}
+                localDrafts={localDrafts}
+                formatDate={formatDate}
+                handleDeleteLocalDraft={handleDeleteLocalDraft}
+                handlePublishPost={handlePublishPost}
+                settings={settings}
+                schedulerStatus={schedulerStatus}
               />
             )}
           </div>
         </main>
       </div>
 
-      <GuideModal 
-        isOpen={isGuideOpen} 
-        onClose={() => setIsGuideOpen(false)} 
+      <GuideModal
+        isOpen={isGuideOpen}
+        onClose={() => setIsGuideOpen(false)}
       />
     </div>
   );

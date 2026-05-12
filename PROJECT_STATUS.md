@@ -28,6 +28,8 @@ Currently supports:
 * Gemini API routing via existing generation service
 * Safe mock fallback when the selected text provider is unavailable
 * Runtime provider status updates in Create Draft and Settings
+* Compact runtime notices for blocked, active, and fallback generation states
+* Safer missing-key and provider-failure messaging without changing the draft flow
 
 ## AI Image Generation
 
@@ -168,8 +170,8 @@ Expand backend capability in a controlled way without premature architecture gro
 
 ## Immediate Priority
 
-1. Finish the remaining Phase A validation and end-to-end QA with minimal architecture churn.
-2. Complete Phase B to harden production safety.
+1. Finish any remaining end-to-end QA observations with minimal architecture churn.
+2. Preserve the stabilized Phase A and Phase B runtime behavior.
 3. Defer Phase C until MVP behavior is stable in real use.
 
 ## Deferred Until Controlled Expansion

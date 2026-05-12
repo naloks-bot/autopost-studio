@@ -18,6 +18,26 @@ function StatusPage({
 
   return (
     <div className="space-y-6">
+      <div className={`flex items-center gap-3 rounded-2xl border p-4 text-xs shadow-sm ${
+        settings.facebookPublishMode === "live"
+          ? "border-rose-500/20 bg-rose-500/10 text-rose-300"
+          : "border-emerald-500/20 bg-emerald-500/10 text-emerald-300"
+      }`}>
+        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-black/10">
+          <Facebook className="h-4 w-4" />
+        </div>
+        <div>
+          <p className="font-bold uppercase tracking-tight">
+            Publish Mode: {settings.facebookPublishMode === "live" ? "Live" : "Mock Safe"}
+          </p>
+          <p className="mt-0.5 opacity-80">
+            {settings.facebookPublishMode === "live"
+              ? "Posts will publish to Facebook for real when you confirm."
+              : "Posts stay in safe simulation, which preserves scheduler and publish compatibility."}
+          </p>
+        </div>
+      </div>
+
       {/* Stats Section */}
       <div className="grid gap-4 sm:grid-cols-3">
         <div className="rounded-2xl border border-white/5 bg-slate-900/40 p-5 shadow-sm">

@@ -61,6 +61,7 @@ function SettingsPage({
   isSavingSettings,
 }) {
   const isFbConfigured = validateFacebookConfig(settings);
+  const currentTextRuntime = getTextProviderRuntime(settings);
 
   return (
     <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1.5fr_1fr]">
@@ -134,6 +135,9 @@ function SettingsPage({
                     ]}
                   />
                   <ProviderHelper provider={settings.textProvider} />
+                  <p className={`text-[10px] italic px-1 ${currentTextRuntime.tone === "warning" ? "text-amber-400" : "text-emerald-400"}`}>
+                    {currentTextRuntime.detail}
+                  </p>
                 </div>
 
                 <div className="space-y-3">
