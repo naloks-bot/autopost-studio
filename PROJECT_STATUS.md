@@ -1,8 +1,8 @@
 # Project Status
 
-## Current State: Phase D.3 Core Posting UX Alignment
+## Current State: Test-Ready Stabilization Batch
 
-AutoPost Studio has completed its UI foundation milestone and is now in Phase D.3: core posting UX alignment. This phase focuses on aligning the Create, Page Management, Status, Scheduler, and Settings surfaces with the real operator flow while preserving the stable backend boundary.
+AutoPost Studio has completed its UI foundation milestone and is now prioritizing a test-ready stabilization batch for the core create-post flow. The current focus is to make Generate -> Image Prompt -> Image -> Preview -> Save -> Reload/Edit stable before any more UI polish while preserving the stable backend boundary.
 
 No backend, publishing, scheduler, or queue architecture expansion is planned inside this phase except for safe compatibility fixes to existing UI flows. Mock mode remains the default. Production publishing continues to rely on the existing stable V1 flow.
 
@@ -21,6 +21,7 @@ The current MVP core is release-locked as stable for:
 * local theme persistence with dark default and warm light mode
 * input-left / preview-right create flow
 * page-guided writing and image prompt support
+* safe `page_id` fallback handling during draft save/edit
 
 ---
 
@@ -213,6 +214,8 @@ Current Phase C progress:
 * page profile can guide writing direction and image prompt direction without schema redesign
 * scheduler remains the stable V1 path
 * settings are now system-only while page setup lives in the dedicated page management surface
+* current priority is test-ready stabilization of Generate -> Image Prompt -> Image -> Preview -> Save -> Reload/Edit
+* save draft `page_id` compatibility has been reviewed and hardened without backend redesign
 
 ---
 
@@ -221,7 +224,7 @@ Current Phase C progress:
 ## Immediate Priority
 
 1. Preserve the locked MVP core and Phase C behavior without architecture expansion.
-2. Focus Phase D.3 on UI/state-level operator alignment only.
+2. Focus current work on test-ready stabilization of the core create-post flow before more UI polish.
 3. Keep queue processor V2, analytics, and scheduler redesign deferred until a separate future checkpoint is explicitly approved.
 
 ## Latest Stable Lock

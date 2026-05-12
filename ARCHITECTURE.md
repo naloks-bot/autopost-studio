@@ -262,6 +262,14 @@ Phase D.3 continues within the same boundary:
 * keep Settings system-only and move page-specific setup to the dedicated page management surface
 * preserve scheduler V1, current publish flow, and the existing backend/schema boundary
 
+Current test-ready stabilization priority within the same boundary:
+
+* stabilize the full flow from Generate -> Image Prompt -> Image -> Preview -> Save -> Reload/Edit
+* keep Mock / OpenAI Image / future image providers as the image-provider direction
+* treat Codex as a coding assistant, not an image provider inside the app runtime
+* harden `page_id` save compatibility without schema redesign unless a compatibility guard is absolutely required
+* keep scheduler V1, publish flow, queue redesign, and backend architecture unchanged
+
 This protects the current stable publish flow and avoids unnecessary backend churn.
 
 ---

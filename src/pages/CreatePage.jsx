@@ -65,6 +65,16 @@ function CreatePage({
 
   const updateMetadata = (key, value) => setMetadata((prev) => ({ ...prev, [key]: value }));
   const updateImageForm = (key, value) => setImageForm((prev) => ({ ...prev, [key]: value }));
+  const pageGuidanceContext = useMemo(
+    () => ({
+      pageLabel: activeWorkspacePage?.label || "",
+      pageWritingDirection: usePageGuidance ? activeWorkspacePage?.writingDirection || "" : "",
+      pageImageDirection: usePageGuidance ? activeWorkspacePage?.imageDirection || "" : "",
+      pageReadme: usePageGuidance ? activeWorkspacePage?.readme || "" : "",
+      pageTone: usePageGuidance ? activeWorkspacePage?.tone || "" : "",
+    }),
+    [activeWorkspacePage, usePageGuidance]
+  );
 
   async function handleGenerateImage() {
     if (isGeneratingImage) return;
@@ -246,7 +256,7 @@ function CreatePage({
               label={isGenerating ? "กำลังสร้างข้อความ..." : "สร้างข้อความ"}
               icon={Sparkles}
               isLoading={isGenerating}
-              onClick={handleGenerateContent}
+              onClick={() => handleGenerateContent(pageGuidanceContext)}
               fullWidth
             />
           </div>
@@ -289,7 +299,7 @@ function CreatePage({
           updateImageForm={updateImageForm}
           imagePrompt={form.imagePrompt}
           updateImagePrompt={(value) => updateForm("imagePrompt", value)}
-          handleGenerateImagePrompt={handleGenerateImagePrompt}
+          handleGenerateImagePrompt={() => handleGenerateImagePrompt(pageGuidanceContext)}
           handleGenerateImage={handleGenerateImage}
           isGeneratingImagePrompt={isGeneratingImagePrompt}
           isGeneratingImage={isGeneratingImage || isGeneratingImageProp}
@@ -298,10 +308,18 @@ function CreatePage({
         />
       </div>
 
-      <div className="flex flex-col space-y-5 lg:h-[calc(100vh-10rem)]">
-        <div className="grid grid-cols-1 gap-4">
-          <ProviderStatusCard settings={settings} textProviderRuntime={textProviderRuntime} />
-          <WorkspaceContextCard settings={settings} activeWorkspacePage={activeWorkspacePage} />
+      <div className="flex min-w-0 flex-col space-y-5 lg:h-[calc(100vh-10rem)]">
+        <div className="grid grid-cols-2 gap-4">
+          <ProviderStatusCard
+            settings={settings}
+            textProviderRuntime={textProviderRuntime}
+            className="min-w-0"
+          />
+          <WorkspaceContextCard
+            settings={settings}
+            activeWorkspacePage={activeWorkspacePage}
+            className="min-w-0"
+          />
         </div>
 
         <PreviewStudioCard

@@ -68,6 +68,27 @@ function getInitialTheme() {
   return window.localStorage.getItem(THEME_KEY) === "light" ? "light" : "dark";
 }
 
+function mergeWorkspacePages(localPages = [], remotePages = []) {
+  const remoteById = new Map((remotePages || []).map((page) => [page.id, page]));
+  const merged = (localPages || []).map((page) => ({
+    ...page,
+    ...(remoteById.get(page.id) || {}),
+  }));
+
+  for (const remotePage of remotePages || []) {
+    if (!merged.some((page) => page.id === remotePage.id)) {
+      merged.push(remotePage);
+    }
+  }
+
+  return merged;
+}
+
+function resolveSafeDraftPageId(activePageId, workspacePages = []) {
+  const fallbackId = workspacePages.some((page) => page.id === "default") ? "default" : workspacePages[0]?.id || "default";
+  return workspacePages.some((page) => page.id === activePageId) ? activePageId : fallbackId;
+}
+
 function SettingsField({ label, value, onChange, placeholder, multiline = false, secret = false, type = "text", options = [] }) {
   const sharedClassName =
     "w-full rounded-xl border border-white/10 bg-slate-900/80 px-4 py-3 text-sm outline-none transition focus:border-cyan-400 appearance-none";
@@ -190,7 +211,9 @@ function App() {
       if (logsResult.data) setOperationLogs(logsResult.data);
       if (logsResult.mode) setLogsMode(logsResult.mode);
 
-      const workspacePages = pagesResult.data?.length ? pagesResult.data : localSettings.workspacePages;
+      const workspacePages = pagesResult.data?.length
+        ? mergeWorkspacePages(localSettings.workspacePages, pagesResult.data)
+        : localSettings.workspacePages;
       if (settingsResult.mode) setSettingsSyncMode(settingsResult.mode);
       if (settingsResult.data) {
         setSettings(sanitizeSettings({ ...localSettings, ...settingsResult.data, workspacePages }));
@@ -302,12 +325,16 @@ function App() {
       id: draft.id,
       source: draft.source === "local" ? "local" : "remote",
       created_at: draft.created_at || null,
+      image_provider: draft.image_provider || null,
+      image_revised_prompt: draft.image_revised_prompt || null,
+      image_storage_path: draft.image_storage_path || null,
+      image_storage_mode: draft.image_storage_mode || null,
     });
     setCreateNotice({ tone: "info", message: "โหลดร่างกลับมาแก้ไขแล้ว" });
     setActiveTab("create");
   }, []);
 
-  async function handleGenerateContent() {
+  async function handleGenerateContent(overrides = {}) {
     if (!form.topic.trim()) {
       setCreateNotice({ tone: "warning", message: "กรุณาใส่หัวข้อก่อนสร้างข้อความ" });
       return;
@@ -321,11 +348,11 @@ function App() {
       const result = await generatePostContent({
         formData: {
           ...form,
-          pageLabel: activeWorkspacePage?.label || "",
-          pageWritingDirection: activeWorkspacePage?.writingDirection || "",
-          pageImageDirection: activeWorkspacePage?.imageDirection || "",
-          pageReadme: activeWorkspacePage?.readme || "",
-          pageTone: activeWorkspacePage?.tone || "",
+          pageLabel: overrides.pageLabel ?? activeWorkspacePage?.label ?? "",
+          pageWritingDirection: overrides.pageWritingDirection ?? activeWorkspacePage?.writingDirection ?? "",
+          pageImageDirection: overrides.pageImageDirection ?? activeWorkspacePage?.imageDirection ?? "",
+          pageReadme: overrides.pageReadme ?? activeWorkspacePage?.readme ?? "",
+          pageTone: overrides.pageTone ?? activeWorkspacePage?.tone ?? "",
         },
         settings,
       });
@@ -346,7 +373,7 @@ function App() {
     }
   }
 
-  async function handleGenerateImagePrompt() {
+  async function handleGenerateImagePrompt(overrides = {}) {
     if (!form.topic.trim()) {
       setCreateNotice({ tone: "warning", message: "กรุณาใส่หัวข้อก่อนช่วยคิดคำอธิบายภาพ" });
       return;
@@ -360,10 +387,10 @@ function App() {
       const result = await generateImagePrompt({
         formData: {
           ...form,
-          pageLabel: activeWorkspacePage?.label || "",
-          pageImageDirection: activeWorkspacePage?.imageDirection || "",
-          pageWritingDirection: activeWorkspacePage?.writingDirection || "",
-          pageReadme: activeWorkspacePage?.readme || "",
+          pageLabel: overrides.pageLabel ?? activeWorkspacePage?.label ?? "",
+          pageImageDirection: overrides.pageImageDirection ?? activeWorkspacePage?.imageDirection ?? "",
+          pageWritingDirection: overrides.pageWritingDirection ?? activeWorkspacePage?.writingDirection ?? "",
+          pageReadme: overrides.pageReadme ?? activeWorkspacePage?.readme ?? "",
         },
         settings,
       });
@@ -397,16 +424,18 @@ function App() {
     setCreateNotice({ tone: "info", message: "กำลังบันทึกร่าง..." });
 
     try {
+      const safePageId = resolveSafeDraftPageId(settings.activePageId, settings.workspacePages);
+      const pageWasAdjusted = safePageId !== (settings.activePageId || "default");
       const draft = {
-        page_id: settings.activePageId || "default",
+        page_id: safePageId,
         topic: form.topic.trim(),
         content: form.content.trim(),
         image_prompt: extraData.image_prompt || form.imagePrompt.trim(),
         image_url: extraData.image_url || form.imageUrl.trim(),
-        image_provider: extraData.image_provider || null,
-        image_revised_prompt: extraData.image_revised_prompt || null,
-        image_storage_path: extraData.image_storage_path || null,
-        image_storage_mode: extraData.image_storage_mode || null,
+        image_provider: extraData.image_provider || editingDraft?.image_provider || null,
+        image_revised_prompt: extraData.image_revised_prompt || editingDraft?.image_revised_prompt || null,
+        image_storage_path: extraData.image_storage_path || editingDraft?.image_storage_path || null,
+        image_storage_mode: extraData.image_storage_mode || editingDraft?.image_storage_mode || null,
         status: "draft",
         created_at: editingDraft?.created_at || new Date().toISOString(),
       };
@@ -434,6 +463,9 @@ function App() {
           tone: "success",
           message: editingDraft?.source ? "อัปเดตร่างเรียบร้อยแล้ว" : "บันทึกร่างลง Supabase แล้ว",
         });
+        if (pageWasAdjusted) {
+          setCreateNotice({ tone: "success", message: "บันทึกร่างแล้ว โดยใช้เพจหลักเพื่อความปลอดภัย" });
+        }
         return;
       }
 
@@ -457,6 +489,9 @@ function App() {
               ? "อัปเดตร่างในเครื่องแล้ว เพราะยังเขียนขึ้นคลาวด์ไม่ได้"
               : "Supabase ยังเขียนข้อมูลไม่ได้ จึงบันทึกไว้ในเครื่องแทน",
         });
+        if (pageWasAdjusted) {
+          setCreateNotice({ tone: "warning", message: "บันทึกร่างไว้ในเครื่องแล้ว โดยใช้เพจหลักแทนเพจที่ยังไม่พร้อม" });
+        }
         return;
       }
 
@@ -477,9 +512,12 @@ function App() {
         saveRemoteSettings(stored),
         saveRemotePages(stored.workspacePages),
       ]);
+      const workspacePages = remotePages.data?.length
+        ? mergeWorkspacePages(stored.workspacePages, remotePages.data)
+        : stored.workspacePages;
 
       if (remoteSettings.data) {
-        setSettings(sanitizeSettings({ ...stored, ...remoteSettings.data, workspacePages: remotePages.data?.length ? remotePages.data : stored.workspacePages }));
+        setSettings(sanitizeSettings({ ...stored, ...remoteSettings.data, workspacePages }));
         setSettingsSyncMode(remoteSettings.mode);
         setSettingsMessage("บันทึกการตั้งค่าระบบแล้ว");
         return;
@@ -500,7 +538,9 @@ function App() {
     try {
       const stored = saveAppSettings(settings);
       const remotePages = await saveRemotePages(stored.workspacePages);
-      const nextPages = remotePages.data?.length ? remotePages.data : stored.workspacePages;
+      const nextPages = remotePages.data?.length
+        ? mergeWorkspacePages(stored.workspacePages, remotePages.data)
+        : stored.workspacePages;
       setSettings(sanitizeSettings({ ...stored, workspacePages: nextPages }));
       setSettingsMessage(
         remotePages.error
