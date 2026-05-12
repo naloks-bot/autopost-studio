@@ -19,7 +19,7 @@ function Pill({ label, tone = "neutral" }) {
 export default function ProviderStatusCard({ settings, textProviderRuntime: runtimeOverride = null, className = "" }) {
   const textProvider = TEXT_PROVIDERS.find((item) => item.id === settings.textProvider) || TEXT_PROVIDERS[0];
   const imageProvider = IMAGE_PROVIDERS.find((item) => item.id === settings.imageProvider) || IMAGE_PROVIDERS[0];
-  const textRuntime = getTextProviderRuntime(settings, runtimeOverride);
+  const textRuntime = runtimeOverride || getTextProviderRuntime(settings);
   const isLive = settings.facebookPublishMode === "live";
 
   const imageReady =
@@ -46,6 +46,9 @@ export default function ProviderStatusCard({ settings, textProviderRuntime: runt
             {textProvider.label}
             {textRuntime.activeProvider !== settings.textProvider ? ` → ${getProviderLabel(textRuntime.activeProvider)}` : ""}
           </p>
+          {settings.textProvider === "gemini" ? (
+            <p className="mt-1 text-[11px] text-slate-500">Model: {settings.geminiModel || "gemini-2.5-flash"}</p>
+          ) : null}
         </div>
 
         <div className="rounded-xl border border-white/5 bg-slate-950/35 px-3 py-2.5">

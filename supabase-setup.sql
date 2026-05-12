@@ -55,6 +55,58 @@ create table if not exists public.pages (
   updated_at timestamptz not null default now()
 );
 
+alter table public.pages add column if not exists label text;
+alter table public.pages add column if not exists description text;
+alter table public.pages add column if not exists facebook_page_id text;
+alter table public.pages add column if not exists facebook_page_access_token text;
+alter table public.pages add column if not exists created_at timestamptz default now();
+alter table public.pages add column if not exists updated_at timestamptz default now();
+
+update public.pages
+set label = case
+  when id = 'default' then 'Default Page'
+  when id = 'demo-mock' then 'Demo / Mock Page'
+  else coalesce(nullif(btrim(id), ''), 'Untitled Page')
+end
+where label is null or btrim(label) = '';
+
+update public.pages
+set description = case
+  when id = 'default' then 'Current stable Facebook settings'
+  when id = 'demo-mock' then 'Simulation for workspace testing'
+  else ''
+end
+where description is null;
+
+update public.pages
+set facebook_page_id = ''
+where facebook_page_id is null;
+
+update public.pages
+set facebook_page_access_token = ''
+where facebook_page_access_token is null;
+
+update public.pages
+set created_at = now()
+where created_at is null;
+
+update public.pages
+set updated_at = now()
+where updated_at is null;
+
+alter table public.pages alter column label set default 'Untitled Page';
+alter table public.pages alter column label set not null;
+alter table public.pages alter column description set default '';
+alter table public.pages alter column description set not null;
+alter table public.pages alter column facebook_page_id set default '';
+alter table public.pages alter column facebook_page_id set not null;
+alter table public.pages alter column facebook_page_access_token set default '';
+alter table public.pages alter column facebook_page_access_token set not null;
+alter table public.pages alter column created_at set default now();
+alter table public.pages alter column created_at set not null;
+alter table public.pages alter column updated_at set default now();
+alter table public.pages alter column updated_at set not null;
+
 create table if not exists public.operation_logs (
   id uuid primary key default gen_random_uuid(),
   created_at timestamptz not null default now(),

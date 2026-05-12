@@ -240,7 +240,7 @@ function CreatePage({
           <div className="mb-4 flex items-center justify-between">
             <h3 className="text-sm font-semibold uppercase tracking-wider text-cyan-400">หัวข้อและข้อความ</h3>
             <span className="text-[9px] font-bold uppercase text-slate-500">
-              ผู้ให้บริการ: {getProviderLabel(textProviderRuntime?.activeProvider || settings.textProvider)}
+              ผู้ให้บริการ: {getProviderLabel(textProviderRuntime?.selectedProvider || settings.textProvider)}
             </span>
           </div>
 
@@ -285,7 +285,7 @@ function CreatePage({
 
           <div className="mt-3 flex flex-wrap gap-2 text-[10px] font-bold uppercase tracking-tight text-slate-500">
             <span className="rounded-full border border-white/10 bg-slate-950/50 px-2 py-1">
-              ข้อความ: {getProviderLabel(textProviderRuntime?.activeProvider || "mock")}
+              ข้อความ: {getProviderLabel(textProviderRuntime?.selectedProvider || settings.textProvider || "mock")}
             </span>
             <span className="rounded-full border border-white/10 bg-slate-950/50 px-2 py-1">
               โหมดโพสต์: {settings.facebookPublishMode === "live" ? "จริง" : "ทดสอบ"}

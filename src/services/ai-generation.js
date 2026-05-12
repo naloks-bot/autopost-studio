@@ -14,6 +14,20 @@ function compactProviderError(message, fallback = "Provider request failed.") {
   return `${next.slice(0, 137)}...`;
 }
 
+function getGeminiUserError(status, message = "", fallback = "Gemini request failed.") {
+  if (status === 429) return "Gemini quota เต็ม / rate limit";
+  if (status === 404) return "Gemini model ไม่รองรับหรือชื่อ model ไม่ถูกต้อง";
+  if (status === 403) return "Gemini key หรือ project ไม่มีสิทธิ์ใช้งาน";
+  return compactProviderError(message, fallback);
+}
+
+function getGeminiFallbackNotice(errorCode, detail) {
+  if (errorCode === 429) return "Gemini quota เต็ม / rate limit ระบบจึงสร้าง Mock แทนชั่วคราว";
+  if (errorCode === 404) return "Gemini model ไม่รองรับหรือชื่อ model ไม่ถูกต้อง ระบบจึงสร้าง Mock แทน";
+  if (errorCode === 403) return "Gemini key หรือ project ไม่มีสิทธิ์ใช้งาน ระบบจึงสร้าง Mock แทน";
+  return `Gemini failed. Mock content was generated to keep the flow safe.${detail ? ` ${compactProviderError(detail)}` : ""}`;
+}
+
 function createGenerationResult(payload) {
   return {
     data: payload.data ?? null,
@@ -32,11 +46,23 @@ function hasOpenAIKey(settings) {
 }
 
 function hasGeminiKey(settings) {
-  return Boolean(settings?.geminiApiKey?.trim());
+  return Boolean(getGeminiApiKey(settings));
 }
 
 function getPreferredTextProvider(settings) {
   return settings?.textProvider?.toLowerCase() || settings?.aiProvider?.toLowerCase() || "mock";
+}
+
+function getGeminiApiKey(settings) {
+  return settings?.geminiApiKey?.trim() || import.meta.env.VITE_GEMINI_API_KEY?.trim() || "";
+}
+
+function getGeminiModel(settings) {
+  return import.meta.env.VITE_GEMINI_MODEL?.trim() || settings?.geminiModel?.trim() || "gemini-2.5-flash";
+}
+
+function getPreferredImageProvider(settings) {
+  return settings?.imageProvider?.toLowerCase() || "mock";
 }
 
 export function getProviderLabel(provider) {
@@ -137,6 +163,16 @@ export function getTextProviderRuntime(settings, lastResult = null) {
  */
 export function getAIProvider(settings) {
   return getTextProviderRuntime(settings).activeProvider;
+}
+
+function getImagePromptProvider(settings) {
+  const preferred = getPreferredImageProvider(settings);
+
+  if (preferred === "gpt-image" || preferred === "dalle") {
+    return hasOpenAIKey(settings) ? "openai" : "mock";
+  }
+
+  return "mock";
 }
 
 /**
@@ -266,9 +302,11 @@ async function generateWithOpenAI(prompt, apiKey, model = "gpt-4o-mini") {
  */
 async function generateWithGemini(prompt, apiKey, model = "gemini-2.5-flash") {
   if (!apiKey) {
+    logger.warn("Gemini generation skipped because no API key is available.");
     return {
       data: null,
       error: "Gemini API key is missing.",
+      errorCode: "missing_key",
       mode: "gemini",
     };
   }
@@ -276,6 +314,7 @@ async function generateWithGemini(prompt, apiKey, model = "gemini-2.5-flash") {
   try {
     const apiModel = model || "gemini-2.5-flash";
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${apiModel}:generateContent?key=${apiKey}`;
+    logger.debug("Gemini request starting.", { model: apiModel, promptLength: prompt?.length || 0 });
 
     const response = await fetch(url, {
       method: "POST",
@@ -292,34 +331,77 @@ async function generateWithGemini(prompt, apiKey, model = "gemini-2.5-flash") {
     });
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
+      const errorText = await response.text();
+      const errorData = (() => {
+        try {
+          return errorText ? JSON.parse(errorText) : {};
+        } catch {
+          return {};
+        }
+      })();
+      logger.error("Gemini API request failed.", {
+        status: response.status,
+        statusText: response.statusText,
+        url,
+        model: apiModel,
+        error: errorData.error || errorText || "Unknown Gemini error",
+      });
       return {
         data: null,
-        error: errorData.error?.message || `Gemini API Error: ${response.status}`,
+        error: getGeminiUserError(response.status, errorData.error?.message || errorText, `Gemini API Error: ${response.status}`),
+        errorCode: response.status,
+        rawError: errorData.error?.message || errorText || `Gemini API Error: ${response.status}`,
         mode: "gemini",
       };
     }
 
     const result = await response.json();
-    const content = result.candidates?.[0]?.content?.parts?.[0]?.text;
+    const candidate = result.candidates?.[0];
+    const content = candidate?.content?.parts
+      ?.map((part) => part?.text || "")
+      .join("")
+      .trim();
 
     if (!content) {
+      logger.warn("Gemini response returned no usable text.", {
+        model: apiModel,
+        finishReason: candidate?.finishReason || null,
+        promptFeedback: result.promptFeedback || null,
+      });
       return {
         data: null,
-        error: "Gemini returned no message content.",
+        error:
+          result.promptFeedback?.blockReasonMessage ||
+          result.promptFeedback?.blockReason ||
+          candidate?.finishReason ||
+          "Gemini returned no message content.",
+        errorCode: candidate?.finishReason || result.promptFeedback?.blockReason || "empty_response",
         mode: "gemini",
       };
     }
 
+    logger.debug("Gemini response received successfully.", {
+      model: apiModel,
+      outputLength: content.length,
+    });
+
     return {
-      data: content.trim(),
+      data: content,
       error: null,
+      errorCode: null,
       mode: "gemini",
     };
   } catch (error) {
+    logger.error("Gemini network/request error.", {
+      model: model || "gemini-2.5-flash",
+      message: error?.message || "Unknown network error",
+      stack: error?.stack || null,
+    });
     return {
       data: null,
       error: `Network error: ${compactProviderError(error.message, "Unable to reach Gemini.")}`,
+      errorCode: "network_error",
+      rawError: error?.message || "Unknown network error",
       mode: "gemini",
     };
   }
@@ -366,18 +448,28 @@ export async function generatePostContent({ formData, settings }) {
     if (runtime.activeProvider === "openai") {
       result = await generateWithOpenAI(prompt, settings.openaiApiKey, settings.openaiModel);
     } else {
-      result = await generateWithGemini(prompt, settings.geminiApiKey, settings.geminiModel);
+      result = await generateWithGemini(prompt, getGeminiApiKey(settings), getGeminiModel(settings));
     }
 
     if (!result.data) {
+      logger.error("Gemini text generation failed before mock fallback.", {
+        provider: runtime.selectedProvider,
+        errorCode: result.errorCode || null,
+        error: result.error,
+        rawError: result.rawError || null,
+        model: runtime.selectedProvider === "gemini" ? getGeminiModel(settings) : null,
+      });
       logger.warn(`Primary text provider failed. Falling back to mock. Provider: ${runtime.selectedProvider}`);
       result = await generateMockText(formData, settings, {
         requestedProvider: runtime.selectedProvider,
         error: `${getProviderLabel(runtime.selectedProvider)} failed. Using Mock fallback. ${compactProviderError(result.error)}`,
-        fallbackReason: result.error,
+        fallbackReason: result.rawError || result.error,
         status: "fallback",
         noticeTone: "warning",
-        noticeMessage: `${getProviderLabel(runtime.selectedProvider)} failed. Mock content was generated to keep the flow safe.`,
+        noticeMessage:
+          runtime.selectedProvider === "gemini"
+            ? getGeminiFallbackNotice(result.errorCode, result.rawError || result.error)
+            : `${getProviderLabel(runtime.selectedProvider)} failed. Mock content was generated to keep the flow safe.`,
       });
     } else {
       result = createGenerationResult({
@@ -420,7 +512,7 @@ export async function generateImagePrompt({ formData, settings }) {
     };
   }
 
-  const provider = getAIProvider(settings);
+  const provider = getImagePromptProvider(settings);
   const prompt = buildImagePrompt(formData, settings);
 
   if (provider === "openai") {

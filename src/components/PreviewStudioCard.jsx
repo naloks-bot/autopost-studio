@@ -82,7 +82,7 @@ export default function PreviewStudioCard({ form, settings, metadata, imageForm,
           <span className="rounded border border-white/5 px-1.5 py-0.5 text-[8px] font-bold uppercase text-slate-500">ปิดท้าย: {metadata.cta}</span>
           <span className="rounded border border-sky-500/20 bg-sky-500/5 px-1.5 py-0.5 text-[8px] font-bold uppercase text-sky-500">ภาพ: {imageForm.aspectRatio}</span>
           <span className="rounded border border-violet-500/20 bg-violet-500/5 px-1.5 py-0.5 text-[8px] font-bold uppercase text-violet-400">
-            ข้อความ: {getProviderLabel(textProviderRuntime?.activeProvider || settings.textProvider)}
+            ข้อความ: {getProviderLabel(textProviderRuntime?.selectedProvider || settings.textProvider)}
           </span>
           <span className="rounded border border-emerald-500/20 bg-emerald-500/5 px-1.5 py-0.5 text-[8px] font-bold uppercase text-emerald-400">
             โหมดโพสต์: {settings.facebookPublishMode === "live" ? "จริง" : "ทดสอบ"}

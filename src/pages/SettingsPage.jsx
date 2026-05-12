@@ -130,12 +130,13 @@ function SettingsPage({
                 placeholder="AI..."
                 secret
               />
-              <SettingsField
-                label="Gemini Model"
-                value={settings.geminiModel}
-                onChange={(event) => updateSettingsField("geminiModel", event.target.value)}
-                placeholder="gemini-2.5-flash"
-              />
+              <label className="block">
+                <span className="mb-2 block text-[10px] font-bold uppercase tracking-wider text-slate-500">Gemini Model</span>
+                <div className="rounded-xl border border-white/10 bg-slate-950/50 px-4 py-3 text-sm text-slate-200">
+                  {settings.geminiModel || "gemini-2.5-flash"}
+                </div>
+                <p className="mt-2 text-[11px] text-slate-500">อ่านจาก `VITE_GEMINI_MODEL` ใน `.env`</p>
+              </label>
             </div>
           </div>
         </div>

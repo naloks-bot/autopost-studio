@@ -1,4 +1,6 @@
 const STORAGE_KEY = "autopost-studio-settings";
+const ENV_GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY?.trim() || "";
+const ENV_GEMINI_MODEL = import.meta.env.VITE_GEMINI_MODEL?.trim() || "gemini-2.5-flash";
 
 export const defaultWorkspacePages = [
   {
@@ -43,8 +45,8 @@ export const defaultSettings = {
   imageProvider: "mock",
   openaiApiKey: "",
   openaiModel: "gpt-4o-mini",
-  geminiApiKey: "",
-  geminiModel: "gemini-2.5-flash",
+  geminiApiKey: ENV_GEMINI_API_KEY,
+  geminiModel: ENV_GEMINI_MODEL,
   facebookAppId: "",
   facebookAppSecret: "",
   facebookPageId: "",
@@ -104,6 +106,7 @@ export function sanitizeSettings(settings = {}) {
   return {
     ...defaultSettings,
     ...settings,
+    geminiModel: ENV_GEMINI_MODEL,
     activePageId,
     workspacePages,
   };

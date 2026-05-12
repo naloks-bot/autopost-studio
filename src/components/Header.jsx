@@ -38,8 +38,8 @@ function Header({
   };
 
   const getAiConfig = () => {
-    const activeProvider = textProviderRuntime?.activeProvider || "mock";
-    const providerLabel = activeProvider === "openai" ? "OpenAI" : activeProvider === "gemini" ? "Gemini" : "Mock";
+    const selectedProvider = textProviderRuntime?.selectedProvider || "mock";
+    const providerLabel = selectedProvider === "openai" ? "OpenAI" : selectedProvider === "gemini" ? "Gemini" : "Mock";
     const label = `ข้อความ: ${providerLabel} • ${textProviderRuntime?.statusLabel || "พร้อม"}`;
     const color =
       textProviderRuntime?.tone === "warning"

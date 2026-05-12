@@ -7,6 +7,8 @@ const POSTS_SELECT =
   "id, page_id, topic, content, image_prompt, image_url, image_provider, image_revised_prompt, image_storage_path, image_storage_mode, status, scheduled_at, posted_at, created_at";
 const PAGES_SELECT =
   "id, label, description, facebook_page_id, facebook_page_access_token, created_at, updated_at";
+const PAGES_SELECT_FALLBACK =
+  "id, facebook_page_id, facebook_page_access_token, created_at, updated_at";
 const SETTINGS_SELECT =
   "id, workspace_name, business_name, brand_voice, default_topic_hint, openai_api_key, gemini_api_key, facebook_app_id, facebook_app_secret, facebook_page_id, facebook_page_access_token, facebook_publish_mode, scheduler_enabled, created_at, updated_at";
 
@@ -48,13 +50,38 @@ export function normalizePost(post) {
 }
 
 function normalizeWorkspacePage(record) {
+  const fallbackLabel =
+    record.label ??
+    record.name ??
+    record.title ??
+    (record.id === "default"
+      ? "Default Page"
+      : record.id === "demo-mock"
+        ? "Demo / Mock Page"
+        : "Untitled Page");
+  const fallbackDescription =
+    record.description ??
+    record.summary ??
+    (record.id === "default"
+      ? "Current stable Facebook settings"
+      : record.id === "demo-mock"
+        ? "Simulation for workspace testing"
+        : "");
+
   return {
     id: record.id ?? "default",
-    label: record.label ?? "Untitled Page",
-    description: record.description ?? "",
+    label: fallbackLabel,
+    description: fallbackDescription,
     facebookPageId: record.facebook_page_id ?? "",
     facebookPageAccessToken: record.facebook_page_access_token ?? "",
   };
+}
+
+function isMissingPagesColumnError(error) {
+  return Boolean(
+    error &&
+      (error.code === "42703" || /column .*pages\.(label|description).* does not exist/i.test(error.message || ""))
+  );
 }
 
 function classifySupabaseError(error) {
@@ -205,10 +232,20 @@ export async function fetchRemotePages() {
   }
 
   logger.info("Fetching remote workspace pages...");
-  const { data, error } = await supabase
+  let { data, error } = await supabase
     .from("pages")
     .select(PAGES_SELECT)
     .order("created_at", { ascending: true });
+
+  if (error && isMissingPagesColumnError(error)) {
+    logger.warn("Pages table is using an older schema. Falling back to minimal page fields.", error);
+    const fallbackResult = await supabase
+      .from("pages")
+      .select(PAGES_SELECT_FALLBACK)
+      .order("created_at", { ascending: true });
+    data = fallbackResult.data;
+    error = fallbackResult.error;
+  }
 
   if (error) {
     return { data: [], error, mode: classifySupabaseError(error) };
@@ -395,8 +432,8 @@ export function normalizeSettings(record) {
     businessName: record.business_name ?? "",
     brandVoice: record.brand_voice ?? "",
     defaultTopicHint: record.default_topic_hint ?? "",
-    openaiApiKey: record.openai_api_key ?? "",
-    geminiApiKey: record.gemini_api_key ?? "",
+    openaiApiKey: record.openai_api_key || undefined,
+    geminiApiKey: record.gemini_api_key || undefined,
     facebookAppId: record.facebook_app_id ?? "",
     facebookAppSecret: record.facebook_app_secret ?? "",
     facebookPageId: record.facebook_page_id ?? "",
