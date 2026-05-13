@@ -13,6 +13,41 @@ import { resolveEffectivePublishConfig } from "./page-context.js";
 // In-memory lock to prevent concurrent executions in the same environment
 let isProcessing = false;
 
+function buildSchedulerLogEntry({
+  level = "info",
+  event = "unknown",
+  message = "",
+  post = null,
+  effectivePublish = null,
+  publishDiagnostics = null,
+  extraMetadata = {},
+}) {
+  return {
+    category: "scheduler",
+    level,
+    source: "scheduler",
+    event,
+    message,
+    page_id: effectivePublish?.resolvedPageId || post?.page_id || null,
+    post_id: post?.id || null,
+    metadata: {
+      topic: post?.topic || "",
+      scheduled_at: post?.scheduled_at || null,
+      attempted_at: new Date().toISOString(),
+      publish_mode: effectivePublish?.effectiveSettings?.facebookPublishMode || "mock",
+      publish_source: effectivePublish?.effectivePublishSource || null,
+      live_page_publish_status: effectivePublish?.livePerPagePublishStatus || null,
+      effective_page_id: effectivePublish?.effectivePageId || null,
+      image_url_type: publishDiagnostics?.resolvedImageUrlType || publishDiagnostics?.originalImageUrlType || "none",
+      result: extraMetadata.result || null,
+      error_message: extraMetadata.error_message || "",
+      fallback_reason: extraMetadata.fallback_reason || effectivePublish?.fallbackReason || "",
+      facebook_error_payload: extraMetadata.facebook_error_payload || null,
+      ...extraMetadata,
+    },
+  };
+}
+
 /**
  * Checks if a post is due for publication.
  * @param {Object} post - The post object.
@@ -68,6 +103,19 @@ export async function processScheduledPosts({ posts, settings, onPostPublished }
 
   isProcessing = true;
   logger.info(`Processor: Starting tick (Mode: ${settings.facebookPublishMode || "mock"})...`);
+  await createOperationLog({
+    category: "scheduler",
+    level: "info",
+    source: "scheduler",
+    event: "scheduler_run_started",
+    message: "Scheduler run started.",
+    metadata: {
+      attempted_at: new Date().toISOString(),
+      publish_mode: settings.facebookPublishMode || "mock",
+      scheduler_enabled: Boolean(settings.schedulerEnabled),
+      result: "started",
+    },
+  });
 
   try {
     // 2. Fetch Data (if not provided)
@@ -98,6 +146,18 @@ export async function processScheduledPosts({ posts, settings, onPostPublished }
       const publishDiagnostics = getFacebookPublishDiagnostics(post);
 
       try {
+        await createOperationLog(
+          buildSchedulerLogEntry({
+            event: "post_due",
+            message: `Post due for scheduler processing: "${post.topic}".`,
+            post,
+            effectivePublish,
+            publishDiagnostics,
+            extraMetadata: {
+              result: "due",
+            },
+          })
+        );
         logger.debug("Processor: Resolved scheduled post publish config.", {
           postId: post.id,
           requestedPageId: effectivePublish.requestedPageId,
@@ -108,22 +168,20 @@ export async function processScheduledPosts({ posts, settings, onPostPublished }
 
         if (!effectivePublish.canAttemptPublish) {
           logger.warn(`Processor: Blocking post '${post.topic}' due to unsafe publish routing.`, effectivePublish.blockedReason);
-          await createOperationLog({
-            level: "warn",
-            source: "scheduler",
-            event: "publish_blocked",
-            message: effectivePublish.blockedReason || "Scheduled publish was blocked.",
-            page_id: effectivePublish.resolvedPageId,
-            post_id: post.id,
-            metadata: {
-              topic: post.topic,
-              publish_mode: effectivePublish.effectiveSettings.facebookPublishMode || "mock",
-              publish_source: effectivePublish.effectivePublishSource,
-              live_page_publish_status: effectivePublish.livePerPagePublishStatus,
-              image_url_type: publishDiagnostics.originalImageUrlType,
-              fallback_reason: effectivePublish.fallbackReason || "",
-            },
-          });
+          await createOperationLog(
+            buildSchedulerLogEntry({
+              level: "warn",
+              event: "publish_blocked",
+              message: effectivePublish.blockedReason || "Scheduled publish was blocked.",
+              post,
+              effectivePublish,
+              publishDiagnostics,
+              extraMetadata: {
+                result: "skipped",
+                error_message: effectivePublish.blockedReason || effectivePublish.fallbackReason || "Publish blocked",
+              },
+            })
+          );
           summary.failed++;
           summary.results.push({
             id: post.id,
@@ -140,22 +198,21 @@ export async function processScheduledPosts({ posts, settings, onPostPublished }
 
         if (effectivePublish.effectiveSettings.facebookPublishMode === "live" && publishDiagnostics.imageBlocked) {
           logger.warn(`Processor: Blocking post '${post.topic}' due to unsafe image URL.`, publishDiagnostics.originalImageUrl);
-          await createOperationLog({
-            level: "warn",
-            source: "scheduler",
-            event: "publish_blocked",
-            message: "Scheduled publish was blocked because the image URL is not public and publish-safe.",
-            page_id: effectivePublish.resolvedPageId,
-            post_id: post.id,
-            metadata: {
-              topic: post.topic,
-              publish_mode: effectivePublish.effectiveSettings.facebookPublishMode || "mock",
-              publish_source: effectivePublish.effectivePublishSource,
-              live_page_publish_status: effectivePublish.livePerPagePublishStatus,
-              image_url_type: publishDiagnostics.originalImageUrlType,
-              fallback_reason: effectivePublish.fallbackReason || "",
-            },
-          });
+          await createOperationLog(
+            buildSchedulerLogEntry({
+              level: "warn",
+              event: "publish_blocked",
+              message: "Scheduled publish was blocked because the image URL is not public and publish-safe.",
+              post,
+              effectivePublish,
+              publishDiagnostics,
+              extraMetadata: {
+                result: "skipped",
+                error_message: "Unsafe image URL blocked scheduled publish",
+                attempted_image_url: publishDiagnostics.originalImageUrl || null,
+              },
+            })
+          );
           summary.failed++;
           summary.results.push({
             id: post.id,
@@ -176,24 +233,36 @@ export async function processScheduledPosts({ posts, settings, onPostPublished }
             source: effectivePublish.effectivePublishSource,
             targetPageId: effectivePublish.effectivePageId,
           });
-          await createOperationLog({
-            level: "info",
-            source: "scheduler",
-            event: "publish_fallback",
-            message: effectivePublish.fallbackReason,
-            page_id: effectivePublish.resolvedPageId,
-            post_id: post.id,
-            metadata: {
-              topic: post.topic,
-              publish_mode: effectivePublish.effectiveSettings.facebookPublishMode || "mock",
-              publish_source: effectivePublish.effectivePublishSource,
-              live_page_publish_status: effectivePublish.livePerPagePublishStatus,
-              effective_page_id: effectivePublish.effectivePageId,
-              image_url_type: publishDiagnostics.originalImageUrlType,
-              fallback_reason: effectivePublish.fallbackReason,
-            },
-          });
+          await createOperationLog(
+            buildSchedulerLogEntry({
+              event: "publish_fallback",
+              message: effectivePublish.fallbackReason,
+              post,
+              effectivePublish,
+              publishDiagnostics,
+              extraMetadata: {
+                result: "fallback",
+                fallback_reason: effectivePublish.fallbackReason,
+              },
+            })
+          );
         }
+
+        await createOperationLog(
+          buildSchedulerLogEntry({
+            event: "publish_attempt",
+            message: `Scheduler attempted publish for "${post.topic}".`,
+            post,
+            effectivePublish,
+            publishDiagnostics,
+            extraMetadata: {
+              result:
+                effectivePublish.effectiveSettings.facebookPublishMode === "live"
+                  ? "live_attempt"
+                  : "mock_attempt",
+            },
+          })
+        );
 
         const publishResult = await publishFacebookPost(post, effectivePublish.effectiveSettings);
 
@@ -205,26 +274,25 @@ export async function processScheduledPosts({ posts, settings, onPostPublished }
 
           if (updateResult.data) {
             logger.info(`Processor: Successfully published post '${post.topic}'`);
-            await createOperationLog({
-              level: "info",
-              source: "scheduler",
-              event: "publish_success",
-              message: `Scheduled publish succeeded for "${post.topic}".`,
-              page_id: effectivePublish.resolvedPageId,
-              post_id: post.id,
-              metadata: {
-                publish_mode: effectivePublish.effectiveSettings.facebookPublishMode || "mock",
-                publish_source: effectivePublish.effectivePublishSource,
-                live_page_publish_status: effectivePublish.livePerPagePublishStatus,
-                effective_page_id: effectivePublish.effectivePageId,
-                image_url_type: publishResult.diagnostics?.resolvedImageUrlType || publishDiagnostics.resolvedImageUrlType,
-                fallback_reason: effectivePublish.fallbackReason || "",
-              },
-            });
+            await createOperationLog(
+              buildSchedulerLogEntry({
+                event: "publish_success",
+                message:
+                  effectivePublish.effectiveSettings.facebookPublishMode === "live"
+                    ? `Scheduled live publish succeeded for "${post.topic}".`
+                    : `Scheduled mock publish completed for "${post.topic}".`,
+                post,
+                effectivePublish,
+                publishDiagnostics: publishResult.diagnostics || publishDiagnostics,
+                extraMetadata: {
+                  result: effectivePublish.effectiveSettings.facebookPublishMode === "live" ? "success" : "mock",
+                },
+              })
+            );
             summary.published++;
             summary.results.push({
               id: post.id,
-              status: "success",
+              status: effectivePublish.effectiveSettings.facebookPublishMode === "live" ? "success" : "mock",
               topic: post.topic,
               page_id: effectivePublish.resolvedPageId,
               page_label: effectivePublish.label,
@@ -235,21 +303,20 @@ export async function processScheduledPosts({ posts, settings, onPostPublished }
             if (onPostPublished) onPostPublished(updateResult.data);
           } else {
             logger.error(`Processor: Published post '${post.topic}' but status update failed.`);
-            await createOperationLog({
-              level: "error",
-              source: "scheduler",
-              event: "publish_partial_failure",
-              message: `Scheduled publish succeeded but status update failed for "${post.topic}".`,
-              page_id: effectivePublish.resolvedPageId,
-              post_id: post.id,
-              metadata: {
-                publish_mode: effectivePublish.effectiveSettings.facebookPublishMode || "mock",
-                publish_source: effectivePublish.effectivePublishSource,
-                live_page_publish_status: effectivePublish.livePerPagePublishStatus,
-                image_url_type: publishResult.diagnostics?.resolvedImageUrlType || publishDiagnostics.resolvedImageUrlType,
-                fallback_reason: effectivePublish.fallbackReason || "",
-              },
-            });
+            await createOperationLog(
+              buildSchedulerLogEntry({
+                level: "error",
+                event: "publish_partial_failure",
+                message: `Scheduled publish succeeded but status update failed for "${post.topic}".`,
+                post,
+                effectivePublish,
+                publishDiagnostics: publishResult.diagnostics || publishDiagnostics,
+                extraMetadata: {
+                  result: "failed",
+                  error_message: "Published to FB but failed to update status",
+                },
+              })
+            );
             summary.failed++;
             summary.results.push({
               id: post.id,
@@ -263,22 +330,21 @@ export async function processScheduledPosts({ posts, settings, onPostPublished }
           }
         } else {
           logger.error(`Processor: Failed to publish post '${post.topic}':`, publishResult.error);
-          await createOperationLog({
-            level: "error",
-            source: "scheduler",
-            event: "publish_failure",
-            message: publishResult.error || `Scheduled publish failed for "${post.topic}".`,
-            page_id: effectivePublish.resolvedPageId,
-            post_id: post.id,
-            metadata: {
-              publish_mode: effectivePublish.effectiveSettings.facebookPublishMode || "mock",
-              publish_source: effectivePublish.effectivePublishSource,
-              live_page_publish_status: effectivePublish.livePerPagePublishStatus,
-              image_url_type: publishResult.diagnostics?.originalImageUrlType || publishDiagnostics.originalImageUrlType,
-              fallback_reason: effectivePublish.fallbackReason || "",
-              facebook_error_payload: publishResult.facebookErrorPayload || null,
-            },
-          });
+          await createOperationLog(
+            buildSchedulerLogEntry({
+              level: "error",
+              event: "publish_failure",
+              message: publishResult.error || `Scheduled publish failed for "${post.topic}".`,
+              post,
+              effectivePublish,
+              publishDiagnostics: publishResult.diagnostics || publishDiagnostics,
+              extraMetadata: {
+                result: publishResult.mode === "mock" ? "mock" : "failed",
+                error_message: publishResult.error || "",
+                facebook_error_payload: publishResult.facebookErrorPayload || null,
+              },
+            })
+          );
           summary.failed++;
           summary.results.push({
             id: post.id,
@@ -292,21 +358,20 @@ export async function processScheduledPosts({ posts, settings, onPostPublished }
         }
       } catch (err) {
         logger.error(`Processor: Unexpected error processing post '${post.topic}':`, err);
-        await createOperationLog({
-          level: "error",
-          source: "scheduler",
-          event: "publish_error",
-          message: err.message || `Unexpected scheduled publish error for "${post.topic}".`,
-          page_id: effectivePublish.resolvedPageId,
-          post_id: post.id,
-          metadata: {
-            publish_mode: effectivePublish.effectiveSettings.facebookPublishMode || "mock",
-            publish_source: effectivePublish.effectivePublishSource,
-            live_page_publish_status: effectivePublish.livePerPagePublishStatus,
-            image_url_type: publishDiagnostics.originalImageUrlType,
-            fallback_reason: effectivePublish.fallbackReason || "",
-          },
-        });
+        await createOperationLog(
+          buildSchedulerLogEntry({
+            level: "error",
+            event: "publish_error",
+            message: err.message || `Unexpected scheduled publish error for "${post.topic}".`,
+            post,
+            effectivePublish,
+            publishDiagnostics,
+            extraMetadata: {
+              result: "failed",
+              error_message: err.message || "Unexpected scheduled publish error",
+            },
+          })
+        );
         summary.failed++;
         summary.results.push({
           id: post.id,

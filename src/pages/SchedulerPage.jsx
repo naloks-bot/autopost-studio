@@ -1,5 +1,6 @@
 import React, { useMemo } from "react";
-import { Calendar, CheckCircle2, Clock3, Info, Timer } from "lucide-react";
+import { Calendar, CheckCircle2, Clock3, Info, RotateCcw, Timer } from "lucide-react";
+import ActionButton from "../components/ActionButton.jsx";
 
 function formatDate(value) {
   if (!value) return "ยังไม่มีเวลาที่ตั้งไว้";
@@ -9,7 +10,13 @@ function formatDate(value) {
   }).format(new Date(value));
 }
 
-export default function SchedulerPage({ settings, remotePosts = [], schedulerStatus = null }) {
+export default function SchedulerPage({
+  settings,
+  remotePosts = [],
+  schedulerStatus = null,
+  handleUnschedulePost,
+  isUnschedulingPostId = null,
+}) {
   const scheduledPosts = useMemo(
     () =>
       (remotePosts || [])
@@ -33,7 +40,7 @@ export default function SchedulerPage({ settings, remotePosts = [], schedulerSta
             </div>
             <div>
               <h2 className="text-xl font-bold tracking-tight text-white">ระบบโพสต์อัตโนมัติ</h2>
-              <p className="text-xs text-slate-400">หน้านี้ใช้ดูรายการที่ตั้งเวลาไว้ คิวที่รอโพสต์ และสถานะการทำงานล่าสุดของ scheduler</p>
+              <p className="text-xs text-slate-400">ดูรายการที่ตั้งเวลาไว้ คิวที่รอโพสต์ และสถานะการทำงานล่าสุดของ scheduler</p>
             </div>
           </div>
           <div
@@ -78,7 +85,7 @@ export default function SchedulerPage({ settings, remotePosts = [], schedulerSta
               <Clock3 className="h-4 w-4 text-cyan-400" />
               <h3 className="text-sm font-semibold uppercase tracking-wider text-white">รายการที่ตั้งเวลาไว้</h3>
             </div>
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">ข้อมูลจริงจากโพสต์ปัจจุบัน</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">ควบคุมคิว scheduled โดยไม่ลบโพสต์</span>
           </div>
 
           {scheduledPosts.length === 0 ? (
@@ -88,14 +95,24 @@ export default function SchedulerPage({ settings, remotePosts = [], schedulerSta
           ) : (
             <div className="divide-y divide-white/5">
               {scheduledPosts.map((post) => (
-                <div key={post.id} className="flex items-center justify-between gap-4 p-4">
+                <div key={post.id} className="flex flex-col gap-4 p-4 md:flex-row md:items-center md:justify-between">
                   <div>
                     <p className="text-sm font-semibold text-white">{post.topic || "ยังไม่ได้ตั้งหัวข้อ"}</p>
                     <p className="mt-1 text-[11px] text-slate-500">เพจ: {post.page_id || "default"}</p>
+                    <p className="mt-1 text-[11px] text-amber-300">ตั้งเวลา {formatDate(post.scheduled_at)}</p>
                   </div>
-                  <div className="text-right">
-                    <p className="text-xs font-semibold text-slate-300">{formatDate(post.scheduled_at)}</p>
-                    <p className="mt-1 text-[10px] uppercase tracking-wider text-amber-400">scheduled</p>
+                  <div className="flex items-center gap-3">
+                    <div className="text-right">
+                      <p className="text-xs font-semibold text-slate-300">{formatDate(post.scheduled_at)}</p>
+                      <p className="mt-1 text-[10px] uppercase tracking-wider text-amber-400">scheduled</p>
+                    </div>
+                    <ActionButton
+                      label="ยกเลิกเวลาโพสต์"
+                      icon={RotateCcw}
+                      onClick={() => void handleUnschedulePost(post.id)}
+                      variant="outline"
+                      isLoading={isUnschedulingPostId === post.id}
+                    />
                   </div>
                 </div>
               ))}
@@ -126,7 +143,7 @@ export default function SchedulerPage({ settings, remotePosts = [], schedulerSta
             </div>
             <div className="mt-3 flex items-start gap-2 text-xs text-slate-400">
               <Info className="mt-0.5 h-4 w-4 shrink-0 text-slate-500" />
-              <p>หน้านี้เน้นดูคิว scheduled, queued, รอบล่าสุด และสถานะเปิด/ปิดของ scheduler เพื่อการติดตามงานรายวัน</p>
+              <p>ใช้ปุ่มยกเลิกเวลาโพสต์เพื่อนำรายการกลับเป็น draft โดยไม่ลบข้อมูล และดูผลลัพธ์การโพสต์จริง/ทดสอบต่อได้ในหน้าประวัติระบบ</p>
             </div>
           </div>
         </div>

@@ -110,14 +110,39 @@ alter table public.pages alter column updated_at set not null;
 create table if not exists public.operation_logs (
   id uuid primary key default gen_random_uuid(),
   created_at timestamptz not null default now(),
+  category text not null default 'system',
   level text not null default 'info',
   source text not null default 'system',
   event text not null default 'unknown',
   message text not null default '',
   page_id text,
   post_id text,
+  details jsonb not null default '{}'::jsonb,
   metadata jsonb not null default '{}'::jsonb
 );
+
+alter table public.operation_logs add column if not exists category text default 'system';
+alter table public.operation_logs add column if not exists details jsonb default '{}'::jsonb;
+alter table public.operation_logs add column if not exists metadata jsonb default '{}'::jsonb;
+
+update public.operation_logs
+set category = coalesce(nullif(btrim(category), ''), source, 'system')
+where category is null or btrim(category) = '';
+
+update public.operation_logs
+set details = coalesce(details, metadata, '{}'::jsonb)
+where details is null;
+
+update public.operation_logs
+set metadata = coalesce(metadata, details, '{}'::jsonb)
+where metadata is null;
+
+alter table public.operation_logs alter column category set default 'system';
+alter table public.operation_logs alter column category set not null;
+alter table public.operation_logs alter column details set default '{}'::jsonb;
+alter table public.operation_logs alter column details set not null;
+alter table public.operation_logs alter column metadata set default '{}'::jsonb;
+alter table public.operation_logs alter column metadata set not null;
 
 insert into storage.buckets (id, name, public)
 values ('generated-images', 'generated-images', true)
@@ -273,6 +298,19 @@ on public.operation_logs
 for insert
 to anon
 with check (true);
+
+create policy "anon can update operation logs"
+on public.operation_logs
+for update
+to anon
+using (true)
+with check (true);
+
+create policy "anon can delete operation logs"
+on public.operation_logs
+for delete
+to anon
+using (true);
 
 create policy "anon can read generated images"
 on storage.objects

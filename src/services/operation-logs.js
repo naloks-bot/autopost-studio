@@ -2,7 +2,7 @@ import { logger } from "./logger.js";
 import { hasSupabaseConfig, supabase } from "./supabase.js";
 
 const LOGS_SELECT =
-  "id, created_at, level, source, event, message, page_id, post_id, metadata";
+  "id, created_at, category, level, source, event, message, page_id, post_id, details, metadata";
 
 function isMissingLogsTable(error) {
   return Boolean(
@@ -14,16 +14,19 @@ function isMissingLogsTable(error) {
 }
 
 function normalizeOperationLog(record) {
+  const metadata = record.metadata ?? record.details ?? {};
   return {
     id: record.id ?? `local-log-${Date.now()}`,
     created_at: record.created_at ?? new Date().toISOString(),
+    category: record.category ?? record.source ?? "system",
     level: record.level ?? "info",
     source: record.source ?? "system",
     event: record.event ?? "unknown",
     message: record.message ?? "",
     page_id: record.page_id ?? null,
     post_id: record.post_id ?? null,
-    metadata: record.metadata ?? {},
+    details: record.details ?? metadata,
+    metadata,
   };
 }
 
@@ -33,13 +36,15 @@ export async function createOperationLog(entry = {}) {
   }
 
   const payload = {
+    category: entry.category || entry.source || "system",
     level: entry.level || "info",
     source: entry.source || "system",
     event: entry.event || "unknown",
     message: entry.message || "",
     page_id: entry.page_id || null,
     post_id: entry.post_id ? String(entry.post_id) : null,
-    metadata: entry.metadata || {},
+    details: entry.details || entry.metadata || {},
+    metadata: entry.metadata || entry.details || {},
   };
 
   try {

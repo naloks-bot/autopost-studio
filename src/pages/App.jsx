@@ -163,6 +163,7 @@ function App() {
   const [isGeneratingImagePrompt, setIsGeneratingImagePrompt] = useState(false);
   const [isSavingDraft, setIsSavingDraft] = useState(false);
   const [isSchedulingPostId, setIsSchedulingPostId] = useState(null);
+  const [isUnschedulingPostId, setIsUnschedulingPostId] = useState(null);
   const [isSavingSettings, setIsSavingSettings] = useState(false);
   const [generationError, setGenerationError] = useState("");
   const [schedulerStatus, setSchedulerStatus] = useState(null);
@@ -831,6 +832,7 @@ function App() {
 
         setRemotePosts((current) => current.map((item) => (item.id === postId ? update.data : item)));
         await recordOperationLog({
+          category: "scheduler",
           level: "info",
           source: "scheduler",
           event: "schedule_saved",
@@ -838,13 +840,16 @@ function App() {
           page_id: post.page_id || "default",
           post_id: post.id,
           metadata: {
+            topic: post.topic || "",
             publish_mode: settings.facebookPublishMode || "mock",
             scheduled_at: update.data.scheduled_at || scheduledDate.toISOString(),
+            attempted_at: new Date().toISOString(),
             image_url_type: post.image_url
               ? post.image_url.startsWith("https://")
                 ? "https"
                 : post.image_url.split(":")[0] || "unknown"
               : "none",
+            result: "scheduled",
           },
         });
         setStatusNotice({
@@ -865,21 +870,83 @@ function App() {
     [recordOperationLog, remotePosts, settings.facebookPublishMode]
   );
 
+  const handleUnschedulePost = useCallback(
+    async (postId) => {
+      const post = remotePosts.find((item) => item.id === postId);
+      if (!post) {
+        setStatusNotice({ tone: "danger", message: "ไม่พบโพสต์ที่ต้องการยกเลิกเวลา" });
+        return false;
+      }
+
+      setIsUnschedulingPostId(postId);
+      try {
+        const update = await updateRemotePostStatus(postId, "draft", {
+          scheduled_at: null,
+        });
+
+        if (!update.data) {
+          setStatusNotice({
+            tone: "danger",
+            message: `ยกเลิกเวลาโพสต์ไม่สำเร็จ: ${toUserSafeMessage(update.error, "ยังอัปเดตสถานะกลับเป็น draft ไม่ได้")}`,
+          });
+          return false;
+        }
+
+        setRemotePosts((current) => current.map((item) => (item.id === postId ? update.data : item)));
+        const logResult = await recordOperationLog({
+          category: "scheduler",
+          level: "info",
+          source: "scheduler",
+          event: "schedule_cancelled",
+          message: `Cancelled scheduled publish for "${post.topic || "Untitled post"}".`,
+          page_id: post.page_id || "default",
+          post_id: post.id,
+          metadata: {
+            topic: post.topic || "",
+            scheduled_at: post.scheduled_at || null,
+            attempted_at: new Date().toISOString(),
+            publish_mode: settings.facebookPublishMode || "mock",
+            result: "cancelled",
+          },
+        });
+        if (logResult.data) {
+          const logsResult = await fetchOperationLogs();
+          if (logsResult.data) setOperationLogs(logsResult.data);
+          if (logsResult.mode) setLogsMode(logsResult.mode);
+        }
+        setStatusNotice({ tone: "success", message: "ยกเลิกเวลาโพสต์แล้ว รายการกลับเป็น draft เรียบร้อย" });
+        return true;
+      } catch (error) {
+        setStatusNotice({
+          tone: "danger",
+          message: `ยกเลิกเวลาโพสต์ไม่สำเร็จ: ${toUserSafeMessage(error, "เกิดข้อผิดพลาดระหว่างยกเลิกเวลา")}`,
+        });
+        return false;
+      } finally {
+        setIsUnschedulingPostId(null);
+      }
+    },
+    [recordOperationLog, remotePosts, settings.facebookPublishMode]
+  );
+
   async function handleSchedulerTick() {
     if (schedulerLock.current) return;
     const { remotePosts: currentPosts, settings: currentSettings } = stateRef.current;
     if (!currentSettings.schedulerEnabled || !currentPosts?.length) return;
 
     schedulerLock.current = true;
-    try {
-      const summary = await runSchedulerTick(currentPosts, currentSettings, {
-        onPostPublished: (updatedPost) => {
-          setRemotePosts((current) => current.map((item) => (item.id === updatedPost.id ? updatedPost : item)));
-        },
-      });
-      if (summary.due > 0 || summary.published > 0 || summary.failed > 0) {
-        setSchedulerStatus({ lastRun: new Date().toISOString(), ...summary });
-      }
+      try {
+        const summary = await runSchedulerTick(currentPosts, currentSettings, {
+          onPostPublished: (updatedPost) => {
+            setRemotePosts((current) => current.map((item) => (item.id === updatedPost.id ? updatedPost : item)));
+          },
+        });
+        const logsResult = await fetchOperationLogs();
+        if (logsResult.data) setOperationLogs(logsResult.data);
+        if (logsResult.mode) setLogsMode(logsResult.mode);
+        if (summary.due > 0 || summary.published > 0 || summary.failed > 0) {
+          setSchedulerStatus({ lastRun: new Date().toISOString(), ...summary });
+        }
     } catch (error) {
       console.error("Scheduler tick error:", error);
     } finally {
@@ -984,7 +1051,13 @@ function App() {
               )}
 
               {!isLoading && activeTab === "scheduler" && (
-                <SchedulerPage settings={settings} remotePosts={remotePosts} schedulerStatus={schedulerStatus} />
+                <SchedulerPage
+                  settings={settings}
+                  remotePosts={remotePosts}
+                  schedulerStatus={schedulerStatus}
+                  handleUnschedulePost={handleUnschedulePost}
+                  isUnschedulingPostId={isUnschedulingPostId}
+                />
               )}
 
               {!isLoading && activeTab === "library" && <LibraryPage />}
@@ -1001,7 +1074,9 @@ function App() {
                   handleLoadDraftToEditor={handleLoadDraftToEditor}
                   handlePublishPost={handlePublishPost}
                   handleSchedulePost={handleSchedulePost}
+                  handleUnschedulePost={handleUnschedulePost}
                   isSchedulingPostId={isSchedulingPostId}
+                  isUnschedulingPostId={isUnschedulingPostId}
                   settings={settings}
                   workspacePages={workspacePages}
                   schedulerStatus={schedulerStatus}

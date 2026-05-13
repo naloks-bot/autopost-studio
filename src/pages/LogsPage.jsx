@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo, useState } from "react";
 import { Terminal, Download, Copy, Info, History, ShieldAlert, Cpu, Share2 } from "lucide-react";
 
 function formatLogTime(value) {
@@ -6,7 +6,16 @@ function formatLogTime(value) {
   return new Date(value).toLocaleTimeString("en-GB", { hour12: false });
 }
 
+function formatLogDateTime(value) {
+  if (!value) return "-";
+  return new Intl.DateTimeFormat("th-TH", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(new Date(value));
+}
+
 function getCategory(log) {
+  if (log.category) return log.category;
   if (log.source === "scheduler" || log.source === "scheduler_edge") return "scheduler";
   if (log.source === "manual_publish") return "publishing";
   if (log.source === "ai") return "ai";
@@ -24,8 +33,49 @@ function getCounts(logs) {
   };
 }
 
+function getResultTone(result = "", level = "info") {
+  if (result === "success") return "text-emerald-300";
+  if (result === "mock" || result === "mock_attempt") return "text-cyan-300";
+  if (result === "skipped" || result === "fallback" || result === "cancelled" || result === "scheduled") return "text-amber-300";
+  if (result === "failed") return "text-rose-300";
+  if (result === "started" || result === "due" || result === "live_attempt") return "text-slate-200";
+  if (level === "error") return "text-rose-300";
+  return "text-slate-300";
+}
+
+function getSourceTone(log) {
+  if (log.level === "error") return "text-rose-400";
+  if (log.source === "scheduler" || log.source === "scheduler_edge") return "text-cyan-400";
+  if (log.source === "manual_publish") return "text-emerald-400";
+  return "text-slate-400";
+}
+
+function formatResultLabel(result = "") {
+  const labels = {
+    success: "success",
+    failed: "failed",
+    mock: "mock",
+    skipped: "skipped",
+    fallback: "fallback",
+    cancelled: "cancelled",
+    scheduled: "scheduled",
+    started: "started",
+    due: "due",
+    live_attempt: "live attempt",
+    mock_attempt: "mock attempt",
+  };
+  return labels[result] || result || "-";
+}
+
 export default function LogsPage({ logs = [], logsMode = "offline" }) {
-  const counts = getCounts(logs);
+  const [activeCategory, setActiveCategory] = useState("all");
+  const counts = useMemo(() => getCounts(logs), [logs]);
+  const filteredLogs = useMemo(() => {
+    if (activeCategory === "all") return logs;
+    if (activeCategory === "errors") return logs.filter((log) => log.level === "error");
+    return logs.filter((log) => getCategory(log) === activeCategory);
+  }, [activeCategory, logs]);
+
   const hasPersistentLogs = logsMode === "connected";
   const infoMessage =
     logsMode === "connected"
@@ -34,103 +84,134 @@ export default function LogsPage({ logs = [], logsMode = "offline" }) {
         ? "Operation log storage is not ready yet. Run the latest Supabase SQL to enable persistent logs."
         : "Persistent logs are unavailable right now. The publish and scheduler flows still continue safely.";
 
+  const categories = [
+    { id: "all", label: "ทั้งหมด", icon: History, count: counts.all },
+    { id: "ai", label: "AI", icon: Cpu, count: counts.ai },
+    { id: "scheduler", label: "ระบบอัตโนมัติ", icon: History, count: counts.scheduler },
+    { id: "publishing", label: "การโพสต์", icon: Share2, count: counts.publishing },
+    { id: "errors", label: "ข้อผิดพลาด", icon: ShieldAlert, count: counts.errors },
+  ];
+
   return (
     <div className="space-y-6">
       <div className="rounded-2xl border border-white/5 bg-slate-900/40 p-6 shadow-sm">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-           <div className="flex items-center gap-3">
-              <div className="p-2 rounded-xl bg-rose-500/10 text-rose-400">
-                 <Terminal className="h-6 w-6" />
-              </div>
-              <div>
-                 <h2 className="text-xl font-bold text-white tracking-tight">ประวัติระบบ</h2>
-                 <p className="text-xs text-slate-400">ติดตามการโพสต์ ระบบอัตโนมัติ และเส้นทางการทำงาน</p>
-              </div>
-           </div>
-           <div className="flex items-center gap-3">
-              <button disabled className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-xs font-bold text-slate-500 uppercase tracking-tight opacity-60 cursor-not-allowed">
-                 <Download className="h-3.5 w-3.5" /> Export
-              </button>
-              <button disabled className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-xs font-bold text-slate-500 uppercase tracking-tight opacity-60 cursor-not-allowed">
-                 <Copy className="h-3.5 w-3.5" /> Copy
-              </button>
-           </div>
+        <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
+          <div className="flex items-center gap-3">
+            <div className="rounded-xl bg-rose-500/10 p-2 text-rose-400">
+              <Terminal className="h-6 w-6" />
+            </div>
+            <div>
+              <h2 className="text-xl font-bold tracking-tight text-white">ประวัติระบบ</h2>
+              <p className="text-xs text-slate-400">ติดตาม scheduler, publish, และผลลัพธ์ของ scheduled posts แบบละเอียด</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <button disabled className="flex cursor-not-allowed items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-bold uppercase tracking-tight text-slate-500 opacity-60">
+              <Download className="h-3.5 w-3.5" /> Export
+            </button>
+            <button disabled className="flex cursor-not-allowed items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-bold uppercase tracking-tight text-slate-500 opacity-60">
+              <Copy className="h-3.5 w-3.5" /> Copy
+            </button>
+          </div>
         </div>
 
-        <div className="mt-6 flex items-start gap-3 p-3 rounded-xl bg-rose-500/5 border border-rose-500/10">
-           <Info className="h-5 w-5 text-rose-400 mt-0.5" />
-           <div>
-              <p className="text-xs font-semibold text-rose-300">
-                {hasPersistentLogs ? "บันทึกถาวรพร้อมใช้งาน" : "โหมดพื้นฐาน"}
-              </p>
-              <p className="text-[10px] text-rose-400/80 leading-relaxed">
-                {infoMessage}
-              </p>
-           </div>
+        <div className="mt-6 flex items-start gap-3 rounded-xl border border-rose-500/10 bg-rose-500/5 p-3">
+          <Info className="mt-0.5 h-5 w-5 text-rose-400" />
+          <div>
+            <p className="text-xs font-semibold text-rose-300">
+              {hasPersistentLogs ? "บันทึกถาวรพร้อมใช้งาน" : "โหมดพื้นฐาน"}
+            </p>
+            <p className="text-[10px] leading-relaxed text-rose-400/80">{infoMessage}</p>
+          </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-4">
         <div className="space-y-4">
-           <div className="rounded-2xl border border-white/5 bg-slate-900/40 p-6">
-              <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-4">Log Categories</h3>
-              <div className="space-y-1">
-                 {[
-                   { label: "ทั้งหมด", icon: History, count: counts.all, active: true },
-                   { label: "AI", icon: Cpu, count: counts.ai, active: false },
-                   { label: "ระบบอัตโนมัติ", icon: History, count: counts.scheduler, active: false },
-                   { label: "การโพสต์", icon: Share2, count: counts.publishing, active: false },
-                   { label: "ข้อผิดพลาด", icon: ShieldAlert, count: counts.errors, active: false },
-                 ].map((cat) => (
-                    <button key={cat.label} className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs transition ${cat.active ? "bg-rose-500/10 text-rose-400" : "text-slate-400 hover:bg-white/5 hover:text-slate-200"}`}>
-                       <div className="flex items-center gap-2">
-                          <cat.icon className="h-3.5 w-3.5" />
-                          <span>{cat.label}</span>
-                       </div>
-                       <span className="text-[10px] font-bold opacity-50">{cat.count}</span>
-                    </button>
-                 ))}
-              </div>
-           </div>
+          <div className="rounded-2xl border border-white/5 bg-slate-900/40 p-6">
+            <h3 className="mb-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Log Categories</h3>
+            <div className="space-y-1">
+              {categories.map((cat) => (
+                <button
+                  key={cat.id}
+                  onClick={() => setActiveCategory(cat.id)}
+                  className={`w-full rounded-lg px-3 py-2 text-xs transition ${
+                    activeCategory === cat.id ? "bg-rose-500/10 text-rose-400" : "text-slate-400 hover:bg-white/5 hover:text-slate-200"
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <cat.icon className="h-3.5 w-3.5" />
+                      <span>{cat.label}</span>
+                    </div>
+                    <span className="text-[10px] font-bold opacity-50">{cat.count}</span>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
 
         <div className="lg:col-span-3">
-           <div className="rounded-2xl border border-white/5 bg-slate-950/80 shadow-inner overflow-hidden">
-              <div className="bg-white/5 px-4 py-2 flex items-center justify-between border-b border-white/5">
-                 <div className="flex items-center gap-2">
-                    <div className="h-2 w-2 rounded-full bg-rose-500"></div>
-                    <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">รายการล่าสุด</span>
-                 </div>
-                 <span className="text-[9px] text-slate-600">ใหม่สุดก่อน</span>
+          <div className="overflow-hidden rounded-2xl border border-white/5 bg-slate-950/80 shadow-inner">
+            <div className="flex items-center justify-between border-b border-white/5 bg-white/5 px-4 py-2">
+              <div className="flex items-center gap-2">
+                <div className="h-2 w-2 rounded-full bg-rose-500"></div>
+                <span className="text-[9px] font-bold uppercase tracking-widest text-slate-500">รายการล่าสุด</span>
               </div>
-              <div className="p-4 font-mono text-[11px] leading-relaxed space-y-2 h-[400px] overflow-y-auto">
-                 {logs.length === 0 ? (
-                   <div className="rounded-xl border border-white/5 bg-white/5 p-4 text-slate-400">
-                     {logsMode === "connected"
-                       ? "No operation logs have been recorded yet. Publish, scheduler, and routing events will appear here as the system runs."
-                       : logsMode === "missing-table"
-                         ? "Persistent log storage is not installed yet. Apply the latest Supabase SQL to start recording logs."
-                         : "Log storage is unavailable right now, but publish and scheduler flows continue safely."}
-                   </div>
-                 ) : (
-                   logs.map((log) => (
-                     <div key={log.id} className="flex gap-4 group">
-                       <span className="text-slate-600 shrink-0">[{formatLogTime(log.created_at)}]</span>
-                       <span className={`shrink-0 uppercase font-bold ${
-                          log.level === "error" ? "text-rose-400" :
-                          log.source === "scheduler" || log.source === "scheduler_edge" ? "text-cyan-400" :
-                          log.source === "manual_publish" ? "text-emerald-400" :
-                          "text-slate-400"
-                       }`}>[{log.source}]</span>
-                       <span className="text-slate-300 group-hover:text-white transition">{log.message}</span>
-                     </div>
-                   ))
-                 )}
-                 <div className="flex gap-4">
-                    <span className="text-rose-500 animate-pulse">_</span>
-                 </div>
+              <span className="text-[9px] text-slate-600">ใหม่สุดก่อน</span>
+            </div>
+            <div className="h-[400px] space-y-3 overflow-y-auto p-4">
+              {filteredLogs.length === 0 ? (
+                <div className="rounded-xl border border-white/5 bg-white/5 p-4 text-slate-400">
+                  {logs.length === 0
+                    ? logsMode === "connected"
+                      ? "No operation logs have been recorded yet. Publish, scheduler, and routing events will appear here as the system runs."
+                      : logsMode === "missing-table"
+                        ? "Persistent log storage is not installed yet. Apply the latest Supabase SQL to start recording logs."
+                        : "Log storage is unavailable right now, but publish and scheduler flows continue safely."
+                    : "ไม่มี log ในหมวดนี้จากข้อมูลที่โหลดอยู่ตอนนี้"}
+                </div>
+              ) : (
+                filteredLogs.map((log) => {
+                  const details = log.metadata || log.details || {};
+                  const topic = details.topic || "-";
+                  const result = details.result || "-";
+                  const scheduledAt = details.scheduled_at || null;
+                  const attemptedAt = details.attempted_at || log.created_at || null;
+                  const errorMessage = details.error_message || (log.level === "error" ? log.message : "");
+
+                  return (
+                    <div key={log.id} className="rounded-xl border border-white/5 bg-white/5 p-4 text-[11px]">
+                      <div className="flex flex-wrap items-center gap-3">
+                        <span className="shrink-0 text-slate-600">[{formatLogTime(log.created_at)}]</span>
+                        <span className={`shrink-0 font-bold uppercase ${getSourceTone(log)}`}>[{log.source}]</span>
+                        <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${getResultTone(result, log.level)}`}>
+                          {formatResultLabel(result)}
+                        </span>
+                        <span className="text-slate-300">{log.event}</span>
+                      </div>
+                      <p className="mt-2 text-sm text-white">{log.message}</p>
+                      <div className="mt-3 grid gap-2 text-[10px] text-slate-400 md:grid-cols-2">
+                        <p>โพสต์: <span className="text-slate-200">{topic}</span></p>
+                        <p>Scheduled: <span className="text-slate-200">{formatLogDateTime(scheduledAt)}</span></p>
+                        <p>Attempted: <span className="text-slate-200">{formatLogDateTime(attemptedAt)}</span></p>
+                        <p>Result: <span className={getResultTone(result, log.level)}>{formatResultLabel(result)}</span></p>
+                      </div>
+                      {errorMessage ? (
+                        <div className="mt-3 rounded-lg border border-rose-500/10 bg-rose-500/5 px-3 py-2 text-[10px] text-rose-200">
+                          Error: {errorMessage}
+                        </div>
+                      ) : null}
+                    </div>
+                  );
+                })
+              )}
+              <div className="flex gap-4">
+                <span className="animate-pulse text-rose-500">_</span>
               </div>
-           </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

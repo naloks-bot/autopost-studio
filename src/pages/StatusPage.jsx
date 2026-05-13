@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { AlertCircle, Calendar, CheckCircle2, Clock, Facebook, Info, Pencil, Send, Trash2 } from "lucide-react";
+import { AlertCircle, Calendar, CheckCircle2, Clock, Facebook, Info, Pencil, RotateCcw, Send, Trash2 } from "lucide-react";
 import ActionButton from "../components/ActionButton.jsx";
 import { getPagePublishReadiness, resolveEffectivePublishConfig, runPerPagePublishDryRun } from "../services/page-context.js";
 
@@ -28,7 +28,9 @@ function StatusPage({
   handleLoadDraftToEditor,
   handlePublishPost,
   handleSchedulePost,
+  handleUnschedulePost,
   isSchedulingPostId,
+  isUnschedulingPostId,
   settings,
   workspacePages,
   schedulerStatus,
@@ -40,15 +42,16 @@ function StatusPage({
 
   const pageAware = useMemo(() => {
     const pendingForPage = allPendingPosts.filter((post) => (post.page_id || "default") === activePageId);
-    const postedForPage = remotePosts.filter(
-      (post) => post.status === "posted" && (post.page_id || "default") === activePageId
-    );
+    const postedForPage = remotePosts
+      .filter((post) => post.status === "posted" && (post.page_id || "default") === activePageId)
+      .sort((a, b) => new Date(b.posted_at || b.created_at || 0).getTime() - new Date(a.posted_at || a.created_at || 0).getTime());
 
     return {
       total: pendingForPage.length + postedForPage.length,
       queued: pendingForPage.length,
       success: postedForPage.length,
       list: pendingForPage,
+      recentPosted: postedForPage.slice(0, 5),
     };
   }, [activePageId, allPendingPosts, remotePosts]);
 
@@ -64,9 +67,7 @@ function StatusPage({
 
   const handleSubmitSchedule = async (postId) => {
     const success = await handleSchedulePost(postId, scheduleValue);
-    if (success) {
-      handleCloseSchedule();
-    }
+    if (success) handleCloseSchedule();
   };
 
   return (
@@ -93,7 +94,7 @@ function StatusPage({
           <div>
             <p className="font-semibold">สถานะการโพสต์ของเพจปัจจุบัน</p>
             <p className="mt-0.5 text-xs text-cyan-100/80">
-              โหมด {settings.facebookPublishMode === "live" ? "โพสต์จริง" : "ทดสอบ"} ยังทำงานบน flow เดิมที่เสถียร และสถิติด้านล่างอิงจากร่าง/โพสต์ที่มีอยู่ในระบบตอนนี้
+              โหมด {settings.facebookPublishMode === "live" ? "โพสต์จริง" : "ทดสอบ"} ยังใช้ publish flow เดิมที่เสถียร และหน้านี้เน้นดูคิวปัจจุบันกับรายการที่เพิ่งโพสต์สำเร็จ
             </p>
           </div>
         </div>
@@ -109,7 +110,7 @@ function StatusPage({
           <p className="mt-3 text-4xl font-bold tracking-tight text-white">{pageAware.queued}</p>
         </div>
         <div className="rounded-2xl border border-white/5 bg-slate-900/40 p-5 shadow-sm">
-          <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">โพสต์สำเร็จ</span>
+          <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">โพสต์สำเร็จล่าสุด</span>
           <p className="mt-3 text-4xl font-bold tracking-tight text-white">{pageAware.success}</p>
         </div>
       </div>
@@ -156,6 +157,7 @@ function StatusPage({
             });
             const isScheduleOpen = openSchedulePostId === post.id;
             const isRemotePost = post.source !== "local";
+            const isScheduled = post.status === "scheduled";
 
             return (
               <article
@@ -198,7 +200,11 @@ function StatusPage({
                       <span className="rounded-full bg-cyan-500/10 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-cyan-400">
                         เส้นทางโพสต์: {effectivePublish.effectivePublishLabel}
                       </span>
-                      <span className="rounded-full bg-white/5 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-300">
+                      <span
+                        className={`rounded-full px-2 py-1 text-[10px] font-bold uppercase tracking-wider ${
+                          isScheduled ? "bg-amber-500/10 text-amber-300" : "bg-white/5 text-slate-300"
+                        }`}
+                      >
                         สถานะ: {post.status || "draft"}
                       </span>
                     </div>
@@ -223,7 +229,7 @@ function StatusPage({
                       <Calendar className="h-3 w-3" />
                       <span>สร้างเมื่อ {formatDate(post.created_at)}</span>
                     </div>
-                    {post.scheduled_at && post.status === "scheduled" ? (
+                    {post.scheduled_at && isScheduled ? (
                       <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-tight text-amber-400">
                         <Clock className="h-3 w-3" />
                         <span>ตั้งเวลา {formatDate(post.scheduled_at)}</span>
@@ -242,12 +248,22 @@ function StatusPage({
                     <>
                       <ActionButton label="แก้ไขร่าง" icon={Pencil} onClick={() => handleLoadDraftToEditor(post)} variant="outline" fullWidth />
                       <ActionButton
-                        label={post.status === "scheduled" ? "เปลี่ยนเวลา" : "ตั้งเวลาโพสต์"}
+                        label={isScheduled ? "เปลี่ยนเวลา" : "ตั้งเวลาโพสต์"}
                         icon={Calendar}
                         onClick={() => handleOpenSchedule(post)}
                         variant="amber"
                         fullWidth
                       />
+                      {isScheduled ? (
+                        <ActionButton
+                          label="ยกเลิกเวลาโพสต์"
+                          icon={RotateCcw}
+                          onClick={() => void handleUnschedulePost(post.id)}
+                          variant="outline"
+                          isLoading={isUnschedulingPostId === post.id}
+                          fullWidth
+                        />
+                      ) : null}
                       <ActionButton
                         label={settings.facebookPublishMode === "live" ? "โพสต์ตอนนี้" : "ทดสอบโพสต์"}
                         icon={Send}
@@ -295,6 +311,30 @@ function StatusPage({
               </article>
             );
           })
+        )}
+      </div>
+
+      <div className="rounded-2xl border border-white/5 bg-slate-900/40 p-5 shadow-sm">
+        <div className="mb-4 flex items-center gap-2">
+          <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+          <h3 className="text-sm font-semibold uppercase tracking-wider text-white">โพสต์ล่าสุดที่สำเร็จ</h3>
+        </div>
+        {pageAware.recentPosted.length === 0 ? (
+          <p className="text-sm text-slate-500">ยังไม่มีรายการโพสต์สำเร็จล่าสุดในเพจนี้</p>
+        ) : (
+          <div className="space-y-3">
+            {pageAware.recentPosted.map((post) => (
+              <div key={post.id} className="flex items-center justify-between gap-4 rounded-xl border border-white/5 bg-slate-950/40 px-4 py-3">
+                <div>
+                  <p className="text-sm font-semibold text-white">{post.topic || "ยังไม่ได้ตั้งหัวข้อ"}</p>
+                  <p className="mt-1 text-[11px] text-slate-500">โพสต์เมื่อ {formatDate(post.posted_at || post.created_at)}</p>
+                </div>
+                <span className="rounded-full bg-emerald-500/10 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-emerald-300">
+                  posted
+                </span>
+              </div>
+            ))}
+          </div>
         )}
       </div>
     </div>
