@@ -32,7 +32,7 @@ import {
   updateRemotePostStatus,
 } from "../services/supabase.js";
 import { createOperationLog, fetchOperationLogs } from "../services/operation-logs.js";
-import { publishFacebookPost, validateFacebookConfig } from "../services/facebook.js";
+import { getFacebookPublishDiagnostics, publishFacebookPost, validateFacebookConfig } from "../services/facebook.js";
 import {
   generateImagePrompt,
   generatePostContent,
@@ -67,6 +67,20 @@ function createPageId(label = "") {
     .replace(/[^a-z0-9ก-๙]+/g, "-")
     .replace(/^-+|-+$/g, "");
   return `${base || "page"}-${Date.now().toString().slice(-6)}`;
+}
+
+function buildClientOperationLog(entry = {}) {
+  return {
+    id: `client-log-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    created_at: new Date().toISOString(),
+    level: entry.level || "info",
+    source: entry.source || "system",
+    event: entry.event || "unknown",
+    message: entry.message || "",
+    page_id: entry.page_id || null,
+    post_id: entry.post_id ? String(entry.post_id) : null,
+    metadata: entry.metadata || {},
+  };
 }
 
 function getInitialTheme() {
@@ -191,6 +205,27 @@ function App() {
       (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
     );
   }, [localDrafts, remotePosts]);
+
+  const appendClientOperationLog = useCallback((entry, mode) => {
+    if (mode) setLogsMode(mode);
+    setOperationLogs((current) => [buildClientOperationLog(entry), ...current].slice(0, 100));
+  }, []);
+
+  const recordOperationLog = useCallback(
+    async (entry) => {
+      const result = await createOperationLog(entry);
+      if (result.mode) setLogsMode(result.mode);
+
+      if (result.data) {
+        setOperationLogs((current) => [result.data, ...current].slice(0, 100));
+      } else {
+        appendClientOperationLog(entry, result.mode || (hasSupabaseConfig ? "error" : "offline"));
+      }
+
+      return result;
+    },
+    [appendClientOperationLog]
+  );
 
   async function loadAllData(showSpinner = false) {
     if (dataLock.current) return;
@@ -596,9 +631,10 @@ function App() {
           settings,
           pages: settings.workspacePages,
         });
+        const publishDiagnostics = getFacebookPublishDiagnostics(post);
 
         if (!effectivePublish.canAttemptPublish) {
-          await createOperationLog({
+          await recordOperationLog({
             level: "warn",
             source: "manual_publish",
             event: "publish_blocked",
@@ -607,8 +643,11 @@ function App() {
             post_id: post.id,
             metadata: {
               topic: post.topic,
+              publish_mode: effectivePublish.effectiveSettings.facebookPublishMode || "mock",
               publish_source: effectivePublish.effectivePublishSource,
               live_page_publish_status: effectivePublish.livePerPagePublishStatus,
+              image_url_type: publishDiagnostics.originalImageUrlType,
+              fallback_reason: effectivePublish.fallbackReason || "",
             },
           });
           setStatusNotice({
@@ -618,8 +657,36 @@ function App() {
           return;
         }
 
+        if (effectivePublish.effectiveSettings.facebookPublishMode === "live" && publishDiagnostics.imageBlocked) {
+          const message = "โพสต์จริงถูกบล็อก เพราะรูปนี้ยังไม่มี URL สาธารณะจาก Supabase สำหรับ Facebook";
+          await recordOperationLog({
+            level: "warn",
+            source: "manual_publish",
+            event: "publish_blocked",
+            message,
+            page_id: effectivePublish.resolvedPageId,
+            post_id: post.id,
+            metadata: {
+              topic: post.topic,
+              publish_mode: effectivePublish.effectiveSettings.facebookPublishMode || "mock",
+              publish_source: effectivePublish.effectivePublishSource,
+              live_page_publish_status: effectivePublish.livePerPagePublishStatus,
+              image_url_type: publishDiagnostics.originalImageUrlType,
+              image_storage_mode: post.image_storage_mode || null,
+              image_storage_path: post.image_storage_path || null,
+              attempted_image_url: publishDiagnostics.originalImageUrl || null,
+              fallback_reason: effectivePublish.fallbackReason || "",
+            },
+          });
+          setStatusNotice({
+            tone: "warning",
+            message: `${message} กรุณาอัปโหลดใหม่หรือบันทึกร่างหลังอัปโหลดขึ้นคลาวด์สำเร็จ`,
+          });
+          return;
+        }
+
         if (effectivePublish.fallbackReason) {
-          await createOperationLog({
+          await recordOperationLog({
             level: "info",
             source: "manual_publish",
             event: "publish_fallback",
@@ -628,9 +695,12 @@ function App() {
             post_id: post.id,
             metadata: {
               topic: post.topic,
+              publish_mode: effectivePublish.effectiveSettings.facebookPublishMode || "mock",
               publish_source: effectivePublish.effectivePublishSource,
               live_page_publish_status: effectivePublish.livePerPagePublishStatus,
               effective_page_id: effectivePublish.effectivePageId,
+              image_url_type: publishDiagnostics.resolvedImageUrlType,
+              fallback_reason: effectivePublish.fallbackReason,
             },
           });
         }
@@ -645,9 +715,13 @@ function App() {
           }
         }
 
-        const result = await publishFacebookPost(post, effectivePublish.effectiveSettings);
+        const publishPost =
+          publishDiagnostics.resolvedImageUrl && publishDiagnostics.resolvedImageUrl !== post.image_url
+            ? { ...post, image_url: publishDiagnostics.resolvedImageUrl }
+            : post;
+        const result = await publishFacebookPost(publishPost, effectivePublish.effectiveSettings);
         if (result.error) {
-          await createOperationLog({
+          await recordOperationLog({
             level: "error",
             source: "manual_publish",
             event: "publish_failure",
@@ -655,8 +729,13 @@ function App() {
             page_id: effectivePublish.resolvedPageId,
             post_id: post.id,
             metadata: {
+              publish_mode: effectivePublish.effectiveSettings.facebookPublishMode || "mock",
               publish_source: effectivePublish.effectivePublishSource,
               live_page_publish_status: effectivePublish.livePerPagePublishStatus,
+              image_url_type: result.diagnostics?.originalImageUrlType || publishDiagnostics.originalImageUrlType,
+              attempted_image_url: publishDiagnostics.originalImageUrl || null,
+              fallback_reason: effectivePublish.fallbackReason || "",
+              facebook_error_payload: result.facebookErrorPayload || null,
             },
           });
           setStatusNotice({ tone: "danger", message: `โพสต์ไม่สำเร็จ: ${toUserSafeMessage(result.error, "โพสต์ไม่สำเร็จ")}` });
@@ -666,7 +745,7 @@ function App() {
         const update = await updateRemotePostStatus(postId, "posted", { posted_at: new Date().toISOString() });
         if (update.data) {
           setRemotePosts((current) => current.map((item) => (item.id === postId ? update.data : item)));
-          await createOperationLog({
+          await recordOperationLog({
             level: "info",
             source: "manual_publish",
             event: "publish_success",
@@ -674,19 +753,19 @@ function App() {
             page_id: effectivePublish.resolvedPageId,
             post_id: post.id,
             metadata: {
+              publish_mode: effectivePublish.effectiveSettings.facebookPublishMode || "mock",
               publish_source: effectivePublish.effectivePublishSource,
               live_page_publish_status: effectivePublish.livePerPagePublishStatus,
               effective_page_id: effectivePublish.effectivePageId,
+              image_url_type: result.diagnostics?.resolvedImageUrlType || publishDiagnostics.resolvedImageUrlType,
+              fallback_reason: effectivePublish.fallbackReason || "",
             },
           });
-          const logsResult = await fetchOperationLogs();
-          setOperationLogs(logsResult.data || []);
-          if (logsResult.mode) setLogsMode(logsResult.mode);
           setStatusNotice({ tone: "success", message: "โพสต์เรียบร้อยแล้ว" });
           return;
         }
 
-        await createOperationLog({
+        await recordOperationLog({
           level: "error",
           source: "manual_publish",
           event: "publish_partial_failure",
@@ -694,13 +773,16 @@ function App() {
           page_id: effectivePublish.resolvedPageId,
           post_id: post.id,
           metadata: {
+            publish_mode: effectivePublish.effectiveSettings.facebookPublishMode || "mock",
             publish_source: effectivePublish.effectivePublishSource,
             live_page_publish_status: effectivePublish.livePerPagePublishStatus,
+            image_url_type: publishDiagnostics.resolvedImageUrlType,
+            fallback_reason: effectivePublish.fallbackReason || "",
           },
         });
         setStatusNotice({ tone: "warning", message: "โพสต์ไปแล้ว แต่ยังอัปเดตสถานะในระบบไม่สำเร็จ" });
       } catch (error) {
-        await createOperationLog({
+        await recordOperationLog({
           level: "error",
           source: "manual_publish",
           event: "publish_error",
@@ -710,7 +792,7 @@ function App() {
         setStatusNotice({ tone: "danger", message: `โพสต์ไม่สำเร็จ: ${toUserSafeMessage(error, "โพสต์ไม่สำเร็จ")}` });
       }
     },
-    [remotePosts, settings]
+    [recordOperationLog, remotePosts, settings]
   );
 
   async function handleSchedulerTick() {

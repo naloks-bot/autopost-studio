@@ -31,6 +31,20 @@ function getFileExtension(file) {
   return "jpg";
 }
 
+function isUnsafeDraftImageUrl(value = "") {
+  const next = String(value || "").trim();
+  if (!next) return false;
+  return (
+    next.startsWith("blob:") ||
+    next.startsWith("data:") ||
+    next.startsWith("file:") ||
+    next.startsWith("http://localhost") ||
+    next.startsWith("https://localhost") ||
+    next.startsWith("http://127.0.0.1") ||
+    next.startsWith("https://127.0.0.1")
+  );
+}
+
 function CreatePage({
   form,
   settings,
@@ -275,16 +289,19 @@ function CreatePage({
 
   function handleInternalSave() {
     const resolvedImageUrl = imageAsset?.imageUrl || form.imageUrl;
-    const extraData = resolvedImageUrl
-      ? {
-          image_url: resolvedImageUrl,
-          image_prompt: form.imagePrompt,
-          image_provider: imageAsset?.provider || null,
-          image_revised_prompt: imageAsset?.revisedPrompt || null,
-          image_storage_path: imageAsset?.storagePath || null,
-          image_storage_mode: imageAsset?.storageMode || null,
-        }
-      : {};
+    const safePersistedImageUrl = isUnsafeDraftImageUrl(resolvedImageUrl) ? "" : resolvedImageUrl;
+    const extraData = {
+      image_url: safePersistedImageUrl,
+      image_prompt: form.imagePrompt,
+      image_provider: imageAsset?.provider || null,
+      image_revised_prompt: imageAsset?.revisedPrompt || null,
+      image_storage_path: safePersistedImageUrl ? imageAsset?.storagePath || null : null,
+      image_storage_mode: safePersistedImageUrl ? imageAsset?.storageMode || null : null,
+    };
+
+    if (resolvedImageUrl && !safePersistedImageUrl) {
+      setImageGenerationError("ยังไม่มี URL รูปภาพสาธารณะ จึงบันทึกร่างแบบไม่แนบรูปสำหรับโพสต์จริง");
+    }
 
     handleSaveDraft(extraData);
   }

@@ -1,5 +1,5 @@
 import { logger } from "./logger.js";
-import { publishFacebookPost } from "./facebook.js";
+import { getFacebookPublishDiagnostics, publishFacebookPost } from "./facebook.js";
 import { createOperationLog } from "./operation-logs.js";
 import { fetchRemotePosts, updateRemotePostStatus } from "./supabase.js";
 import { resolveEffectivePublishConfig } from "./page-context.js";
@@ -95,6 +95,7 @@ export async function processScheduledPosts({ posts, settings, onPostPublished }
         post,
         settings,
       });
+      const publishDiagnostics = getFacebookPublishDiagnostics(post);
 
       try {
         logger.debug("Processor: Resolved scheduled post publish config.", {
@@ -116,8 +117,11 @@ export async function processScheduledPosts({ posts, settings, onPostPublished }
             post_id: post.id,
             metadata: {
               topic: post.topic,
+              publish_mode: effectivePublish.effectiveSettings.facebookPublishMode || "mock",
               publish_source: effectivePublish.effectivePublishSource,
               live_page_publish_status: effectivePublish.livePerPagePublishStatus,
+              image_url_type: publishDiagnostics.originalImageUrlType,
+              fallback_reason: effectivePublish.fallbackReason || "",
             },
           });
           summary.failed++;
@@ -130,6 +134,38 @@ export async function processScheduledPosts({ posts, settings, onPostPublished }
             publish_source: effectivePublish.effectivePublishSource,
             live_page_publish_status: effectivePublish.livePerPagePublishStatus,
             error: effectivePublish.blockedReason || effectivePublish.fallbackReason || "Publish blocked",
+          });
+          continue;
+        }
+
+        if (effectivePublish.effectiveSettings.facebookPublishMode === "live" && publishDiagnostics.imageBlocked) {
+          logger.warn(`Processor: Blocking post '${post.topic}' due to unsafe image URL.`, publishDiagnostics.originalImageUrl);
+          await createOperationLog({
+            level: "warn",
+            source: "scheduler",
+            event: "publish_blocked",
+            message: "Scheduled publish was blocked because the image URL is not public and publish-safe.",
+            page_id: effectivePublish.resolvedPageId,
+            post_id: post.id,
+            metadata: {
+              topic: post.topic,
+              publish_mode: effectivePublish.effectiveSettings.facebookPublishMode || "mock",
+              publish_source: effectivePublish.effectivePublishSource,
+              live_page_publish_status: effectivePublish.livePerPagePublishStatus,
+              image_url_type: publishDiagnostics.originalImageUrlType,
+              fallback_reason: effectivePublish.fallbackReason || "",
+            },
+          });
+          summary.failed++;
+          summary.results.push({
+            id: post.id,
+            status: "blocked",
+            topic: post.topic,
+            page_id: effectivePublish.resolvedPageId,
+            page_label: effectivePublish.label,
+            publish_source: effectivePublish.effectivePublishSource,
+            live_page_publish_status: effectivePublish.livePerPagePublishStatus,
+            error: "Unsafe image URL blocked scheduled publish",
           });
           continue;
         }
@@ -149,9 +185,12 @@ export async function processScheduledPosts({ posts, settings, onPostPublished }
             post_id: post.id,
             metadata: {
               topic: post.topic,
+              publish_mode: effectivePublish.effectiveSettings.facebookPublishMode || "mock",
               publish_source: effectivePublish.effectivePublishSource,
               live_page_publish_status: effectivePublish.livePerPagePublishStatus,
               effective_page_id: effectivePublish.effectivePageId,
+              image_url_type: publishDiagnostics.originalImageUrlType,
+              fallback_reason: effectivePublish.fallbackReason,
             },
           });
         }
@@ -174,9 +213,12 @@ export async function processScheduledPosts({ posts, settings, onPostPublished }
               page_id: effectivePublish.resolvedPageId,
               post_id: post.id,
               metadata: {
+                publish_mode: effectivePublish.effectiveSettings.facebookPublishMode || "mock",
                 publish_source: effectivePublish.effectivePublishSource,
                 live_page_publish_status: effectivePublish.livePerPagePublishStatus,
                 effective_page_id: effectivePublish.effectivePageId,
+                image_url_type: publishResult.diagnostics?.resolvedImageUrlType || publishDiagnostics.resolvedImageUrlType,
+                fallback_reason: effectivePublish.fallbackReason || "",
               },
             });
             summary.published++;
@@ -201,8 +243,11 @@ export async function processScheduledPosts({ posts, settings, onPostPublished }
               page_id: effectivePublish.resolvedPageId,
               post_id: post.id,
               metadata: {
+                publish_mode: effectivePublish.effectiveSettings.facebookPublishMode || "mock",
                 publish_source: effectivePublish.effectivePublishSource,
                 live_page_publish_status: effectivePublish.livePerPagePublishStatus,
+                image_url_type: publishResult.diagnostics?.resolvedImageUrlType || publishDiagnostics.resolvedImageUrlType,
+                fallback_reason: effectivePublish.fallbackReason || "",
               },
             });
             summary.failed++;
@@ -226,8 +271,12 @@ export async function processScheduledPosts({ posts, settings, onPostPublished }
             page_id: effectivePublish.resolvedPageId,
             post_id: post.id,
             metadata: {
+              publish_mode: effectivePublish.effectiveSettings.facebookPublishMode || "mock",
               publish_source: effectivePublish.effectivePublishSource,
               live_page_publish_status: effectivePublish.livePerPagePublishStatus,
+              image_url_type: publishResult.diagnostics?.originalImageUrlType || publishDiagnostics.originalImageUrlType,
+              fallback_reason: effectivePublish.fallbackReason || "",
+              facebook_error_payload: publishResult.facebookErrorPayload || null,
             },
           });
           summary.failed++;
@@ -251,8 +300,11 @@ export async function processScheduledPosts({ posts, settings, onPostPublished }
           page_id: effectivePublish.resolvedPageId,
           post_id: post.id,
           metadata: {
+            publish_mode: effectivePublish.effectiveSettings.facebookPublishMode || "mock",
             publish_source: effectivePublish.effectivePublishSource,
             live_page_publish_status: effectivePublish.livePerPagePublishStatus,
+            image_url_type: publishDiagnostics.originalImageUrlType,
+            fallback_reason: effectivePublish.fallbackReason || "",
           },
         });
         summary.failed++;

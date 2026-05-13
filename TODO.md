@@ -177,6 +177,9 @@ Supabase image upload diagnostics are stabilized, persisted image URLs are limit
 Production sync checkpoint:
 Code-side storage stabilization is present, but the real Supabase backend and Vercel production state still need explicit verification. Use `SUPABASE_APPLY_REQUIRED.md`, `PRODUCTION_DEPLOY_REQUIRED.md`, and `node verify-storage-upload.mjs` as the next production QA steps.
 
+Real publish stabilization checkpoint:
+Real publish stabilization is complete. Public Supabase image URLs are enforced, scheduled text-only and scheduled image posts passed QA, and draft save/reload/edit/republish passed QA. Next work should preserve this locked publish/storage boundary and avoid scheduler/queue/provider rewrites unless a new blocker appears.
+
 ## After Phase A Is Stable
 
 * Phase B stabilization batch

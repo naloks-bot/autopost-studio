@@ -113,7 +113,10 @@ Storage checkpoint note:
 The storage layer now logs exact Supabase bucket/policy failures during image upload, generates only HTTPS public URLs for persisted images, and the setup SQL includes the `generated-images` bucket plus minimal anon storage policies required for the existing client upload flow.
 
 Production verification note:
-This workspace currently has verification-only access through the anon Supabase client config, not admin deployment tooling. Backend apply and production redeploy may still require manual execution even when the code fix is already present.
+Production sync has now been verified for the stabilized publish path. The active architecture boundary remains unchanged, but the current deployed system is confirmed to work with persisted Supabase image URLs and the locked real publish flow.
+
+Real publish stabilization note:
+The stable boundary now includes real publish URL validation, minimal publish diagnostics, persisted Supabase image reuse for manual and scheduled publish, and draft/scheduler QA coverage. This milestone should be treated as a lock point before any broader feature work.
 
 This UI foundation is considered stable and should be reused during MVP activation instead of being reworked.
 

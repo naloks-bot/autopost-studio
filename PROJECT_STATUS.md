@@ -11,7 +11,10 @@ Storage upload stabilization checkpoint:
 Supabase image upload diagnostics are now hardened, public URL generation is restricted to HTTPS Supabase URLs, and the checked-in Supabase setup now provisions the `generated-images` bucket plus anon storage policies needed for real upload persistence. Safe preview fallback remains active when storage is not ready.
 
 Production sync status:
-The code-side storage fix is committed, but this workspace could not apply Supabase admin changes or trigger Vercel deployment directly. Manual backend apply and production redeploy instructions are documented in `SUPABASE_APPLY_REQUIRED.md` and `PRODUCTION_DEPLOY_REQUIRED.md`.
+Production storage and deploy synchronization are now verified as working for the stabilized publish flow. Public Supabase image URLs persist through draft and publish, and the current production deployment is aligned with the locked milestone behavior.
+
+Real publish stabilization checkpoint:
+End-to-end publish is now locked as stable across local and production verification. Supabase storage persistence is stabilized, real publish uses public HTTPS image URLs only, scheduled text-only and scheduled image posts pass QA, and draft save/reload/edit/republish flows remain stable without scheduler, queue, or provider redesign.
 
 No backend, publishing, scheduler, or queue architecture expansion is planned inside this phase except for safe compatibility fixes to existing UI flows. Mock mode remains the default. Production publishing continues to rely on the existing stable V1 flow.
 

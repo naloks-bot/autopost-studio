@@ -8,6 +8,7 @@ function isMissingLogsTable(error) {
   return Boolean(
     error &&
       (error.code === "42P01" ||
+        error.code === "PGRST205" ||
         /relation .*operation_logs.* does not exist/i.test(error.message || ""))
   );
 }
