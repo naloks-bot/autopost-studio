@@ -11,10 +11,13 @@ import Header from "../components/Header.jsx";
 import GuideModal from "../components/GuideModal.jsx";
 import { initialForm, statusCopy } from "../constants/appConstants.js";
 import {
+  clearPendingSystemOverrides,
   defaultSettings,
   getActiveWorkspacePage,
   getAppSettings,
+  getPendingSystemOverrides,
   getWorkspacePages,
+  savePendingSystemOverrides,
   saveAppSettings,
   sanitizeSettings,
 } from "../services/app-settings.js";
@@ -73,12 +76,14 @@ function buildClientOperationLog(entry = {}) {
   return {
     id: `client-log-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
     created_at: new Date().toISOString(),
+    category: entry.category || entry.source || "system",
     level: entry.level || "info",
     source: entry.source || "system",
     event: entry.event || "unknown",
     message: entry.message || "",
     page_id: entry.page_id || null,
     post_id: entry.post_id ? String(entry.post_id) : null,
+    details: entry.details || entry.metadata || {},
     metadata: entry.metadata || {},
   };
 }
@@ -236,6 +241,7 @@ function App() {
     setConnectionError("");
     try {
       const localSettings = getAppSettings();
+      const pendingSystemOverrides = getPendingSystemOverrides();
       setLocalDrafts(getLocalDrafts());
 
       const [postsResult, settingsResult, pagesResult, logsResult] = await Promise.all([
@@ -258,10 +264,22 @@ function App() {
         ? mergeWorkspacePages(localSettings.workspacePages, pagesResult.data)
         : localSettings.workspacePages;
       if (settingsResult.mode) setSettingsSyncMode(settingsResult.mode);
-      if (settingsResult.data) {
-        setSettings(sanitizeSettings({ ...localSettings, ...settingsResult.data, workspacePages }));
-      } else {
-        setSettings(sanitizeSettings({ ...localSettings, workspacePages }));
+      const baseSettings = settingsResult.data
+        ? sanitizeSettings({ ...localSettings, ...settingsResult.data, workspacePages })
+        : sanitizeSettings({ ...localSettings, workspacePages });
+      const nextSettings =
+        typeof pendingSystemOverrides.facebookPublishMode !== "undefined" ||
+        typeof pendingSystemOverrides.schedulerEnabled !== "undefined"
+          ? sanitizeSettings({ ...baseSettings, ...pendingSystemOverrides })
+          : baseSettings;
+      setSettings(nextSettings);
+
+      if (
+        settingsResult.data &&
+        pendingSystemOverrides.facebookPublishMode === settingsResult.data.facebookPublishMode &&
+        pendingSystemOverrides.schedulerEnabled === settingsResult.data.schedulerEnabled
+      ) {
+        clearPendingSystemOverrides(["facebookPublishMode", "schedulerEnabled"]);
       }
     } catch (error) {
       setConnectionError(toUserSafeMessage(error, "ยังโหลดข้อมูลระบบไม่สำเร็จ"));
@@ -283,7 +301,50 @@ function App() {
   }, []);
 
   const updateSettingsField = useCallback((key, value) => {
-    setSettings((current) => sanitizeSettings({ ...current, [key]: value }));
+    setSettings((current) => {
+      const next = sanitizeSettings({ ...current, [key]: value });
+      saveAppSettings(next);
+      return next;
+    });
+  }, []);
+
+  const handleOperationalSettingChange = useCallback(async (key, value) => {
+    const nextSettings = sanitizeSettings({ ...stateRef.current.settings, [key]: value });
+    setSettings(nextSettings);
+    saveAppSettings(nextSettings);
+    savePendingSystemOverrides({ [key]: value });
+    setSettingsMessage("กำลังบันทึกค่าความปลอดภัยล่าสุด...");
+
+    if (!hasSupabaseConfig) {
+      setSettingsSyncMode("offline");
+      setSettingsMessage("บันทึกในเครื่องแล้ว ระบบจะใช้ค่าล่าสุดนี้ต่อแม้รีเฟรชหน้า");
+      return;
+    }
+
+    try {
+      const remote = await saveRemoteSettings(nextSettings);
+      if (remote.data) {
+        const merged = sanitizeSettings({ ...nextSettings, ...remote.data });
+        setSettings(merged);
+        saveAppSettings(merged);
+        clearPendingSystemOverrides([key]);
+        setSettingsSyncMode(remote.mode || "connected");
+        setSettingsMessage("บันทึกค่าความปลอดภัยขึ้น Supabase แล้ว");
+        return;
+      }
+
+      setSettingsSyncMode(remote.mode || "error");
+      setSettingsMessage(
+        `บันทึกในเครื่องแล้ว แต่ sync ขึ้น Supabase ไม่สำเร็จ: ${toUserSafeMessage(remote.error, "กรุณาตรวจสิทธิ์การเขียน settings")}`
+      );
+    } catch (error) {
+      setSettingsSyncMode("error");
+      savePendingSystemOverrides({
+        facebookPublishMode: settings.facebookPublishMode,
+        schedulerEnabled: settings.schedulerEnabled,
+      });
+      setSettingsMessage(`บันทึกในเครื่องแล้ว แต่ sync ขึ้น Supabase ไม่สำเร็จ: ${toUserSafeMessage(error, "เกิดข้อผิดพลาด")}`);
+    }
   }, []);
 
   const updateWorkspacePage = useCallback((pageId, patch) => {
@@ -583,12 +644,17 @@ function App() {
 
       if (remoteSettings.data) {
         setSettings(sanitizeSettings({ ...stored, ...remoteSettings.data, workspacePages }));
+        clearPendingSystemOverrides(["facebookPublishMode", "schedulerEnabled"]);
         setSettingsSyncMode(remoteSettings.mode);
         setSettingsMessage("บันทึกการตั้งค่าระบบแล้ว");
         return;
       }
 
       setSettingsSyncMode(remoteSettings.mode);
+      savePendingSystemOverrides({
+        facebookPublishMode: stored.facebookPublishMode,
+        schedulerEnabled: stored.schedulerEnabled,
+      });
       setSettingsMessage(toUserSafeMessage(remoteSettings.error, "บันทึกในเครื่องแล้ว แต่ยัง sync ขึ้น Supabase ไม่ได้"));
     } catch (error) {
       setSettingsSyncMode("error");
@@ -1044,6 +1110,7 @@ function App() {
                   SettingsField={SettingsField}
                   settings={settings}
                   updateSettingsField={updateSettingsField}
+                  handleOperationalSettingChange={handleOperationalSettingChange}
                   envSnapshot={envSnapshot}
                   handleSaveSettings={handleSaveSettings}
                   isSavingSettings={isSavingSettings}

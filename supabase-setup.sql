@@ -192,6 +192,12 @@ alter table public.app_settings enable row level security;
 alter table public.pages enable row level security;
 alter table public.operation_logs enable row level security;
 
+grant usage on schema public to anon, authenticated;
+grant select, insert, update, delete on public.posts to anon, authenticated;
+grant select, insert, update, delete on public.app_settings to anon, authenticated;
+grant select, insert, update, delete on public.pages to anon, authenticated;
+grant select, insert, update, delete on public.operation_logs to anon, authenticated;
+
 drop policy if exists "anon can read posts" on public.posts;
 drop policy if exists "anon can insert posts" on public.posts;
 drop policy if exists "anon can update posts" on public.posts;
@@ -233,6 +239,10 @@ drop policy if exists "anon can read operation logs" on public.operation_logs;
 drop policy if exists "anon can insert operation logs" on public.operation_logs;
 drop policy if exists "anon can update operation logs" on public.operation_logs;
 drop policy if exists "anon can delete operation logs" on public.operation_logs;
+drop policy if exists "authenticated can read operation logs" on public.operation_logs;
+drop policy if exists "authenticated can insert operation logs" on public.operation_logs;
+drop policy if exists "authenticated can update operation logs" on public.operation_logs;
+drop policy if exists "authenticated can delete operation logs" on public.operation_logs;
 drop policy if exists "anon can read generated images" on storage.objects;
 drop policy if exists "anon can upload generated images" on storage.objects;
 drop policy if exists "anon can update generated images" on storage.objects;
@@ -310,6 +320,31 @@ create policy "anon can delete operation logs"
 on public.operation_logs
 for delete
 to anon
+using (true);
+
+create policy "authenticated can read operation logs"
+on public.operation_logs
+for select
+to authenticated
+using (true);
+
+create policy "authenticated can insert operation logs"
+on public.operation_logs
+for insert
+to authenticated
+with check (true);
+
+create policy "authenticated can update operation logs"
+on public.operation_logs
+for update
+to authenticated
+using (true)
+with check (true);
+
+create policy "authenticated can delete operation logs"
+on public.operation_logs
+for delete
+to authenticated
 using (true);
 
 create policy "anon can read generated images"

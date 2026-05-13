@@ -180,6 +180,7 @@ export default function LogsPage({ logs = [], logsMode = "offline" }) {
                   const scheduledAt = details.scheduled_at || null;
                   const attemptedAt = details.attempted_at || log.created_at || null;
                   const errorMessage = details.error_message || (log.level === "error" ? log.message : "");
+                  const publishMode = details.publish_mode || "-";
 
                   return (
                     <div key={log.id} className="rounded-xl border border-white/5 bg-white/5 p-4 text-[11px]">
@@ -197,6 +198,7 @@ export default function LogsPage({ logs = [], logsMode = "offline" }) {
                         <p>Scheduled: <span className="text-slate-200">{formatLogDateTime(scheduledAt)}</span></p>
                         <p>Attempted: <span className="text-slate-200">{formatLogDateTime(attemptedAt)}</span></p>
                         <p>Result: <span className={getResultTone(result, log.level)}>{formatResultLabel(result)}</span></p>
+                        <p>Mode: <span className="text-slate-200">{publishMode}</span></p>
                       </div>
                       {errorMessage ? (
                         <div className="mt-3 rounded-lg border border-rose-500/10 bg-rose-500/5 px-3 py-2 text-[10px] text-rose-200">

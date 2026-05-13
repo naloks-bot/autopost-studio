@@ -16,6 +16,7 @@ function SettingsPage({
   SettingsField,
   settings,
   updateSettingsField,
+  handleOperationalSettingChange,
   envSnapshot,
   handleSaveSettings,
   isSavingSettings,
@@ -151,7 +152,7 @@ function SettingsPage({
             fullWidth
           />
           {settingsMessage ? (
-            <div className="mt-3 flex items-center gap-2 rounded-xl bg-cyan-500/10 px-4 py-3 text-sm text-cyan-300">
+            <div className={`mt-3 flex items-center gap-2 rounded-xl border px-4 py-3 text-sm ${currentSettingsStatus.tone}`}>
               <SettingsStatusIcon className="h-4 w-4" />
               <span>{settingsMessage}</span>
             </div>
@@ -176,7 +177,7 @@ function SettingsPage({
                     name="publishMode"
                     value="mock"
                     checked={settings.facebookPublishMode === "mock"}
-                    onChange={() => updateSettingsField("facebookPublishMode", "mock")}
+                    onChange={() => void handleOperationalSettingChange("facebookPublishMode", "mock")}
                     className="accent-cyan-400"
                   />
                   <span className="text-xs font-medium text-slate-300">โหมดทดสอบ</span>
@@ -187,7 +188,7 @@ function SettingsPage({
                     name="publishMode"
                     value="live"
                     checked={settings.facebookPublishMode === "live"}
-                    onChange={() => updateSettingsField("facebookPublishMode", "live")}
+                    onChange={() => void handleOperationalSettingChange("facebookPublishMode", "live")}
                     className="accent-rose-500"
                   />
                   <span className="text-xs font-medium text-slate-300">โพสต์จริง</span>
@@ -200,7 +201,7 @@ function SettingsPage({
               <div className="flex items-center gap-3">
                 <button
                   type="button"
-                  onClick={() => updateSettingsField("schedulerEnabled", !settings.schedulerEnabled)}
+                  onClick={() => void handleOperationalSettingChange("schedulerEnabled", !settings.schedulerEnabled)}
                   className={`relative inline-flex h-5 w-10 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${
                     settings.schedulerEnabled ? "bg-cyan-500" : "bg-slate-700"
                   }`}

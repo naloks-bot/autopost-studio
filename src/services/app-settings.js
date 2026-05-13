@@ -1,4 +1,5 @@
 const STORAGE_KEY = "autopost-studio-settings";
+const PENDING_SYSTEM_OVERRIDES_KEY = "autopost-studio-pending-system-overrides";
 const ENV_GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY?.trim() || "";
 const ENV_GEMINI_MODEL = import.meta.env.VITE_GEMINI_MODEL?.trim() || "gemini-2.5-flash";
 
@@ -144,4 +145,56 @@ export function saveAppSettings(settings) {
   const nextSettings = sanitizeSettings(settings);
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(nextSettings));
   return nextSettings;
+}
+
+export function getPendingSystemOverrides() {
+  if (!canUseStorage()) return {};
+
+  try {
+    const raw = window.localStorage.getItem(PENDING_SYSTEM_OVERRIDES_KEY);
+    const parsed = raw ? JSON.parse(raw) : {};
+    return {
+      facebookPublishMode:
+        parsed.facebookPublishMode === "live" || parsed.facebookPublishMode === "mock"
+          ? parsed.facebookPublishMode
+          : undefined,
+      schedulerEnabled: typeof parsed.schedulerEnabled === "boolean" ? parsed.schedulerEnabled : undefined,
+    };
+  } catch (error) {
+    console.error("Failed to read pending system overrides:", error);
+    return {};
+  }
+}
+
+export function savePendingSystemOverrides(overrides = {}) {
+  if (!canUseStorage()) return {};
+
+  const current = getPendingSystemOverrides();
+  const next = {
+    ...current,
+    ...overrides,
+  };
+  window.localStorage.setItem(PENDING_SYSTEM_OVERRIDES_KEY, JSON.stringify(next));
+  return next;
+}
+
+export function clearPendingSystemOverrides(keys = []) {
+  if (!canUseStorage()) return;
+
+  if (!Array.isArray(keys) || keys.length === 0) {
+    window.localStorage.removeItem(PENDING_SYSTEM_OVERRIDES_KEY);
+    return;
+  }
+
+  const current = getPendingSystemOverrides();
+  for (const key of keys) {
+    delete current[key];
+  }
+
+  const hasValues = Object.values(current).some((value) => typeof value !== "undefined");
+  if (hasValues) {
+    window.localStorage.setItem(PENDING_SYSTEM_OVERRIDES_KEY, JSON.stringify(current));
+  } else {
+    window.localStorage.removeItem(PENDING_SYSTEM_OVERRIDES_KEY);
+  }
 }
