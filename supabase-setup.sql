@@ -119,6 +119,12 @@ create table if not exists public.operation_logs (
   metadata jsonb not null default '{}'::jsonb
 );
 
+insert into storage.buckets (id, name, public)
+values ('generated-images', 'generated-images', true)
+on conflict (id) do update
+set name = excluded.name,
+    public = excluded.public;
+
 insert into public.pages (id, label, description)
 values
   ('default', 'Default Page', 'Current stable Facebook settings'),
@@ -202,6 +208,9 @@ drop policy if exists "anon can read operation logs" on public.operation_logs;
 drop policy if exists "anon can insert operation logs" on public.operation_logs;
 drop policy if exists "anon can update operation logs" on public.operation_logs;
 drop policy if exists "anon can delete operation logs" on public.operation_logs;
+drop policy if exists "anon can read generated images" on storage.objects;
+drop policy if exists "anon can upload generated images" on storage.objects;
+drop policy if exists "anon can update generated images" on storage.objects;
 
 create policy "anon can read app settings"
 on public.app_settings
@@ -264,3 +273,22 @@ on public.operation_logs
 for insert
 to anon
 with check (true);
+
+create policy "anon can read generated images"
+on storage.objects
+for select
+to anon
+using (bucket_id = 'generated-images');
+
+create policy "anon can upload generated images"
+on storage.objects
+for insert
+to anon
+with check (bucket_id = 'generated-images');
+
+create policy "anon can update generated images"
+on storage.objects
+for update
+to anon
+using (bucket_id = 'generated-images')
+with check (bucket_id = 'generated-images');

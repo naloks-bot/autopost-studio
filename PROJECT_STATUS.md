@@ -7,6 +7,9 @@ AutoPost Studio has completed its UI foundation milestone and is now prioritizin
 Latest checkpoint:
 Create flow runtime wiring is now fixed and QA-passed. Local Gemini env is aligned to `gemini-2.5-flash`, preview receives caption only, image prompt flows into Image Studio prompt, upload-first image flow works, and scheduler/publish/Facebook/backend remain untouched.
 
+Storage upload stabilization checkpoint:
+Supabase image upload diagnostics are now hardened, public URL generation is restricted to HTTPS Supabase URLs, and the checked-in Supabase setup now provisions the `generated-images` bucket plus anon storage policies needed for real upload persistence. Safe preview fallback remains active when storage is not ready.
+
 No backend, publishing, scheduler, or queue architecture expansion is planned inside this phase except for safe compatibility fixes to existing UI flows. Mock mode remains the default. Production publishing continues to rely on the existing stable V1 flow.
 
 The current MVP core is release-locked as stable for:

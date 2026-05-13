@@ -171,6 +171,9 @@ Expand backend capabilities only after MVP stability is proven.
 Checkpoint:
 Create flow runtime wiring is fixed and QA-passed. Preview receives caption only, image prompt goes to Image Studio prompt, upload-first image flow works, local Gemini env is aligned to `gemini-2.5-flash`, and scheduler/publish/Facebook/backend remain untouched.
 
+Storage checkpoint:
+Supabase image upload diagnostics are stabilized, persisted image URLs are limited to HTTPS public storage URLs, and `supabase-setup.sql` now includes the `generated-images` bucket plus anon storage policies required by the current upload path.
+
 ## After Phase A Is Stable
 
 * Phase B stabilization batch
