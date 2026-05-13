@@ -4,6 +4,9 @@
 
 AutoPost Studio has completed its UI foundation milestone and is now prioritizing a test-ready stabilization batch for the core create-post flow. The current focus is to make Generate -> Image Prompt -> Image -> Preview -> Save -> Reload/Edit stable before any more UI polish while preserving the stable backend boundary.
 
+Latest checkpoint:
+Create flow runtime wiring is now fixed and QA-passed. Local Gemini env is aligned to `gemini-2.5-flash`, preview receives caption only, image prompt flows into Image Studio prompt, upload-first image flow works, and scheduler/publish/Facebook/backend remain untouched.
+
 No backend, publishing, scheduler, or queue architecture expansion is planned inside this phase except for safe compatibility fixes to existing UI flows. Mock mode remains the default. Production publishing continues to rely on the existing stable V1 flow.
 
 The current MVP core is release-locked as stable for:

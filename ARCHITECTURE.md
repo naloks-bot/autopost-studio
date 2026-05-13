@@ -106,6 +106,9 @@ Responsible for:
 * AI Library UI
 * Logs viewer UI
 
+Checkpoint note:
+Create flow runtime wiring has been stabilized without changing the scheduler, publish flow, Facebook service, backend, or Supabase architecture. Preview now receives caption-only state, image prompt state flows directly into Image Studio, upload-first image entry works, and local Gemini env is aligned to `gemini-2.5-flash`.
+
 This UI foundation is considered stable and should be reused during MVP activation instead of being reworked.
 
 ---

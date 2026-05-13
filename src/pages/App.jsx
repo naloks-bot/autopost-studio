@@ -33,7 +33,13 @@ import {
 } from "../services/supabase.js";
 import { createOperationLog, fetchOperationLogs } from "../services/operation-logs.js";
 import { publishFacebookPost, validateFacebookConfig } from "../services/facebook.js";
-import { generateImagePrompt, generatePostContent, getTextProviderRuntime } from "../services/ai-generation.js";
+import {
+  generateImagePrompt,
+  generatePostContent,
+  getTextProviderRuntime,
+  sanitizeGeneratedCaption,
+  splitGeneratedPostContent,
+} from "../services/ai-generation.js";
 import { resolveEffectivePublishConfig } from "../services/page-context.js";
 import { runSchedulerTick } from "../services/scheduler.js";
 
@@ -356,7 +362,29 @@ function App() {
         },
         settings,
       });
-      if (result.data) updateForm("content", result.data);
+      if (result.data) {
+        const { cleanCaption, cleanImagePrompt } = splitGeneratedPostContent(result.data);
+        const nextCaption = sanitizeGeneratedCaption(cleanCaption || "");
+        let nextImagePrompt = cleanImagePrompt || "";
+
+        if (!nextImagePrompt) {
+          const imagePromptResult = await generateImagePrompt({
+            formData: {
+              ...form,
+              content: nextCaption,
+              pageLabel: overrides.pageLabel ?? activeWorkspacePage?.label ?? "",
+              pageImageDirection: overrides.pageImageDirection ?? activeWorkspacePage?.imageDirection ?? "",
+              pageWritingDirection: overrides.pageWritingDirection ?? activeWorkspacePage?.writingDirection ?? "",
+              pageReadme: overrides.pageReadme ?? activeWorkspacePage?.readme ?? "",
+            },
+            settings,
+          });
+          nextImagePrompt = imagePromptResult.data || "";
+        }
+
+        updateForm("content", nextCaption);
+        updateForm("imagePrompt", nextImagePrompt || "");
+      }
       setLastTextGeneration(result);
       setGenerationError(result.status === "blocked" ? result.error || "" : "");
       setCreateNotice(
@@ -429,7 +457,7 @@ function App() {
       const draft = {
         page_id: safePageId,
         topic: form.topic.trim(),
-        content: form.content.trim(),
+        content: sanitizeGeneratedCaption(form.content.trim()),
         image_prompt: extraData.image_prompt || form.imagePrompt.trim(),
         image_url: extraData.image_url || form.imageUrl.trim(),
         image_provider: extraData.image_provider || editingDraft?.image_provider || null,

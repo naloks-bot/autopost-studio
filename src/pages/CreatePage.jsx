@@ -1,15 +1,35 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { CheckCircle2, FileText, Sparkles } from "lucide-react";
 import { CONTENT_CTAS, CONTENT_LENGTHS, CONTENT_TONES, CONTENT_TYPES } from "../constants/appConstants";
 import { generateImage } from "../services/ai-image-generation.js";
-import { uploadImageFromUrl } from "../services/storage.js";
-import { getProviderLabel } from "../services/ai-generation.js";
+import { uploadImageBlob, uploadImageFromUrl } from "../services/storage.js";
+import { getProviderLabel, sanitizeGeneratedCaption } from "../services/ai-generation.js";
 import ActionButton from "../components/ActionButton.jsx";
 import PromptAssistCard from "../components/PromptAssistCard.jsx";
 import ImageStudioCard from "../components/ImageStudioCard.jsx";
 import PreviewStudioCard from "../components/PreviewStudioCard.jsx";
 import ProviderStatusCard from "../components/ProviderStatusCard.jsx";
 import WorkspaceContextCard from "../components/WorkspaceContextCard.jsx";
+
+function readFileAsDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(typeof reader.result === "string" ? reader.result : "");
+    reader.onerror = () => reject(new Error("ไม่สามารถอ่านไฟล์รูปภาพได้"));
+    reader.readAsDataURL(file);
+  });
+}
+
+function getFileExtension(file) {
+  const original = file?.name?.split(".").pop()?.toLowerCase();
+  if (original && ["jpg", "jpeg", "png", "webp"].includes(original)) {
+    return original === "jpeg" ? "jpg" : original;
+  }
+
+  if (file?.type === "image/png") return "png";
+  if (file?.type === "image/webp") return "webp";
+  return "jpg";
+}
 
 function CreatePage({
   form,
@@ -28,7 +48,7 @@ function CreatePage({
   createNotice,
   editingDraft,
 }) {
-  const [generatedImage, setGeneratedImage] = useState(null);
+  const [imageAsset, setImageAsset] = useState(null);
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
   const [imageGenerationError, setImageGenerationError] = useState(null);
   const [usePageGuidance, setUsePageGuidance] = useState(true);
@@ -42,6 +62,42 @@ function CreatePage({
     aspectRatio: "4:5",
     style: "realistic",
   });
+  const previewObjectUrlRef = useRef(null);
+
+  useEffect(() => {
+    return () => {
+      if (previewObjectUrlRef.current?.startsWith("blob:")) {
+        URL.revokeObjectURL(previewObjectUrlRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!form.imageUrl) {
+      if (previewObjectUrlRef.current?.startsWith("blob:")) {
+        URL.revokeObjectURL(previewObjectUrlRef.current);
+      }
+      previewObjectUrlRef.current = null;
+      setImageAsset(null);
+      return;
+    }
+
+    setImageAsset((current) => {
+      if (current?.imageUrl === form.imageUrl || current?.previewUrl === form.imageUrl) {
+        return current;
+      }
+
+      return {
+        imageUrl: form.imageUrl,
+        previewUrl: form.imageUrl,
+        provider: editingDraft?.image_provider || null,
+        revisedPrompt: editingDraft?.image_revised_prompt || null,
+        storagePath: editingDraft?.image_storage_path || null,
+        storageMode: editingDraft?.image_storage_mode || null,
+        source: "existing",
+      };
+    });
+  }, [editingDraft, form.imageUrl]);
 
   const hasPageGuidance = useMemo(
     () =>
@@ -65,6 +121,7 @@ function CreatePage({
 
   const updateMetadata = (key, value) => setMetadata((prev) => ({ ...prev, [key]: value }));
   const updateImageForm = (key, value) => setImageForm((prev) => ({ ...prev, [key]: value }));
+  const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
   const pageGuidanceContext = useMemo(
     () => ({
       pageLabel: activeWorkspacePage?.label || "",
@@ -75,6 +132,8 @@ function CreatePage({
     }),
     [activeWorkspacePage, usePageGuidance]
   );
+  const previewCaption = useMemo(() => sanitizeGeneratedCaption(form.content || ""), [form.content]);
+  const previewImageUrl = imageAsset?.previewUrl || form.imageUrl || "";
 
   async function handleGenerateImage() {
     if (isGeneratingImage) return;
@@ -108,13 +167,15 @@ function CreatePage({
 
         const nextImage = {
           imageUrl: finalUrl,
+          previewUrl: finalUrl,
           revisedPrompt: result.data.revisedPrompt,
-          mode: result.mode,
+          provider: result.mode,
           storagePath,
           storageMode,
+          source: "ai",
         };
 
-        setGeneratedImage(nextImage);
+        setImageAsset(nextImage);
         updateForm("imageUrl", finalUrl);
       }
     } catch (error) {
@@ -124,15 +185,104 @@ function CreatePage({
     }
   }
 
+  async function handleUploadImage(file) {
+    if (!file) return;
+
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+      setImageGenerationError("รองรับเฉพาะไฟล์ JPG, PNG หรือ WEBP");
+      return;
+    }
+
+    setImageGenerationError(null);
+
+    if (previewObjectUrlRef.current?.startsWith("blob:")) {
+      URL.revokeObjectURL(previewObjectUrlRef.current);
+    }
+
+    const previewUrl = URL.createObjectURL(file);
+    previewObjectUrlRef.current = previewUrl;
+    setImageAsset({
+      imageUrl: previewUrl,
+      previewUrl,
+      provider: "upload",
+      storagePath: null,
+      storageMode: "local",
+      source: "upload",
+      fileName: file.name,
+    });
+
+    try {
+      const today = new Date().toISOString().split("T")[0];
+      const extension = getFileExtension(file);
+      const filePath = `uploads/${today}/upload-${Date.now()}.${extension}`;
+      const uploadResult = await uploadImageBlob(filePath, file);
+
+      if (uploadResult.data) {
+        setImageAsset({
+          imageUrl: uploadResult.data,
+          previewUrl,
+          provider: "upload",
+          storagePath: filePath,
+          storageMode: "supabase",
+          source: "upload",
+          fileName: file.name,
+        });
+        updateForm("imageUrl", uploadResult.data);
+        return;
+      }
+
+      const dataUrl = await readFileAsDataUrl(file);
+      if (previewObjectUrlRef.current === previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+        previewObjectUrlRef.current = null;
+      }
+      setImageAsset({
+        imageUrl: dataUrl,
+        previewUrl: dataUrl,
+        provider: "upload",
+        storagePath: null,
+        storageMode: "local",
+        source: "upload",
+        fileName: file.name,
+      });
+      updateForm("imageUrl", dataUrl);
+      if (uploadResult.error) {
+        setImageGenerationError("อัปโหลดขึ้นคลาวด์ยังไม่พร้อม จึงใช้ไฟล์จากเครื่องสำหรับ preview และ draft แทน");
+      }
+    } catch (error) {
+      try {
+        const dataUrl = await readFileAsDataUrl(file);
+        if (previewObjectUrlRef.current === previewUrl) {
+          URL.revokeObjectURL(previewUrl);
+          previewObjectUrlRef.current = null;
+        }
+        setImageAsset({
+          imageUrl: dataUrl,
+          previewUrl: dataUrl,
+          provider: "upload",
+          storagePath: null,
+          storageMode: "local",
+          source: "upload",
+          fileName: file.name,
+        });
+        updateForm("imageUrl", dataUrl);
+        setImageGenerationError("อัปโหลดขึ้นคลาวด์ไม่สำเร็จ แต่ยังใช้ไฟล์นี้กับ preview และ draft ได้");
+      } catch {
+        setImageGenerationError(`อัปโหลดรูปภาพไม่สำเร็จ: ${error.message}`);
+      }
+    }
+  }
+
   function handleInternalSave() {
-    const extraData = generatedImage?.imageUrl
+    const resolvedImageUrl = imageAsset?.imageUrl || form.imageUrl;
+    const extraData = resolvedImageUrl
       ? {
-          image_url: generatedImage.imageUrl,
+          image_url: resolvedImageUrl,
           image_prompt: form.imagePrompt,
-          image_provider: generatedImage.mode,
-          image_revised_prompt: generatedImage.revisedPrompt,
-          image_storage_path: generatedImage.storagePath || null,
-          image_storage_mode: generatedImage.storageMode || null,
+          image_provider: imageAsset?.provider || null,
+          image_revised_prompt: imageAsset?.revisedPrompt || null,
+          image_storage_path: imageAsset?.storagePath || null,
+          image_storage_mode: imageAsset?.storageMode || null,
         }
       : {};
 
@@ -301,10 +451,12 @@ function CreatePage({
           updateImagePrompt={(value) => updateForm("imagePrompt", value)}
           handleGenerateImagePrompt={() => handleGenerateImagePrompt(pageGuidanceContext)}
           handleGenerateImage={handleGenerateImage}
+          handleUploadImage={handleUploadImage}
           isGeneratingImagePrompt={isGeneratingImagePrompt}
           isGeneratingImage={isGeneratingImage || isGeneratingImageProp}
           imageGenerationError={imageGenerationError}
-          generatedImage={generatedImage}
+          generatedImage={imageAsset}
+          currentImageUrl={previewImageUrl}
         />
       </div>
 
@@ -323,12 +475,16 @@ function CreatePage({
         </div>
 
         <PreviewStudioCard
-          form={form}
+          caption={previewCaption}
+          imageUrl={previewImageUrl}
           settings={settings}
           metadata={effectiveMetadata}
           imageForm={imageForm}
           textProviderRuntime={textProviderRuntime}
           activeWorkspacePage={activeWorkspacePage}
+          isModalOpen={isPreviewModalOpen}
+          onOpenModal={() => setIsPreviewModalOpen(true)}
+          onCloseModal={() => setIsPreviewModalOpen(false)}
         />
 
         <div className="rounded-2xl border border-white/5 bg-slate-900/40 p-4 shadow-sm">

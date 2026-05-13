@@ -168,6 +168,9 @@ Expand backend capabilities only after MVP stability is proven.
 * clarify Status and Scheduler around current real V1 behavior
 * keep backend, schema, scheduler engine, queue redesign, and analytics deferred
 
+Checkpoint:
+Create flow runtime wiring is fixed and QA-passed. Preview receives caption only, image prompt goes to Image Studio prompt, upload-first image flow works, local Gemini env is aligned to `gemini-2.5-flash`, and scheduler/publish/Facebook/backend remain untouched.
+
 ## After Phase A Is Stable
 
 * Phase B stabilization batch
