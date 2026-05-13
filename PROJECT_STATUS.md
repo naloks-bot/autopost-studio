@@ -50,6 +50,17 @@ Permanent operating rules:
 * commit only meaningful checkpoints
 * update docs only after meaningful milestones
 
+Operational lock:
+
+* production reliability, backend safety, scheduler logic, and state synchronization use High reasoning by default
+* architecture planning and large safe batch refactors use High, or Extra High only when truly necessary
+* UI polish, small components, and styling use Medium
+* docs and cleanup use Low or Medium
+* prompt intelligence, content quality, and cinematic generation use High
+* production-affecting work must continue past local verification through build, meaningful commit, GitHub push, and production-path verification when possible
+* safe deployment and configuration steps should be completed automatically whenever possible
+* if a manual platform/auth step is required, document where to go, what to click/run, what success looks like, and what failure output to report back
+
 Removed or deferred:
 
 * SaaS expansion

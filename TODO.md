@@ -37,6 +37,13 @@ Current development direction:
 8. Commit only meaningful checkpoints.
 9. Update docs only after meaningful milestones.
 
+Operational workflow lock:
+
+* production-affecting tasks do not stop at local verification only
+* required path: implement locally -> run `npm run build` -> verify no critical errors -> commit meaningful checkpoint -> push to GitHub -> verify production path when possible -> verify live behavior when possible
+* complete safe deployment/configuration steps automatically whenever possible
+* if a manual/auth-required step blocks progress, provide exact manual instructions and the result/error to report back
+
 ---
 
 # Locked Roadmap

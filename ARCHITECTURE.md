@@ -123,6 +123,17 @@ Permanent workflow rules:
 7. Commit only meaningful checkpoints.
 8. Update docs only after meaningful milestones.
 
+Operational workflow rules:
+
+1. Production reliability, backend safety, scheduler logic, and state synchronization default to High reasoning.
+2. Architecture planning and large safe batch refactors use High, or Extra High only when truly necessary.
+3. UI polish, small components, and styling default to Medium.
+4. Docs and cleanup default to Low or Medium.
+5. Prompt intelligence and cinematic content quality default to High.
+6. Production-affecting work should continue through local build, meaningful checkpoint commit, GitHub push, and production-path verification when possible.
+7. Safe deployment/configuration steps should be completed automatically whenever possible.
+8. If a manual platform step is required, provide exact navigation, actions, expected success result, and failure details to report back.
+
 ---
 
 # Locked Roadmap
