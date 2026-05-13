@@ -243,20 +243,6 @@ serve(async (req) => {
       });
     }
 
-    await writeOperationLog({
-      category: "scheduler",
-      level: "info",
-      source: "scheduler_edge",
-      event: "scheduler_started",
-      message: "Scheduler run started.",
-      metadata: {
-        attempted_at: new Date().toISOString(),
-        publish_mode: settings.facebook_publish_mode || "mock",
-        scheduler_enabled: true,
-        result: "started",
-      },
-    });
-
     const now = new Date().toISOString();
     const { data: duePosts, error: postsError } = await supabase
       .from("posts")
@@ -272,6 +258,21 @@ serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    await writeOperationLog({
+      category: "scheduler",
+      level: "info",
+      source: "scheduler_edge",
+      event: "scheduler_started",
+      message: "Scheduler run started.",
+      metadata: {
+        attempted_at: new Date().toISOString(),
+        publish_mode: settings.facebook_publish_mode || "mock",
+        scheduler_enabled: true,
+        due_count: duePosts.length,
+        result: "started",
+      },
+    });
 
     const pagesResult = await supabase
       .from("pages")

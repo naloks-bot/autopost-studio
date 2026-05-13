@@ -568,14 +568,15 @@ function App() {
     setCreateNotice({ tone: "info", message: "กำลังบันทึกร่าง..." });
 
     try {
-      const safePageId = resolveSafeDraftPageId(settings.activePageId, settings.workspacePages);
+      const workspacePages = getWorkspacePages(settings);
+      const safePageId = resolveSafeDraftPageId(settings.activePageId, workspacePages);
       const pageWasAdjusted = safePageId !== (settings.activePageId || "default");
       const draft = {
         page_id: safePageId,
-        topic: form.topic.trim(),
-        content: sanitizeGeneratedCaption(form.content.trim()),
-        image_prompt: extraData.image_prompt || form.imagePrompt.trim(),
-        image_url: extraData.image_url || form.imageUrl.trim(),
+        topic: String(form.topic || "").trim(),
+        content: sanitizeGeneratedCaption(String(form.content || "").trim()),
+        image_prompt: typeof extraData.image_prompt === "string" ? extraData.image_prompt : String(form.imagePrompt || "").trim(),
+        image_url: typeof extraData.image_url === "string" ? extraData.image_url : String(form.imageUrl || "").trim(),
         image_provider: extraData.image_provider || editingDraft?.image_provider || null,
         image_revised_prompt: extraData.image_revised_prompt || editingDraft?.image_revised_prompt || null,
         image_storage_path: extraData.image_storage_path || editingDraft?.image_storage_path || null,
@@ -586,8 +587,8 @@ function App() {
 
       const remote =
         editingDraft?.source === "remote"
-          ? await updateRemoteDraft(editingDraft.id, draft, { workspacePages: settings.workspacePages })
-          : await insertRemoteDraft(draft, { workspacePages: settings.workspacePages });
+          ? await updateRemoteDraft(editingDraft.id, draft, { workspacePages })
+          : await insertRemoteDraft(draft, { workspacePages });
 
       if (remote.data) {
         setRemotePosts((current) => {

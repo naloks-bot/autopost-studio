@@ -109,19 +109,6 @@ export async function processScheduledPosts({ posts, settings, onPostPublished }
 
   isProcessing = true;
   logger.info(`Processor: Starting tick (Mode: ${settings.facebookPublishMode || "mock"})...`);
-  await createOperationLog({
-    category: "scheduler",
-    level: "info",
-    source: "scheduler",
-    event: "scheduler_started",
-    message: "Scheduler run started.",
-    metadata: {
-      attempted_at: new Date().toISOString(),
-      publish_mode: settings.facebookPublishMode || "mock",
-      scheduler_enabled: Boolean(settings.schedulerEnabled),
-      result: "started",
-    },
-  });
 
   try {
     // 2. Fetch Data (if not provided)
@@ -142,6 +129,20 @@ export async function processScheduledPosts({ posts, settings, onPostPublished }
     }
 
     logger.info(`Processor: Found ${duePosts.length} due posts.`);
+    await createOperationLog({
+      category: "scheduler",
+      level: "info",
+      source: "scheduler",
+      event: "scheduler_started",
+      message: "Scheduler run started.",
+      metadata: {
+        attempted_at: new Date().toISOString(),
+        publish_mode: settings.facebookPublishMode || "mock",
+        scheduler_enabled: Boolean(settings.schedulerEnabled),
+        due_count: duePosts.length,
+        result: "started",
+      },
+    });
 
     // 4. Execute Publish Flow
     for (const post of duePosts) {
