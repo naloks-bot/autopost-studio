@@ -1,5 +1,5 @@
-import React, { useRef } from "react";
-import { ImageIcon, Info, Sparkles, Upload, Wand2 } from "lucide-react";
+import React, { useEffect, useRef, useState } from "react";
+import { Copy, CopyCheck, ImageIcon, Info, Sparkles, Upload, Wand2 } from "lucide-react";
 import { IMAGE_ASPECT_RATIOS, IMAGE_STYLE_PRESETS } from "../constants/appConstants";
 
 export default function ImageStudioCard({
@@ -18,6 +18,8 @@ export default function ImageStudioCard({
   currentImageUrl,
 }) {
   const fileInputRef = useRef(null);
+  const copyResetTimeoutRef = useRef(null);
+  const [copyFeedback, setCopyFeedback] = useState({ type: "idle", message: "" });
 
   const handleOpenFilePicker = () => {
     if (typeof fileInputRef.current?.showPicker === "function") {
@@ -25,6 +27,46 @@ export default function ImageStudioCard({
       return;
     }
     fileInputRef.current?.click();
+  };
+
+  useEffect(() => {
+    return () => {
+      if (copyResetTimeoutRef.current) {
+        clearTimeout(copyResetTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  const setTimedCopyFeedback = (type, message) => {
+    setCopyFeedback({ type, message });
+    if (copyResetTimeoutRef.current) {
+      clearTimeout(copyResetTimeoutRef.current);
+    }
+    copyResetTimeoutRef.current = setTimeout(() => {
+      setCopyFeedback({ type: "idle", message: "" });
+    }, 1500);
+  };
+
+  const handleCopyImagePrompt = async () => {
+    const trimmedPrompt = imagePrompt.trim();
+
+    if (!trimmedPrompt) {
+      setTimedCopyFeedback("empty", "ไม่มี prompt ให้คัดลอก");
+      return;
+    }
+
+    if (!navigator?.clipboard?.writeText) {
+      setTimedCopyFeedback("error", "คัดลอกไม่สำเร็จ");
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(trimmedPrompt);
+      setTimedCopyFeedback("copied", "คัดลอกแล้ว");
+    } catch (error) {
+      console.warn("Image prompt copy failed", error);
+      setTimedCopyFeedback("error", "คัดลอกไม่สำเร็จ");
+    }
   };
 
   return (
@@ -72,13 +114,37 @@ export default function ImageStudioCard({
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-[10px] font-bold uppercase tracking-tight text-slate-500">PROMPT รูปภาพ</label>
+          <div className="flex items-center justify-between gap-3">
+            <label className="text-[10px] font-bold uppercase tracking-tight text-slate-500">PROMPT รูปภาพ</label>
+            <button
+              type="button"
+              onClick={handleCopyImagePrompt}
+              className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-slate-950/70 text-slate-300 transition hover:border-sky-400/40 hover:bg-slate-900 hover:text-sky-200 hover:shadow-[0_0_18px_rgba(56,189,248,0.18)]"
+              aria-label="Copy image prompt"
+              title={copyFeedback.type === "copied" ? "คัดลอกแล้ว" : "คัดลอก prompt รูปภาพ"}
+            >
+              {copyFeedback.type === "copied" ? <CopyCheck className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+            </button>
+          </div>
           <textarea
             value={imagePrompt}
             onChange={(event) => updateImagePrompt(event.target.value)}
             placeholder="ระบบจะเติม prompt รูปภาพให้อัตโนมัติหลังจากกดสร้างข้อความ และยังแก้เองได้"
             className="h-24 w-full resize-none rounded-xl border border-white/10 bg-slate-950/50 px-4 py-3 text-sm outline-none transition focus:border-sky-400"
           />
+          {copyFeedback.message ? (
+            <p
+              className={`text-[10px] ${
+                copyFeedback.type === "copied"
+                  ? "text-emerald-300"
+                  : copyFeedback.type === "error"
+                    ? "text-rose-300"
+                    : "text-slate-400"
+              }`}
+            >
+              {copyFeedback.message}
+            </p>
+          ) : null}
         </div>
 
         <input
