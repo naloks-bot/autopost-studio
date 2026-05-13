@@ -10,6 +10,9 @@ Create flow runtime wiring is now fixed and QA-passed. Local Gemini env is align
 Storage upload stabilization checkpoint:
 Supabase image upload diagnostics are now hardened, public URL generation is restricted to HTTPS Supabase URLs, and the checked-in Supabase setup now provisions the `generated-images` bucket plus anon storage policies needed for real upload persistence. Safe preview fallback remains active when storage is not ready.
 
+Production sync status:
+The code-side storage fix is committed, but this workspace could not apply Supabase admin changes or trigger Vercel deployment directly. Manual backend apply and production redeploy instructions are documented in `SUPABASE_APPLY_REQUIRED.md` and `PRODUCTION_DEPLOY_REQUIRED.md`.
+
 No backend, publishing, scheduler, or queue architecture expansion is planned inside this phase except for safe compatibility fixes to existing UI flows. Mock mode remains the default. Production publishing continues to rely on the existing stable V1 flow.
 
 The current MVP core is release-locked as stable for:

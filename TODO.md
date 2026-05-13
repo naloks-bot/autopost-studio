@@ -174,6 +174,9 @@ Create flow runtime wiring is fixed and QA-passed. Preview receives caption only
 Storage checkpoint:
 Supabase image upload diagnostics are stabilized, persisted image URLs are limited to HTTPS public storage URLs, and `supabase-setup.sql` now includes the `generated-images` bucket plus anon storage policies required by the current upload path.
 
+Production sync checkpoint:
+Code-side storage stabilization is present, but the real Supabase backend and Vercel production state still need explicit verification. Use `SUPABASE_APPLY_REQUIRED.md`, `PRODUCTION_DEPLOY_REQUIRED.md`, and `node verify-storage-upload.mjs` as the next production QA steps.
+
 ## After Phase A Is Stable
 
 * Phase B stabilization batch
