@@ -1,278 +1,155 @@
 # Project Status
 
-## Current State: Test-Ready Stabilization Batch
+## Current State: Locked Stable Production Baseline
 
-AutoPost Studio has completed its UI foundation milestone and is now prioritizing a test-ready stabilization batch for the core create-post flow. The current focus is to make Generate -> Image Prompt -> Image -> Preview -> Save -> Reload/Edit stable before any more UI polish while preserving the stable backend boundary.
+AutoPost Studio is now locked as an AI Editorial Operating System focused on cinematic editorial AI content workflow, AI-assisted narrative generation, scalable content stock operations, automated publishing, and brand-consistent AI media generation.
 
-Latest checkpoint:
-Create flow runtime wiring is now fixed and QA-passed. Local Gemini env is aligned to `gemini-2.5-flash`, preview receives caption only, image prompt flows into Image Studio prompt, upload-first image flow works, and scheduler/publish/Facebook/backend remain untouched.
+Current brand/product direction:
 
-Storage upload stabilization checkpoint:
-Supabase image upload diagnostics are now hardened, public URL generation is restricted to HTTPS Supabase URLs, and the checked-in Supabase setup now provisions the `generated-images` bucket plus anon storage policies needed for real upload persistence. Safe preview fallback remains active when storage is not ready.
+* Vance Nexus AI cinematic editorial direction
+* invisible systems narrative direction
+* Thai-first cinematic editorial strategy
+* global aesthetic with Thai emotional storytelling
+* content consistency prioritized over redesign
 
-Production sync status:
-Production storage and deploy synchronization are now verified as working for the stabilized publish flow. Public Supabase image URLs persist through draft and publish, and the current production deployment is aligned with the locked milestone behavior.
+Current stable systems now locked:
 
-Real publish stabilization checkpoint:
-End-to-end publish is now locked as stable across local and production verification. Supabase storage persistence is stabilized, real publish uses public HTTPS image URLs only, scheduled text-only and scheduled image posts pass QA, and draft save/reload/edit/republish flows remain stable without scheduler, queue, or provider redesign.
+* publish flow stable
+* scheduler V1 stable
+* Create flow stable
+* storage layer stable
+* Supabase architecture stable
+* real publish stabilization complete
+* production deployment sync verified
+* cinematic editorial brand direction locked
 
-No backend, publishing, scheduler, or queue architecture expansion is planned inside this phase except for safe compatibility fixes to existing UI flows. Mock mode remains the default. Production publishing continues to rely on the existing stable V1 flow.
+Recent stable checkpoints:
 
-The current MVP core is release-locked as stable for:
+* Create flow runtime wiring fixed and QA-passed
+* local Gemini env aligned to `gemini-2.5-flash`
+* preview receives caption only
+* image prompt flows into Image Studio prompt
+* upload-first image flow works
+* Supabase storage persistence stabilized
+* real Facebook publish works with public HTTPS image URLs
+* publish lifecycle now hardens `draft/scheduled -> publishing -> posted/failed`
+* manual and scheduled publish now finalize from DB truth instead of stale local state
+* duplicate prevention now claims due posts before publish
+* execution logs now reflect actual publish completion/failure states
+* production scheduler cadence is now aligned for near-time posting every 5 minutes
 
-* text generation
-* draft editing and persistence
-* persisted draft reload/edit
-* preview badge visibility
-* mock/live publish safety visibility
-* scheduler compatibility by scope
-* guarded per-page live publish routing
-* non-blocking operation log persistence
-* Thai-first operational UI across the main working surfaces
-* dedicated workspace page management surface
-* local theme persistence with dark default and warm light mode
-* input-left / preview-right create flow
-* page-guided writing and image prompt support
-* safe `page_id` fallback handling during draft save/edit
+Permanent operating rules:
 
----
+* minimize token usage
+* minimize phase fragmentation
+* preserve rollback safety
+* avoid rewrites
+* avoid architecture churn
+* avoid speculative systems
+* prefer large safe batches
+* commit only meaningful checkpoints
+* update docs only after meaningful milestones
 
-# Current Stable Features
+Removed or deferred:
 
-## Dashboard System
-
-* Sidebar navigation
-* Responsive dashboard layout
-* Two-panel workflow UI
-* Guide modal system
-* Compact dashboard cards
-* Mobile-friendly layouts
-
-## AI Text Generation
-
-Currently supports:
-
-* Mock mode
-* OpenAI API routing via existing generation service
-* Gemini API routing via existing generation service
-* Safe mock fallback when the selected text provider is unavailable
-* Runtime provider status updates in Create Draft and Settings
-* Compact runtime notices for blocked, active, and fallback generation states
-* Safer missing-key and provider-failure messaging without changing the draft flow
-
-## AI Image Generation
-
-Currently supports:
-
-* Mock generation
-* OpenAI image generation flow
-* Supabase image storage mirroring
-
-## Publishing System
-
-* Facebook page publishing
-* Scheduled posting
-* Draft save system
-* Draft reload/edit from persisted queue
-* Manual publish
-* Mock/live publish protection
-* Scheduler enable/disable control
-
-## Supabase Integration
-
-* Draft persistence
-* Settings persistence
-* Generated image metadata
-* Scheduler state support
+* SaaS expansion
+* auth/billing
+* mobile app
+* queue redesign
+* backend rewrite
+* advanced analytics expansion
+* speculative provider frameworks
 
 ---
 
-# Workflow Optimization Rules
+# Current Focus
 
-These rules are now permanent and apply to all future development work.
+The current direction has shifted from architecture expansion to operational reliability and content workflow efficiency.
 
-## Primary Objective
-
-Minimize:
-
-* token usage
-* phase fragmentation
-* unnecessary commits
-* unnecessary prompts
-* duplicated documentation work
-
-While preserving:
-
-* project stability
-* production safety
-* clean architecture
-* rollback safety
-
-## Execution Strategy
-
-1. Prefer large safe batches over tiny micro-phases.
-2. Combine related safe tasks when they share the same stability boundary.
-3. Commit only at meaningful milestones.
-4. Update documentation only after meaningful milestones, not after every small tweak.
-5. Prefer extension over replacement.
-6. Preserve stable publish flow, scheduler stability, and mock-mode safety.
-7. Avoid unnecessary rewrites, abstractions, and speculative systems.
-8. Keep file churn and refactors minimal unless stability clearly improves.
-
-## Commit Policy
-
-Create commits only for:
-
-* major stable milestones
-* architecture checkpoints
-* production-safe checkpoints
-* important feature completion
-
-Do not commit every small implementation step.
-
-## Documentation Policy
-
-Update `PROJECT_STATUS.md`, `ARCHITECTURE.md`, and `TODO.md` only after meaningful milestones so all three remain synchronized.
-
----
-
-# Current Architecture Direction
-
-The project direction remains:
-
-* Multi-page workspace system
-* Multi-provider AI routing
-* Production-safe automation workflows
-* Persistent AI memory per page
-* Queue-driven scheduling system
-* Centralized content operations
-
-This direction should be preserved, but expansion must remain controlled. Stable working systems should be extended rather than replaced.
-
----
-
-# Consolidated Roadmap
-
-## Phase A - MVP Production Activation
-
-Combined into one controlled implementation batch:
-
-* AI provider routing
-* Runtime validation
-* Provider badges/status confirmation
-* Image routing connection
-* End-to-end generation QA
+## Phase 1 — Automation Reliability Lock
 
 Goal:
-Production-safe real AI generation MVP with minimal architecture changes.
+Production-safe scheduling reliability.
 
-## Phase B - Production Safety + Stabilization
+In scope:
 
-Combined into one stabilization batch:
+* scheduler QA
+* overnight scheduling tests
+* scheduled image publish QA
+* duplicate prevention QA
+* failed publish handling QA
+* cron + Edge Function reliability verification
 
-* Error handling improvements
-* Validation hardening
-* Scheduler QA
-* Publish QA
-* Settings hardening
-* Build stabilization
+Not allowed:
+
+* scheduler redesign
+* queue redesign
+* backend rewrite
+
+Success condition:
+System can reliably auto-post with the app/browser/computer closed.
+
+Current Phase 1 checkpoint:
+
+* scheduling bridge complete
+* operation log persistence path present
+* publish mode persistence hardened
+* final reliability hardening applied for claim locking, atomic finalization, DB-truth refresh, and execution-truth logging
+
+## Phase 2 — Content Factory Workflow
 
 Goal:
-Stable low-cost production operation without backend redesign.
+Efficient batch content creation and scheduling.
 
-## Phase C - Controlled Backend Expansion
+In scope:
 
-This phase starts only after Phase A and Phase B are stable.
+* batch content workflow
+* draft stock workflow
+* reusable content structures
+* save/schedule workflow optimization
+* cinematic consistency workflow
 
-Includes:
+Success condition:
+Can stockpile and schedule 30–100 posts consistently.
 
-* multi-page database architecture
-* queue processor V2
-* logs persistence
-* analytics foundation
+## Phase 3 — Prompt Intelligence Layer
 
 Goal:
-Expand backend capability in a controlled way without premature architecture growth.
+Improve cinematic image consistency and reduce abstract prompt failures.
 
-Smallest safe planned Phase C scope:
+In scope:
 
-* introduce a minimal multi-page data model
-* add page-aware token/config routing without changing stable publish semantics
-* add guarded per-page publish activation after routing data is stable
-* add non-blocking logs persistence before any queue redesign
-* defer queue processor V2 until routing and logs behavior are proven stable
+* topic → cinematic image prompt translation
+* visual metaphor mapping
+* narrative-aware image prompt generation
+* cinematic image consistency refinement
+* brand-aware prompt structure
 
-Phase C must remain planning-gated until a dedicated implementation checkpoint starts.
+Success condition:
+Short topics reliably generate cinematic editorial visuals.
 
-Current Phase C progress:
+## Phase 4 — Brand Memory + Lightweight Analytics
 
-* Batch 1 completed the minimal multi-page routing foundation
-* Batch 2 completed the queue/page routing foundation wrap-up without activating live per-page publishing
-* Batch 3 completed controlled per-page publish activation with guarded config selection
-* workspace pages now have a backward-compatible foundation with default fallback pages
-* new drafts now persist `page_id` without requiring migration of existing posts/settings
-* scheduled-post processing can resolve safe page context metadata
-* page publish readiness and per-page dry-run diagnostics are available for UI/debug only
-* live publish can now use page-specific config when the page is fully configured
-* scheduler loop and Facebook service remain structurally unchanged
-* global V1 publish remains the fallback path when it is the safe default target
-* Batch 4 added a minimal persistent operation log foundation for high-value publish and routing events
-* final Phase C QA confirms draft persistence, page-context reload, guarded publish routing, and non-blocking log behavior remain stable
-* post-Phase C stabilization resolved live draft-save page foreign-key issues, improved draft edit refresh behavior, cleaned up scheduler/logs UX, and connected the image entry flow to the current safe services
-* Phase D Round 1 cleaned up the primary operator surfaces with Thai labels, lighter wording, and lower UI clutter without changing backend behavior
-* Phase D.2 completed the split between system settings and workspace page management
-* Phase D.3 aligns the core posting UX with the real operator path
-* Create page now prioritizes input-left / preview-right flow
-* page profile can guide writing direction and image prompt direction without schema redesign
-* scheduler remains the stable V1 path
-* settings are now system-only while page setup lives in the dedicated page management surface
-* current priority is test-ready stabilization of Generate -> Image Prompt -> Image -> Preview -> Save -> Reload/Edit
-* save draft `page_id` compatibility has been reviewed and hardened without backend redesign
+Goal:
+Long-term optimization and AI-assisted content refinement.
 
----
+In scope:
 
-# Current Development Priority
+* engagement tracking
+* hook/topic performance tracking
+* image performance tracking
+* reusable winning pattern memory
+* lightweight brand memory refinement
 
-## Immediate Priority
-
-1. Preserve the locked MVP core and Phase C behavior without architecture expansion.
-2. Focus current work on test-ready stabilization of the core create-post flow before more UI polish.
-3. Keep queue processor V2, analytics, and scheduler redesign deferred until a separate future checkpoint is explicitly approved.
-
-## Latest Stable Lock
-
-Latest stable lock checkpoints:
-
-* `9802c7b` `controlled production qa fixes`
-* `94ea0a6` `lock mvp core stable`
-* `c66cdb7` `phase c batch 3 controlled per page publish activation`
-* `e11811a` `phase c batch 4 add logs persistence foundation`
-* post-Phase C stabilization batch keeps the same architecture boundary while improving integration safety and operator clarity
-
-## Deferred Until Controlled Expansion
-
-* Supabase multi-page schema expansion
-* Scheduler redesign
-* Queue processor V2
-* Analytics implementation
-* Auth / SaaS / billing
-* Advanced provider failover
-* Codex CLI execution
-
-## Phase C Planning Risks
-
-* Supabase schema growth can accidentally couple stable MVP paths to unfinished multi-page data
-* multi-page routing can misroute Facebook credentials if page-context boundaries are unclear
-* queue processor V2 can destabilize the current scheduler if introduced before routing data is trusted
-* log volume and retention should stay minimal until a future operations/reporting phase exists
-* Facebook publish safety must remain mock-first even after page-aware routing is introduced
+Success condition:
+System can learn and reinforce high-performing content patterns.
 
 ---
 
 # Guardrails
 
-1. Never break stable publishing logic.
-2. Never weaken mock mode as the default safety path.
-3. Avoid backend or database expansion during Phase A unless absolutely required for MVP safety.
-4. Avoid over-engineering and unnecessary architecture expansion.
-5. Preserve rollback safety by batching only related, production-safe changes.
+1. Preserve stable publish flow.
+2. Preserve scheduler V1 behavior unless a reliability blocker is proven.
+3. Preserve current backend/Supabase architecture.
+4. Extend existing systems only.
+5. Avoid speculative expansion until reliability and workflow milestones are complete.

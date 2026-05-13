@@ -1,13 +1,6 @@
 import { serve } from "std/http/server.ts";
 import { createClient } from "supabase-js";
 
-/**
- * process-scheduled-posts
- * 
- * Supabase Edge Function to process due scheduled posts.
- * identify due posts -> publish to Facebook -> update post status.
- */
-
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-cron-secret",
@@ -18,6 +11,46 @@ const FB_BASE_URL = `https://graph.facebook.com/${FB_API_VERSION}`;
 
 function normalizePageId(pageId: string | null | undefined) {
   return typeof pageId === "string" && pageId.trim() ? pageId.trim() : "default";
+}
+
+function isUnsafeImageUrl(value: string | null | undefined) {
+  const next = String(value || "").trim();
+  if (!next) return false;
+
+  if (
+    next.startsWith("blob:") ||
+    next.startsWith("data:") ||
+    next.startsWith("file:") ||
+    next.startsWith("http://localhost") ||
+    next.startsWith("https://localhost") ||
+    next.startsWith("http://127.0.0.1") ||
+    next.startsWith("https://127.0.0.1")
+  ) {
+    return true;
+  }
+
+  try {
+    const parsed = new URL(next);
+    return parsed.protocol !== "http:" && parsed.protocol !== "https:";
+  } catch {
+    return true;
+  }
+}
+
+function getImageUrlType(value: string | null | undefined) {
+  const next = String(value || "").trim();
+  if (!next) return "empty";
+  if (next.startsWith("blob:")) return "blob";
+  if (next.startsWith("data:")) return "data";
+  if (next.startsWith("file:")) return "file";
+  if (next.startsWith("http://localhost") || next.startsWith("https://localhost")) return "localhost";
+  if (next.startsWith("http://127.0.0.1") || next.startsWith("https://127.0.0.1")) return "localhost";
+
+  try {
+    return new URL(next).protocol.replace(":", "") || "unknown";
+  } catch {
+    return "invalid";
+  }
 }
 
 function resolveEffectivePublishConfig(post: Record<string, any>, settings: Record<string, any>, pages: Array<Record<string, any>>) {
@@ -50,7 +83,7 @@ function resolveEffectivePublishConfig(post: Record<string, any>, settings: Reco
       pageLabel: resolvedPage.label || "Default Page",
       effectivePublishSource: "mock",
       effectivePublishLabel: "Mock Safe",
-      livePerPagePublishStatus: "Disabled",
+      livePagePublishStatus: "Disabled",
       pageId: pageConfigReady ? resolvedPage.facebook_page_id : settings.facebook_page_id,
       accessToken: pageConfigReady ? resolvedPage.facebook_page_access_token : settings.facebook_page_access_token,
       canAttemptPublish: mockConfigReady,
@@ -65,7 +98,7 @@ function resolveEffectivePublishConfig(post: Record<string, any>, settings: Reco
       pageLabel: resolvedPage.label || "Default Page",
       effectivePublishSource: "page-specific",
       effectivePublishLabel: "Page-Specific Live",
-      livePerPagePublishStatus: "Active",
+      livePagePublishStatus: "Active",
       pageId: resolvedPage.facebook_page_id,
       accessToken: resolvedPage.facebook_page_access_token,
       canAttemptPublish: true,
@@ -80,7 +113,7 @@ function resolveEffectivePublishConfig(post: Record<string, any>, settings: Reco
       pageLabel: resolvedPage.label || "Default Page",
       effectivePublishSource: "blocked",
       effectivePublishLabel: "Blocked",
-      livePerPagePublishStatus: "Blocked",
+      livePagePublishStatus: "Blocked",
       pageId: "",
       accessToken: "",
       canAttemptPublish: false,
@@ -95,7 +128,7 @@ function resolveEffectivePublishConfig(post: Record<string, any>, settings: Reco
       pageLabel: resolvedPage.label || "Default Page",
       effectivePublishSource: "blocked",
       effectivePublishLabel: "Blocked",
-      livePerPagePublishStatus: "Blocked",
+      livePagePublishStatus: "Blocked",
       pageId: "",
       accessToken: "",
       canAttemptPublish: false,
@@ -110,7 +143,7 @@ function resolveEffectivePublishConfig(post: Record<string, any>, settings: Reco
       pageLabel: resolvedPage.label || "Default Page",
       effectivePublishSource: "global-v1",
       effectivePublishLabel: "Global V1 Live",
-      livePerPagePublishStatus: "Fallback",
+      livePagePublishStatus: "Fallback",
       pageId: settings.facebook_page_id,
       accessToken: settings.facebook_page_access_token,
       canAttemptPublish: true,
@@ -124,11 +157,29 @@ function resolveEffectivePublishConfig(post: Record<string, any>, settings: Reco
     pageLabel: resolvedPage.label || "Default Page",
     effectivePublishSource: "blocked",
     effectivePublishLabel: "Blocked",
-    livePerPagePublishStatus: "Blocked",
+    livePagePublishStatus: "Blocked",
     pageId: "",
     accessToken: "",
     canAttemptPublish: false,
     reason: "Global V1 publish config is incomplete, and no safe page-specific live config is available.",
+  };
+}
+
+function buildLogMetadata(post: Record<string, any>, publishConfig: Record<string, any>, extra: Record<string, any> = {}) {
+  return {
+    topic: post.topic || "",
+    scheduled_at: post.scheduled_at || null,
+    attempted_at: new Date().toISOString(),
+    publish_mode: extra.publish_mode || "mock",
+    publish_source: publishConfig.effectivePublishSource,
+    live_page_publish_status: publishConfig.livePagePublishStatus,
+    effective_page_id: publishConfig.resolvedPageId,
+    image_url_type: getImageUrlType(post.image_url),
+    result: extra.result || null,
+    error_message: extra.error_message || "",
+    fallback_reason: extra.fallback_reason || publishConfig.reason || "",
+    facebook_error_payload: extra.facebook_error_payload || null,
+    facebook_post_id: extra.facebook_post_id || null,
   };
 }
 
@@ -148,7 +199,6 @@ serve(async (req) => {
   const systemCronSecret = Deno.env.get("CRON_SECRET");
 
   if (!systemCronSecret || cronSecretHeader !== systemCronSecret) {
-    console.error("Unauthorized: Invalid or missing cron secret.");
     return new Response(JSON.stringify({ error: "Unauthorized" }), {
       status: 401,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -174,8 +224,6 @@ serve(async (req) => {
       }
     };
 
-    // 1. Fetch Settings
-    console.log("Fetching app settings...");
     const { data: settings, error: settingsError } = await supabase
       .from("app_settings")
       .select("*")
@@ -190,51 +238,49 @@ serve(async (req) => {
     }
 
     if (!settings.scheduler_enabled) {
-      console.log("Scheduler is disabled in settings. Skipping.");
       return new Response(JSON.stringify({ message: "Scheduler disabled" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // 2. Fetch Due Posts
-    console.log("Checking for due scheduled posts...");
+    await writeOperationLog({
+      category: "scheduler",
+      level: "info",
+      source: "scheduler_edge",
+      event: "scheduler_started",
+      message: "Scheduler run started.",
+      metadata: {
+        attempted_at: new Date().toISOString(),
+        publish_mode: settings.facebook_publish_mode || "mock",
+        scheduler_enabled: true,
+        result: "started",
+      },
+    });
+
     const now = new Date().toISOString();
     const { data: duePosts, error: postsError } = await supabase
       .from("posts")
       .select("*")
       .eq("status", "scheduled")
-      .lte("scheduled_at", now);
+      .lte("scheduled_at", now)
+      .order("scheduled_at", { ascending: true });
 
     if (postsError) throw postsError;
 
     if (!duePosts || duePosts.length === 0) {
-      console.log("No due posts found.");
       return new Response(JSON.stringify({ message: "No due posts", count: 0 }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    console.log(`Found ${duePosts.length} due posts. Processing...`);
-
-    const results = [];
-    const publishMode = settings.facebook_publish_mode || "mock";
-    let pages: Array<Record<string, any>> = [];
     const pagesResult = await supabase
       .from("pages")
       .select("id, label, facebook_page_id, facebook_page_access_token");
+    const pages = pagesResult.error ? [] : pagesResult.data || [];
 
-    if (pagesResult.error) {
-      const pageErrorMessage = String(pagesResult.error.message || "");
-      if (/relation .* does not exist/i.test(pageErrorMessage)) {
-        console.warn("Pages table missing. Falling back to default/global publish config.");
-      } else {
-        console.warn("Workspace pages fetch failed. Falling back to default/global publish config.", pagesResult.error);
-      }
-    } else {
-      pages = pagesResult.data || [];
-    }
+    const results: Array<Record<string, any>> = [];
+    const publishMode = settings.facebook_publish_mode || "mock";
 
-    // 3. Process Each Post
     for (const post of duePosts) {
       const publishConfig = resolveEffectivePublishConfig(post, settings, pages);
       const postResult: Record<string, any> = {
@@ -245,102 +291,261 @@ serve(async (req) => {
         page_id: publishConfig.resolvedPageId,
         page_label: publishConfig.pageLabel,
         publish_source: publishConfig.effectivePublishSource,
-        live_page_publish_status: publishConfig.livePerPagePublishStatus,
+        live_page_publish_status: publishConfig.livePagePublishStatus,
       };
 
       try {
+        await writeOperationLog({
+          category: "scheduler",
+          level: "info",
+          source: "scheduler_edge",
+          event: "post_due",
+          message: `Post due for scheduler processing: "${post.topic}".`,
+          page_id: publishConfig.resolvedPageId,
+          post_id: String(post.id),
+          metadata: buildLogMetadata(post, publishConfig, {
+            publish_mode: publishMode,
+            result: "due",
+          }),
+        });
+
+        const claimPayload = {
+          status: "publishing",
+          updated_at: new Date().toISOString(),
+        };
+        let claimQuery = supabase
+          .from("posts")
+          .update(claimPayload)
+          .eq("id", post.id)
+          .eq("status", "scheduled");
+        if (post.scheduled_at) {
+          claimQuery = claimQuery.eq("scheduled_at", post.scheduled_at);
+        }
+        const { data: claimedPost, error: claimError } = await claimQuery.select("*").maybeSingle();
+        if (claimError) throw claimError;
+
+        if (!claimedPost) {
+          await writeOperationLog({
+            category: "scheduler",
+            level: "warn",
+            source: "scheduler_edge",
+            event: "publish_skipped",
+            message: `Scheduled publish skipped for "${post.topic}" because the post state changed before claim.`,
+            page_id: publishConfig.resolvedPageId,
+            post_id: String(post.id),
+            metadata: buildLogMetadata(post, publishConfig, {
+              publish_mode: publishMode,
+              result: "skipped",
+              error_message: "Post state changed before scheduler claim",
+            }),
+          });
+          postResult.action = "skipped";
+          postResult.error = "Post state changed before scheduler claim";
+          results.push(postResult);
+          continue;
+        }
+
+        await writeOperationLog({
+          category: "scheduler",
+          level: "info",
+          source: "scheduler_edge",
+          event: "publish_claimed",
+          message: `Scheduler claimed "${post.topic}" for publishing.`,
+          page_id: publishConfig.resolvedPageId,
+          post_id: String(post.id),
+          metadata: buildLogMetadata(claimedPost, publishConfig, {
+            publish_mode: publishMode,
+            result: "claimed",
+          }),
+        });
+
         if (!publishConfig.canAttemptPublish) {
           throw new Error(publishConfig.reason || "Publish blocked");
         }
 
+        if (publishMode === "live" && isUnsafeImageUrl(post.image_url)) {
+          throw new Error("Scheduled image publish requires a public HTTPS image URL.");
+        }
+
         if (publishConfig.reason) {
           await writeOperationLog({
+            category: "scheduler",
             level: "info",
             source: "scheduler_edge",
             event: "publish_fallback",
             message: publishConfig.reason,
             page_id: publishConfig.resolvedPageId,
             post_id: String(post.id),
-            metadata: {
-              topic: post.topic,
-              publish_source: publishConfig.effectivePublishSource,
-              live_page_publish_status: publishConfig.livePerPagePublishStatus,
-            },
+            metadata: buildLogMetadata(claimedPost, publishConfig, {
+              publish_mode: publishMode,
+              result: "fallback",
+              fallback_reason: publishConfig.reason,
+            }),
           });
         }
 
-        if (publishMode === "live") {
-          console.log(`Live publishing post: ${post.id} (${post.topic})`);
+        await writeOperationLog({
+          category: "scheduler",
+          level: "info",
+          source: "scheduler_edge",
+          event: "publish_attempt",
+          message: `Scheduler attempted publish for "${post.topic}".`,
+          page_id: publishConfig.resolvedPageId,
+          post_id: String(post.id),
+          metadata: buildLogMetadata(claimedPost, publishConfig, {
+            publish_mode: publishMode,
+            result: publishMode === "live" ? "live_attempt" : "mock_attempt",
+          }),
+        });
 
+        let facebookPostId = `mock-edge-id-${Date.now()}`;
+        if (publishMode === "live") {
           const payload = new URLSearchParams();
           payload.append("message", post.content || post.topic || "");
-          if (post.image_url) {
-            payload.append("link", post.image_url);
-          }
+          if (post.image_url) payload.append("link", post.image_url);
 
-          const fbUrl = `${FB_BASE_URL}/${publishConfig.pageId}/feed?access_token=${publishConfig.accessToken}`;
-          const fbResponse = await fetch(fbUrl, {
+          const fbResponse = await fetch(`${FB_BASE_URL}/${publishConfig.pageId}/feed?access_token=${publishConfig.accessToken}`, {
             method: "POST",
             body: payload,
           });
-
           const fbData = await fbResponse.json();
-
           if (!fbResponse.ok) {
             throw new Error(fbData.error?.message || `Facebook API Error: ${fbResponse.status}`);
           }
-
-          console.log(`Live publish successful: ${fbData.id}`);
-          postResult.action = "live_publish";
-          postResult.facebook_id = fbData.id;
-        } else {
-          console.log(`Mock publishing post: ${post.id} (${post.topic})`);
-          postResult.action = "mock_publish";
-          postResult.facebook_id = "mock-edge-id-" + Date.now();
+          facebookPostId = fbData.id || facebookPostId;
         }
 
-        // 4. Update Status in Supabase
-        const { error: updateError } = await supabase
-          .from("posts")
-          .update({
-            status: "posted",
-            posted_at: new Date().toISOString(),
-          })
-          .eq("id", post.id);
-
-        if (updateError) throw updateError;
-
-        postResult.success = true;
         await writeOperationLog({
+          category: "scheduler",
           level: "info",
           source: "scheduler_edge",
-          event: "publish_success",
-          message: `Scheduled publish succeeded for "${post.topic}".`,
+          event: "facebook_publish_success",
+          message:
+            publishMode === "live"
+              ? `Facebook live publish succeeded for "${post.topic}".`
+              : `Mock publish completed for "${post.topic}".`,
           page_id: publishConfig.resolvedPageId,
           post_id: String(post.id),
-          metadata: {
-            publish_source: publishConfig.effectivePublishSource,
-            live_page_publish_status: publishConfig.livePerPagePublishStatus,
-          },
+          metadata: buildLogMetadata(claimedPost, publishConfig, {
+            publish_mode: publishMode,
+            result: publishMode === "live" ? "success" : "mock",
+            facebook_post_id: facebookPostId,
+          }),
         });
-        console.log(`Post updated successfully: ${post.id}`);
 
-      } catch (err) {
-        console.error(`Error processing post ${post.id}:`, err.message);
+        const finalizePayload = {
+          status: "posted",
+          posted_at: new Date().toISOString(),
+          facebook_post_id: facebookPostId,
+          scheduled_at: null,
+          updated_at: new Date().toISOString(),
+        };
+        let finalizeError: any = null;
+        let finalizeData: any = null;
+        ({ data: finalizeData, error: finalizeError } = await supabase
+          .from("posts")
+          .update(finalizePayload)
+          .eq("id", post.id)
+          .eq("status", "publishing")
+          .select("*")
+          .maybeSingle());
+
+        if (finalizeError && /facebook_post_id|updated_at/i.test(String(finalizeError.message || ""))) {
+          const fallbackFinalize = await supabase
+            .from("posts")
+            .update({
+              status: "posted",
+              posted_at: finalizePayload.posted_at,
+              scheduled_at: null,
+            })
+            .eq("id", post.id)
+            .eq("status", "publishing")
+            .select("*")
+            .maybeSingle();
+          finalizeData = fallbackFinalize.data;
+          finalizeError = fallbackFinalize.error;
+        }
+        if (finalizeError) throw finalizeError;
+
         await writeOperationLog({
+          category: "scheduler",
+          level: "info",
+          source: "scheduler_edge",
+          event: "db_finalize_success",
+          message: `Publish finalization saved for "${post.topic}".`,
+          page_id: publishConfig.resolvedPageId,
+          post_id: String(post.id),
+          metadata: buildLogMetadata(finalizeData || claimedPost, publishConfig, {
+            publish_mode: publishMode,
+            result: publishMode === "live" ? "success" : "mock",
+            facebook_post_id: facebookPostId,
+          }),
+        });
+
+        await writeOperationLog({
+          category: "scheduler",
+          level: "info",
+          source: "scheduler_edge",
+          event: "publish_completed",
+          message:
+            publishMode === "live"
+              ? `Scheduled live publish completed for "${post.topic}".`
+              : `Scheduled mock publish completed for "${post.topic}".`,
+          page_id: publishConfig.resolvedPageId,
+          post_id: String(post.id),
+          metadata: buildLogMetadata(finalizeData || claimedPost, publishConfig, {
+            publish_mode: publishMode,
+            result: publishMode === "live" ? "success" : "mock",
+            facebook_post_id: facebookPostId,
+          }),
+        });
+
+        postResult.action = publishMode === "live" ? "live_publish" : "mock_publish";
+        postResult.facebook_id = facebookPostId;
+        postResult.success = true;
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : String(err || "Unknown scheduler error");
+        await supabase
+          .from("posts")
+          .update({
+            status: "failed",
+            scheduled_at: null,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", post.id)
+          .eq("status", "publishing");
+
+        await writeOperationLog({
+          category: "scheduler",
           level: "error",
           source: "scheduler_edge",
-          event: publishConfig.canAttemptPublish ? "publish_failure" : "publish_blocked",
-          message: err.message,
+          event: "facebook_publish_failed",
+          message: errorMessage,
           page_id: publishConfig.resolvedPageId,
           post_id: String(post.id),
-          metadata: {
-            publish_source: publishConfig.effectivePublishSource,
-            live_page_publish_status: publishConfig.livePerPagePublishStatus,
-            fallback_reason: publishConfig.reason || "",
-          },
+          metadata: buildLogMetadata(post, publishConfig, {
+            publish_mode: publishMode,
+            result: "failed",
+            error_message: errorMessage,
+          }),
         });
-        postResult.error = err.message;
+
+        await writeOperationLog({
+          category: "scheduler",
+          level: "error",
+          source: "scheduler_edge",
+          event: "publish_completed",
+          message: errorMessage,
+          page_id: publishConfig.resolvedPageId,
+          post_id: String(post.id),
+          metadata: buildLogMetadata(post, publishConfig, {
+            publish_mode: publishMode,
+            result: "failed",
+            error_message: errorMessage,
+          }),
+        });
+
+        postResult.error = errorMessage;
         postResult.fallback_reason = publishConfig.reason || "";
         postResult.success = false;
       }
@@ -353,16 +558,15 @@ serve(async (req) => {
         message: "Processing complete",
         count: duePosts.length,
         publishMode,
-        results
+        results,
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       }
     );
-
   } catch (err) {
-    console.error("Critical error in edge function:", err);
-    return new Response(JSON.stringify({ error: err.message }), {
+    const message = err instanceof Error ? err.message : String(err || "Unknown error");
+    return new Response(JSON.stringify({ error: message }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

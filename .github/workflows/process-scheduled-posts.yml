@@ -2,8 +2,8 @@ name: Process Scheduled Posts
 
 on:
   schedule:
-    # Run every 30 minutes
-    - cron: '*/30 * * * *'
+    # Run every 5 minutes to keep scheduled publishing near the requested time.
+    - cron: '*/5 * * * *'
   workflow_dispatch:
     # Allow manual trigger from GitHub UI
 

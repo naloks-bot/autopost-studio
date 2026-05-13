@@ -37,6 +37,7 @@ function getResultTone(result = "", level = "info") {
   if (result === "success") return "text-emerald-300";
   if (result === "mock" || result === "mock_attempt") return "text-cyan-300";
   if (result === "skipped" || result === "fallback" || result === "cancelled" || result === "scheduled") return "text-amber-300";
+  if (result === "claimed") return "text-violet-300";
   if (result === "failed") return "text-rose-300";
   if (result === "started" || result === "due" || result === "live_attempt") return "text-slate-200";
   if (level === "error") return "text-rose-300";
@@ -59,6 +60,7 @@ function formatResultLabel(result = "") {
     fallback: "fallback",
     cancelled: "cancelled",
     scheduled: "scheduled",
+    claimed: "claimed",
     started: "started",
     due: "due",
     live_attempt: "live attempt",

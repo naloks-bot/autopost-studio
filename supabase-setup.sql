@@ -14,7 +14,9 @@ create table if not exists public.posts (
   status text not null default 'draft',
   scheduled_at timestamptz,
   posted_at timestamptz,
-  created_at timestamptz not null default now()
+  facebook_post_id text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
 );
 
 -- Migration-safe column additions for existing tables
@@ -22,6 +24,17 @@ alter table public.posts add column if not exists image_provider text;
 alter table public.posts add column if not exists image_revised_prompt text;
 alter table public.posts add column if not exists image_storage_path text;
 alter table public.posts add column if not exists image_storage_mode text;
+alter table public.posts add column if not exists facebook_post_id text;
+alter table public.posts add column if not exists updated_at timestamptz default now();
+
+update public.posts
+set updated_at = coalesce(updated_at, created_at, now())
+where updated_at is null;
+
+alter table public.posts alter column updated_at set default now();
+alter table public.posts alter column updated_at set not null;
+
+create index if not exists idx_posts_status_scheduled_at on public.posts(status, scheduled_at);
 
 create table if not exists public.app_settings (
   id text primary key default 'default',

@@ -42,15 +42,21 @@ function StatusPage({
 
   const pageAware = useMemo(() => {
     const pendingForPage = allPendingPosts.filter((post) => (post.page_id || "default") === activePageId);
+    const queuedForPage = pendingForPage.filter((post) => ["draft", "scheduled"].includes(post.status || "draft"));
+    const failedForPage = pendingForPage
+      .filter((post) => post.status === "failed")
+      .sort((a, b) => new Date(b.updated_at || b.created_at || 0).getTime() - new Date(a.updated_at || a.created_at || 0).getTime());
     const postedForPage = remotePosts
       .filter((post) => post.status === "posted" && (post.page_id || "default") === activePageId)
       .sort((a, b) => new Date(b.posted_at || b.created_at || 0).getTime() - new Date(a.posted_at || a.created_at || 0).getTime());
 
     return {
-      total: pendingForPage.length + postedForPage.length,
-      queued: pendingForPage.length,
+      total: queuedForPage.length + failedForPage.length + postedForPage.length,
+      queued: queuedForPage.length,
+      failed: failedForPage.length,
       success: postedForPage.length,
       list: pendingForPage,
+      recentFailed: failedForPage.slice(0, 5),
       recentPosted: postedForPage.slice(0, 5),
     };
   }, [activePageId, allPendingPosts, remotePosts]);
@@ -94,13 +100,14 @@ function StatusPage({
           <div>
             <p className="font-semibold">สถานะการโพสต์ของเพจปัจจุบัน</p>
             <p className="mt-0.5 text-xs text-cyan-100/80">
-              โหมด {settings.facebookPublishMode === "live" ? "โพสต์จริง" : "ทดสอบ"} ยังใช้ publish flow เดิมที่เสถียร และหน้านี้เน้นดูคิวปัจจุบันกับรายการที่เพิ่งโพสต์สำเร็จ
+              โหมด {settings.facebookPublishMode === "live" ? "โพสต์จริง" : "ทดสอบ"} ยังคงใช้ publish flow เดิมที่เสถียร
+              และหน้านี้เน้นดูคิวปัจจุบันกับรายการที่เพิ่งโพสต์สำเร็จ
             </p>
           </div>
         </div>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-4">
         <div className="rounded-2xl border border-white/5 bg-slate-900/40 p-5 shadow-sm">
           <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">ทั้งหมด</span>
           <p className="mt-3 text-4xl font-bold tracking-tight text-white">{pageAware.total}</p>
@@ -112,6 +119,10 @@ function StatusPage({
         <div className="rounded-2xl border border-white/5 bg-slate-900/40 p-5 shadow-sm">
           <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">โพสต์สำเร็จล่าสุด</span>
           <p className="mt-3 text-4xl font-bold tracking-tight text-white">{pageAware.success}</p>
+        </div>
+        <div className="rounded-2xl border border-white/5 bg-slate-900/40 p-5 shadow-sm">
+          <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">ล้มเหลวล่าสุด</span>
+          <p className="mt-3 text-4xl font-bold tracking-tight text-white">{pageAware.failed}</p>
         </div>
       </div>
 
@@ -202,7 +213,11 @@ function StatusPage({
                       </span>
                       <span
                         className={`rounded-full px-2 py-1 text-[10px] font-bold uppercase tracking-wider ${
-                          isScheduled ? "bg-amber-500/10 text-amber-300" : "bg-white/5 text-slate-300"
+                          post.status === "failed"
+                            ? "bg-rose-500/10 text-rose-300"
+                            : isScheduled
+                              ? "bg-amber-500/10 text-amber-300"
+                              : "bg-white/5 text-slate-300"
                         }`}
                       >
                         สถานะ: {post.status || "draft"}
@@ -337,6 +352,28 @@ function StatusPage({
           </div>
         )}
       </div>
+
+      {pageAware.recentFailed.length > 0 ? (
+        <div className="rounded-2xl border border-white/5 bg-slate-900/40 p-5 shadow-sm">
+          <div className="mb-4 flex items-center gap-2">
+            <AlertCircle className="h-4 w-4 text-rose-400" />
+            <h3 className="text-sm font-semibold uppercase tracking-wider text-white">โพสต์ล่าสุดที่ล้มเหลว</h3>
+          </div>
+          <div className="space-y-3">
+            {pageAware.recentFailed.map((post) => (
+              <div key={post.id} className="flex items-center justify-between gap-4 rounded-xl border border-white/5 bg-slate-950/40 px-4 py-3">
+                <div>
+                  <p className="text-sm font-semibold text-white">{post.topic || "ยังไม่ได้ตั้งหัวข้อ"}</p>
+                  <p className="mt-1 text-[11px] text-slate-500">อัปเดตล่าสุด {formatDate(post.updated_at || post.created_at)}</p>
+                </div>
+                <span className="rounded-full bg-rose-500/10 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-rose-300">
+                  failed
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

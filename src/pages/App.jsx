@@ -23,12 +23,16 @@ import {
 } from "../services/app-settings.js";
 import { getLocalDrafts, removeLocalDraft, saveLocalDraft, updateLocalDraft } from "../services/local-drafts.js";
 import {
+  claimRemotePostForPublishing,
+  fetchRemotePostById,
   fetchRemotePages,
   fetchRemotePosts,
   fetchRemoteSettings,
+  finalizeRemotePublishedPost,
   getSupabaseEnvSnapshot,
   hasSupabaseConfig,
   insertRemoteDraft,
+  markRemotePostFailed,
   saveRemotePages,
   saveRemoteSettings,
   updateRemoteDraft,
@@ -207,11 +211,25 @@ function App() {
   const isDark = theme !== "light";
 
   const allPendingPosts = useMemo(() => {
-    const remotePending = remotePosts.filter((post) => post.status !== "posted");
+    const remotePending = remotePosts.filter((post) => post.status !== "posted" && post.status !== "publishing");
     return [...localDrafts, ...remotePending].sort(
       (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
     );
   }, [localDrafts, remotePosts]);
+
+  const mergeRemotePostTruth = useCallback((nextPost) => {
+    if (!nextPost) return;
+    setRemotePosts((current) => {
+      const exists = current.some((item) => item.id === nextPost.id);
+      if (!exists) {
+        return [nextPost, ...current].sort(
+          (a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()
+        );
+      }
+
+      return current.map((item) => (item.id === nextPost.id ? nextPost : item));
+    });
+  }, []);
 
   const appendClientOperationLog = useCallback((entry, mode) => {
     if (mode) setLogsMode(mode);
@@ -783,20 +801,90 @@ function App() {
           }
         }
 
+        const claimResult = await claimRemotePostForPublishing(post.id, ["draft", "scheduled", "failed"], {
+          scheduled_at: post.status === "scheduled" ? post.scheduled_at || null : undefined,
+        });
+        if (!claimResult.claimed) {
+          if (claimResult.data) mergeRemotePostTruth(claimResult.data);
+          await recordOperationLog({
+            level: "warn",
+            source: "manual_publish",
+            event: "publish_skipped",
+            message: `Manual publish skipped for "${post.topic}" because the post state changed before claim.`,
+            page_id: effectivePublish.resolvedPageId,
+            post_id: post.id,
+            metadata: {
+              topic: post.topic,
+              publish_mode: effectivePublish.effectiveSettings.facebookPublishMode || "mock",
+              publish_source: effectivePublish.effectivePublishSource,
+              live_page_publish_status: effectivePublish.livePerPagePublishStatus,
+              image_url_type: publishDiagnostics.originalImageUrlType,
+              result: "skipped",
+              error_message: "Post state changed before manual publish claim",
+            },
+          });
+          setStatusNotice({
+            tone: "warning",
+            message: "โพสต์นี้มีการเปลี่ยนสถานะไปแล้ว จึงข้ามการโพสต์และรีเฟรชสถานะล่าสุดให้เรียบร้อย",
+          });
+          return;
+        }
+
+        const claimedPost = claimResult.data || { ...post, status: "publishing" };
+        mergeRemotePostTruth(claimedPost);
+        await recordOperationLog({
+          level: "info",
+          source: "manual_publish",
+          event: "publish_claimed",
+          message: `Manual publish claimed "${post.topic}".`,
+          page_id: effectivePublish.resolvedPageId,
+          post_id: post.id,
+          metadata: {
+            topic: post.topic,
+            publish_mode: effectivePublish.effectiveSettings.facebookPublishMode || "mock",
+            publish_source: effectivePublish.effectivePublishSource,
+            live_page_publish_status: effectivePublish.livePerPagePublishStatus,
+            image_url_type: publishDiagnostics.resolvedImageUrlType,
+            result: "claimed",
+          },
+        });
+        await recordOperationLog({
+          level: "info",
+          source: "manual_publish",
+          event: "publish_attempt",
+          message: `Manual publish attempted for "${post.topic}".`,
+          page_id: effectivePublish.resolvedPageId,
+          post_id: post.id,
+          metadata: {
+            topic: post.topic,
+            publish_mode: effectivePublish.effectiveSettings.facebookPublishMode || "mock",
+            publish_source: effectivePublish.effectivePublishSource,
+            live_page_publish_status: effectivePublish.livePerPagePublishStatus,
+            image_url_type: publishDiagnostics.resolvedImageUrlType,
+            result:
+              effectivePublish.effectiveSettings.facebookPublishMode === "live"
+                ? "live_attempt"
+                : "mock_attempt",
+          },
+        });
+
         const publishPost =
           publishDiagnostics.resolvedImageUrl && publishDiagnostics.resolvedImageUrl !== post.image_url
             ? { ...post, image_url: publishDiagnostics.resolvedImageUrl }
             : post;
         const result = await publishFacebookPost(publishPost, effectivePublish.effectiveSettings);
         if (result.error) {
+          const failedUpdate = await markRemotePostFailed(post.id);
+          if (failedUpdate.data) mergeRemotePostTruth(failedUpdate.data);
           await recordOperationLog({
             level: "error",
             source: "manual_publish",
-            event: "publish_failure",
+            event: "facebook_publish_failed",
             message: result.error || `Manual publish failed for "${post.topic}".`,
             page_id: effectivePublish.resolvedPageId,
             post_id: post.id,
             metadata: {
+              topic: post.topic,
               publish_mode: effectivePublish.effectiveSettings.facebookPublishMode || "mock",
               publish_source: effectivePublish.effectivePublishSource,
               live_page_publish_status: effectivePublish.livePerPagePublishStatus,
@@ -804,48 +892,124 @@ function App() {
               attempted_image_url: publishDiagnostics.originalImageUrl || null,
               fallback_reason: effectivePublish.fallbackReason || "",
               facebook_error_payload: result.facebookErrorPayload || null,
+              result: result.mode === "mock" ? "mock" : "failed",
+              error_message: result.error || "",
+            },
+          });
+          await recordOperationLog({
+            level: "error",
+            source: "manual_publish",
+            event: "publish_completed",
+            message: result.error || `Manual publish failed for "${post.topic}".`,
+            page_id: effectivePublish.resolvedPageId,
+            post_id: post.id,
+            metadata: {
+              topic: post.topic,
+              publish_mode: effectivePublish.effectiveSettings.facebookPublishMode || "mock",
+              publish_source: effectivePublish.effectivePublishSource,
+              live_page_publish_status: effectivePublish.livePerPagePublishStatus,
+              image_url_type: result.diagnostics?.originalImageUrlType || publishDiagnostics.originalImageUrlType,
+              attempted_image_url: publishDiagnostics.originalImageUrl || null,
+              fallback_reason: effectivePublish.fallbackReason || "",
+              facebook_error_payload: result.facebookErrorPayload || null,
+              result: result.mode === "mock" ? "mock" : "failed",
+              error_message: result.error || "",
             },
           });
           setStatusNotice({ tone: "danger", message: `โพสต์ไม่สำเร็จ: ${toUserSafeMessage(result.error, "โพสต์ไม่สำเร็จ")}` });
           return;
         }
 
-        const update = await updateRemotePostStatus(postId, "posted", { posted_at: new Date().toISOString() });
+        await recordOperationLog({
+          level: "info",
+          source: "manual_publish",
+          event: "facebook_publish_success",
+          message:
+            effectivePublish.effectiveSettings.facebookPublishMode === "live"
+              ? `Facebook live publish succeeded for "${post.topic}".`
+              : `Mock publish completed for "${post.topic}".`,
+          page_id: effectivePublish.resolvedPageId,
+          post_id: post.id,
+          metadata: {
+            topic: post.topic,
+            publish_mode: effectivePublish.effectiveSettings.facebookPublishMode || "mock",
+            publish_source: effectivePublish.effectivePublishSource,
+            live_page_publish_status: effectivePublish.livePerPagePublishStatus,
+            effective_page_id: effectivePublish.effectivePageId,
+            image_url_type: result.diagnostics?.resolvedImageUrlType || publishDiagnostics.resolvedImageUrlType,
+            fallback_reason: effectivePublish.fallbackReason || "",
+            facebook_post_id: result.data?.id || null,
+            result: effectivePublish.effectiveSettings.facebookPublishMode === "live" ? "success" : "mock",
+          },
+        });
+
+        const update = await finalizeRemotePublishedPost(postId, {
+          postedAt: new Date().toISOString(),
+          facebookPostId: result.data?.id || null,
+        });
         if (update.data) {
-          setRemotePosts((current) => current.map((item) => (item.id === postId ? update.data : item)));
+          mergeRemotePostTruth(update.data);
           await recordOperationLog({
             level: "info",
             source: "manual_publish",
-            event: "publish_success",
-            message: `Manual publish succeeded for "${post.topic}".`,
+            event: "db_finalize_success",
+            message: `Publish finalization saved for "${post.topic}".`,
             page_id: effectivePublish.resolvedPageId,
             post_id: post.id,
             metadata: {
+              topic: post.topic,
               publish_mode: effectivePublish.effectiveSettings.facebookPublishMode || "mock",
               publish_source: effectivePublish.effectivePublishSource,
               live_page_publish_status: effectivePublish.livePerPagePublishStatus,
               effective_page_id: effectivePublish.effectivePageId,
               image_url_type: result.diagnostics?.resolvedImageUrlType || publishDiagnostics.resolvedImageUrlType,
               fallback_reason: effectivePublish.fallbackReason || "",
+              facebook_post_id: result.data?.id || null,
+              result: effectivePublish.effectiveSettings.facebookPublishMode === "live" ? "success" : "mock",
+            },
+          });
+          await recordOperationLog({
+            level: "info",
+            source: "manual_publish",
+            event: "publish_completed",
+            message: `Manual publish completed for "${post.topic}".`,
+            page_id: effectivePublish.resolvedPageId,
+            post_id: post.id,
+            metadata: {
+              topic: post.topic,
+              publish_mode: effectivePublish.effectiveSettings.facebookPublishMode || "mock",
+              publish_source: effectivePublish.effectivePublishSource,
+              live_page_publish_status: effectivePublish.livePerPagePublishStatus,
+              effective_page_id: effectivePublish.effectivePageId,
+              image_url_type: result.diagnostics?.resolvedImageUrlType || publishDiagnostics.resolvedImageUrlType,
+              fallback_reason: effectivePublish.fallbackReason || "",
+              facebook_post_id: result.data?.id || null,
+              result: effectivePublish.effectiveSettings.facebookPublishMode === "live" ? "success" : "mock",
             },
           });
           setStatusNotice({ tone: "success", message: "โพสต์เรียบร้อยแล้ว" });
           return;
         }
 
+        const latest = await fetchRemotePostById(postId);
+        if (latest.data) mergeRemotePostTruth(latest.data);
         await recordOperationLog({
           level: "error",
           source: "manual_publish",
-          event: "publish_partial_failure",
+          event: "publish_completed",
           message: `Manual publish succeeded but status update failed for "${post.topic}".`,
           page_id: effectivePublish.resolvedPageId,
           post_id: post.id,
           metadata: {
+            topic: post.topic,
             publish_mode: effectivePublish.effectiveSettings.facebookPublishMode || "mock",
             publish_source: effectivePublish.effectivePublishSource,
             live_page_publish_status: effectivePublish.livePerPagePublishStatus,
             image_url_type: publishDiagnostics.resolvedImageUrlType,
             fallback_reason: effectivePublish.fallbackReason || "",
+            facebook_post_id: result.data?.id || null,
+            result: "failed",
+            error_message: "Published to Facebook but final DB state could not be confirmed",
           },
         });
         setStatusNotice({ tone: "warning", message: "โพสต์ไปแล้ว แต่ยังอัปเดตสถานะในระบบไม่สำเร็จ" });
@@ -853,14 +1017,17 @@ function App() {
         await recordOperationLog({
           level: "error",
           source: "manual_publish",
-          event: "publish_error",
+          event: "publish_completed",
           message: error?.message || "Unexpected manual publish error.",
-          metadata: {},
+          metadata: {
+            result: "failed",
+            error_message: error?.message || "Unexpected manual publish error.",
+          },
         });
         setStatusNotice({ tone: "danger", message: `โพสต์ไม่สำเร็จ: ${toUserSafeMessage(error, "โพสต์ไม่สำเร็จ")}` });
       }
     },
-    [recordOperationLog, remotePosts, settings]
+    [mergeRemotePostTruth, recordOperationLog, remotePosts, settings]
   );
 
   const handleSchedulePost = useCallback(
@@ -896,7 +1063,7 @@ function App() {
           return false;
         }
 
-        setRemotePosts((current) => current.map((item) => (item.id === postId ? update.data : item)));
+        mergeRemotePostTruth(update.data);
         await recordOperationLog({
           category: "scheduler",
           level: "info",
@@ -933,7 +1100,7 @@ function App() {
         setIsSchedulingPostId(null);
       }
     },
-    [recordOperationLog, remotePosts, settings.facebookPublishMode]
+    [mergeRemotePostTruth, recordOperationLog, remotePosts, settings.facebookPublishMode]
   );
 
   const handleUnschedulePost = useCallback(
@@ -958,7 +1125,7 @@ function App() {
           return false;
         }
 
-        setRemotePosts((current) => current.map((item) => (item.id === postId ? update.data : item)));
+        mergeRemotePostTruth(update.data);
         const logResult = await recordOperationLog({
           category: "scheduler",
           level: "info",
@@ -992,7 +1159,7 @@ function App() {
         setIsUnschedulingPostId(null);
       }
     },
-    [recordOperationLog, remotePosts, settings.facebookPublishMode]
+    [mergeRemotePostTruth, recordOperationLog, remotePosts, settings.facebookPublishMode]
   );
 
   async function handleSchedulerTick() {
@@ -1004,7 +1171,7 @@ function App() {
       try {
         const summary = await runSchedulerTick(currentPosts, currentSettings, {
           onPostPublished: (updatedPost) => {
-            setRemotePosts((current) => current.map((item) => (item.id === updatedPost.id ? updatedPost : item)));
+            mergeRemotePostTruth(updatedPost);
           },
         });
         const logsResult = await fetchOperationLogs();

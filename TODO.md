@@ -2,189 +2,138 @@
 
 ## Current Status
 
-UI foundation and controlled Phase C backend expansion are now stable. Mock mode remains the default. The current priority is test-ready stabilization of the core create-post flow before any further UI polish.
+AutoPost Studio now has a locked stable production baseline.
 
-MVP core is currently locked as stable after the controlled QA pass and latest checkpoint commit:
+Completed and locked:
 
-* `9802c7b` `controlled production qa fixes`
-* `94ea0a6` `lock mvp core stable`
+* publish flow stable
+* scheduler V1 stable
+* Create flow stable
+* storage layer stable
+* Supabase architecture stable
+* real publish stabilization complete
+* production deployment sync verified
+* cinematic editorial direction locked
+
+Current development direction:
+
+* AI Editorial Operating System
+* Thai-first cinematic editorial strategy
+* invisible systems narrative direction
+* global aesthetic + Thai emotional storytelling
+* operational reliability and content workflow over architecture expansion
 
 ---
 
-# Development Rules
+# Permanent Rules
 
-1. Prefer large safe batches over micro-phases.
-2. Preserve stable publish flow and scheduler stability.
-3. Never weaken mock-mode safety.
-4. Prefer extension over replacement.
-5. Avoid unnecessary rewrites, abstractions, and file churn.
-6. Commit only at meaningful milestones.
-7. Update docs only after meaningful milestones, and keep all three project docs synchronized.
-8. Do not expand backend/database architecture before the controlled expansion phase unless required for production safety.
+1. Minimize token usage.
+2. Minimize phase fragmentation.
+3. Preserve rollback safety.
+4. Avoid rewrites.
+5. Avoid architecture churn.
+6. Avoid speculative systems.
+7. Prefer large safe batches.
+8. Commit only meaningful checkpoints.
+9. Update docs only after meaningful milestones.
 
 ---
 
-# Roadmap
+# Locked Roadmap
 
-## Phase A - MVP Production Activation
+## Phase 1 — Automation Reliability Lock
 
 Goal:
-Production-safe real AI generation MVP with minimal architecture changes.
+Production-safe scheduling reliability.
 
-### In Scope
+TODO:
 
-* Connect text provider routing to existing real generation services
-* Add runtime validation for provider readiness
-* Ensure provider badges/status reflect actual routing state
-* Connect image provider selection to the current image generation flow
-* Run end-to-end generation QA across generate, preview, draft, schedule, and publish flows
+* scheduler QA
+* overnight scheduling tests
+* scheduled image publish QA
+* duplicate prevention QA
+* failed publish handling QA
+* cron + Edge Function reliability verification
 
-### Completed In This Milestone
+Current checkpoint:
 
-* Real text provider routing through the existing `ai-generation.js` service
-* Gemini API routing
-* OpenAI API routing
-* Safe Mock fallback for unavailable or failing text providers
-* Runtime text provider status updates in the current UI
+* final reliability hardening batch is now in code
+* remaining Phase 1 work should focus on real overnight QA and production confirmation, not architecture changes
 
-### Constraints
+Not allowed:
 
-* Use existing stable services where possible
-* No major refactor
-* No scheduler redesign
-* No database expansion unless absolutely necessary for MVP safety
+* scheduler redesign
+* queue redesign
+* backend rewrite
 
-## Phase B - Production Safety + Stabilization
+Success condition:
+System can reliably auto-post with the app/browser/computer closed.
 
-Goal:
-Stable low-cost production operation.
-
-### In Scope
-
-* Improve error handling
-* Harden validation paths
-* Perform scheduler QA
-* Perform publish QA
-* Harden settings behavior
-* Stabilize build/release behavior
-
-### Completed In This Milestone
-
-* Clearer provider validation safeguards for missing keys and fallback cases
-* Safer runtime provider and publish-mode visibility
-* Compact user-safe notices for generation and draft save flows
-* Defensive handler hardening to reduce UI crash risk
-* Stability review of generate, save, preview, scheduler compatibility, and publish compatibility without backend changes
-* Controlled QA fixes for persisted draft reload/edit and preview-side provider visibility
-
-### Constraints
-
-* Focus on reliability, not feature expansion
-* Preserve current stable backend behavior
-
-## Phase C - Controlled Backend Expansion
+## Phase 2 — Content Factory Workflow
 
 Goal:
-Expand backend capabilities only after MVP stability is proven.
+Efficient batch content creation and scheduling.
 
-### In Scope
+TODO:
 
-* Multi-page database architecture
-* Queue processor V2
-* Logs persistence
-* Analytics foundation
+* batch content workflow
+* draft stock workflow
+* reusable content structures
+* save/schedule workflow optimization
+* cinematic consistency workflow
 
-### Planning-Only Starting Scope
+Important:
+Focus on operator efficiency and low token usage. Avoid unnecessary UI redesign.
 
-* Minimal multi-page schema only
-* Page-aware settings/token routing only
-* Queue processor V2 only after routing is stable
-* Logs persistence only after queue behavior is stable
+Success condition:
+Can stockpile and schedule 30–100 posts consistently.
 
-### Fewest Meaningful Milestones
+## Phase 3 — Prompt Intelligence Layer
 
-* Batch 1: multi-page schema + page-aware routing
-* Batch 2: queue/page routing foundation wrap-up
-* Batch 3: controlled per-page publish activation
-* Batch 4: logs persistence foundation
-* Batch 5: queue processor V2
+Goal:
+Improve cinematic image consistency and reduce abstract prompt failures.
 
-### Completed In Phase C
+TODO:
 
-* Batch 1 added the multi-page routing foundation with default compatibility fallback
-* Batch 2 consolidated page context, publish readiness, and dry-run routing diagnostics
-* Batch 3 activated guarded per-page publish routing while preserving mock default and global V1 fallback safety
-* Added migration-safe Supabase SQL for `operation_logs`
-* Added a non-blocking operation log service with silent failure when log storage is unavailable
-* Logged high-value manual publish and scheduled publish success/failure/block/fallback events
-* Connected the existing Logs viewer to persisted logs when available
-* Kept scheduler structure, publish processor structure, and Facebook service behavior unchanged
-* Final QA confirmed create/save/reload draft flow, page-context restore, scheduled publish compatibility, per-page live safety rules, and non-blocking logs behavior
-* Post-Phase C stabilization fixed `posts_page_id_fkey` draft save issues, improved draft refresh/edit behavior, reduced misleading scheduler/logs states, and connected the image prompt/image entry flow to the existing safe services
+* topic → cinematic image prompt translation
+* visual metaphor mapping
+* narrative-aware image prompt generation
+* cinematic image consistency refinement
+* brand-aware prompt structure
 
-### Risk Areas
+Important:
+Extend existing systems only. Do not rewrite provider architecture.
 
-* Supabase schema expansion
-* Multi-page routing safety
-* Scheduler queue V2 stability
-* Logs persistence write-path complexity
-* Facebook publish safety under page-aware routing
+Success condition:
+Short topics reliably generate cinematic editorial visuals.
 
-### Constraints
+## Phase 4 — Brand Memory + Lightweight Analytics
 
-* No premature optimization
-* No unnecessary schema growth
-* No scheduler redesign before proven need
-* Do not start implementation without a dedicated controlled checkpoint
+Goal:
+Long-term optimization and AI-assisted content refinement.
+
+TODO:
+
+* engagement tracking
+* hook/topic performance tracking
+* image performance tracking
+* reusable winning pattern memory
+* lightweight brand memory refinement
+
+Important:
+Keep analytics lightweight and operational.
+
+Success condition:
+System can learn and reinforce high-performing content patterns.
 
 ---
 
-# Deferred Until Phase C or Later
+# Deferred / Removed
 
-* Supabase `pages` table and per-page token routing
-* Queue processor redesign
-* Analytics implementation
-* Auth / SaaS / billing
-* Codex CLI execution
-* Advanced provider failover
-
----
-
-# Milestone Tracking
-
-## Ready Now
-
-* MVP core maintenance only
-* Test-ready stabilization batch only
-
-### Current Focus
-
-* stabilize Generate -> Image Prompt -> Image -> Preview -> Save -> Reload/Edit
-* keep Create page input-left / preview-right
-* let page profile guide writing and image prompt direction
-* keep Mock / OpenAI Image / future image providers as the image direction
-* keep save draft `page_id` compatibility safe
-* keep page setup in `?????????` and Settings as system-only
-* clarify Status and Scheduler around current real V1 behavior
-* keep backend, schema, scheduler engine, queue redesign, and analytics deferred
-
-Checkpoint:
-Create flow runtime wiring is fixed and QA-passed. Preview receives caption only, image prompt goes to Image Studio prompt, upload-first image flow works, local Gemini env is aligned to `gemini-2.5-flash`, and scheduler/publish/Facebook/backend remain untouched.
-
-Storage checkpoint:
-Supabase image upload diagnostics are stabilized, persisted image URLs are limited to HTTPS public storage URLs, and `supabase-setup.sql` now includes the `generated-images` bucket plus anon storage policies required by the current upload path.
-
-Production sync checkpoint:
-Code-side storage stabilization is present, but the real Supabase backend and Vercel production state still need explicit verification. Use `SUPABASE_APPLY_REQUIRED.md`, `PRODUCTION_DEPLOY_REQUIRED.md`, and `node verify-storage-upload.mjs` as the next production QA steps.
-
-Real publish stabilization checkpoint:
-Real publish stabilization is complete. Public Supabase image URLs are enforced, scheduled text-only and scheduled image posts passed QA, and draft save/reload/edit/republish passed QA. Next work should preserve this locked publish/storage boundary and avoid scheduler/queue/provider rewrites unless a new blocker appears.
-
-## After Phase A Is Stable
-
-* Phase B stabilization batch
-
-## After Phase B Is Stable
-
-* Phase C controlled backend expansion
-
+* SaaS expansion
+* auth/billing
+* mobile app
+* queue redesign
+* backend rewrite
+* advanced analytics expansion
+* speculative provider frameworks
