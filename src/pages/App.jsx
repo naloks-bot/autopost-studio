@@ -162,6 +162,7 @@ function App() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isGeneratingImagePrompt, setIsGeneratingImagePrompt] = useState(false);
   const [isSavingDraft, setIsSavingDraft] = useState(false);
+  const [isSchedulingPostId, setIsSchedulingPostId] = useState(null);
   const [isSavingSettings, setIsSavingSettings] = useState(false);
   const [generationError, setGenerationError] = useState("");
   const [schedulerStatus, setSchedulerStatus] = useState(null);
@@ -795,6 +796,75 @@ function App() {
     [recordOperationLog, remotePosts, settings]
   );
 
+  const handleSchedulePost = useCallback(
+    async (postId, scheduledAt) => {
+      const post = remotePosts.find((item) => item.id === postId);
+      if (!post) {
+        setStatusNotice({ tone: "danger", message: "ไม่พบโพสต์ที่ต้องการตั้งเวลา" });
+        return false;
+      }
+
+      if (!scheduledAt) {
+        setStatusNotice({ tone: "warning", message: "กรุณาเลือกวันและเวลาที่ต้องการโพสต์" });
+        return false;
+      }
+
+      const scheduledDate = new Date(scheduledAt);
+      if (Number.isNaN(scheduledDate.getTime())) {
+        setStatusNotice({ tone: "danger", message: "วันเวลาที่เลือกไม่ถูกต้อง" });
+        return false;
+      }
+
+      setIsSchedulingPostId(postId);
+      try {
+        const update = await updateRemotePostStatus(postId, "scheduled", {
+          scheduled_at: scheduledDate.toISOString(),
+        });
+
+        if (!update.data) {
+          setStatusNotice({
+            tone: "danger",
+            message: `ตั้งเวลาโพสต์ไม่สำเร็จ: ${toUserSafeMessage(update.error, "ยังบันทึกเวลาลงระบบไม่ได้")}`,
+          });
+          return false;
+        }
+
+        setRemotePosts((current) => current.map((item) => (item.id === postId ? update.data : item)));
+        await recordOperationLog({
+          level: "info",
+          source: "scheduler",
+          event: "schedule_saved",
+          message: `Saved schedule for "${post.topic || "Untitled post"}".`,
+          page_id: post.page_id || "default",
+          post_id: post.id,
+          metadata: {
+            publish_mode: settings.facebookPublishMode || "mock",
+            scheduled_at: update.data.scheduled_at || scheduledDate.toISOString(),
+            image_url_type: post.image_url
+              ? post.image_url.startsWith("https://")
+                ? "https"
+                : post.image_url.split(":")[0] || "unknown"
+              : "none",
+          },
+        });
+        setStatusNotice({
+          tone: "success",
+          message: `ตั้งเวลาโพสต์แล้วสำหรับ ${formatDate(update.data.scheduled_at || scheduledDate.toISOString())}`,
+        });
+        return true;
+      } catch (error) {
+        setStatusNotice({
+          tone: "danger",
+          message: `ตั้งเวลาโพสต์ไม่สำเร็จ: ${toUserSafeMessage(error, "เกิดข้อผิดพลาดระหว่างบันทึกเวลา")}`,
+        });
+        return false;
+      } finally {
+        setIsSchedulingPostId(null);
+      }
+    },
+    [recordOperationLog, remotePosts, settings.facebookPublishMode]
+  );
+
   async function handleSchedulerTick() {
     if (schedulerLock.current) return;
     const { remotePosts: currentPosts, settings: currentSettings } = stateRef.current;
@@ -930,6 +1000,8 @@ function App() {
                   handleDeleteLocalDraft={handleDeleteLocalDraft}
                   handleLoadDraftToEditor={handleLoadDraftToEditor}
                   handlePublishPost={handlePublishPost}
+                  handleSchedulePost={handleSchedulePost}
+                  isSchedulingPostId={isSchedulingPostId}
                   settings={settings}
                   workspacePages={workspacePages}
                   schedulerStatus={schedulerStatus}

@@ -1,7 +1,23 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import { AlertCircle, Calendar, CheckCircle2, Clock, Facebook, Info, Pencil, Send, Trash2 } from "lucide-react";
 import ActionButton from "../components/ActionButton.jsx";
 import { getPagePublishReadiness, resolveEffectivePublishConfig, runPerPagePublishDryRun } from "../services/page-context.js";
+
+function toDateTimeLocalValue(value) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  const offset = date.getTimezoneOffset();
+  const localDate = new Date(date.getTime() - offset * 60 * 1000);
+  return localDate.toISOString().slice(0, 16);
+}
+
+function getMinDateTimeLocalValue() {
+  const now = new Date();
+  const offset = now.getTimezoneOffset();
+  const localNow = new Date(now.getTime() - offset * 60 * 1000);
+  return localNow.toISOString().slice(0, 16);
+}
 
 function StatusPage({
   allPendingPosts,
@@ -11,12 +27,16 @@ function StatusPage({
   handleDeleteLocalDraft,
   handleLoadDraftToEditor,
   handlePublishPost,
+  handleSchedulePost,
+  isSchedulingPostId,
   settings,
   workspacePages,
   schedulerStatus,
   statusNotice,
 }) {
   const activePageId = settings.activePageId || "default";
+  const [openSchedulePostId, setOpenSchedulePostId] = useState(null);
+  const [scheduleValue, setScheduleValue] = useState("");
 
   const pageAware = useMemo(() => {
     const pendingForPage = allPendingPosts.filter((post) => (post.page_id || "default") === activePageId);
@@ -31,6 +51,23 @@ function StatusPage({
       list: pendingForPage,
     };
   }, [activePageId, allPendingPosts, remotePosts]);
+
+  const handleOpenSchedule = (post) => {
+    setOpenSchedulePostId(post.id);
+    setScheduleValue(toDateTimeLocalValue(post.scheduled_at) || getMinDateTimeLocalValue());
+  };
+
+  const handleCloseSchedule = () => {
+    setOpenSchedulePostId(null);
+    setScheduleValue("");
+  };
+
+  const handleSubmitSchedule = async (postId) => {
+    const success = await handleSchedulePost(postId, scheduleValue);
+    if (success) {
+      handleCloseSchedule();
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -117,6 +154,8 @@ function StatusPage({
               settings,
               pages: workspacePages,
             });
+            const isScheduleOpen = openSchedulePostId === post.id;
+            const isRemotePost = post.source !== "local";
 
             return (
               <article
@@ -159,6 +198,9 @@ function StatusPage({
                       <span className="rounded-full bg-cyan-500/10 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-cyan-400">
                         เส้นทางโพสต์: {effectivePublish.effectivePublishLabel}
                       </span>
+                      <span className="rounded-full bg-white/5 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-300">
+                        สถานะ: {post.status || "draft"}
+                      </span>
                     </div>
 
                     <div className="mt-2 rounded-lg border border-cyan-500/10 bg-cyan-500/5 px-3 py-2">
@@ -190,7 +232,7 @@ function StatusPage({
                   </div>
                 </div>
 
-                <div className="flex shrink-0 flex-col justify-center gap-2 lg:w-44 lg:border-l lg:border-white/5 lg:pl-5">
+                <div className="flex shrink-0 flex-col justify-center gap-2 lg:w-52 lg:border-l lg:border-white/5 lg:pl-5">
                   {post.source === "local" ? (
                     <>
                       <ActionButton label="แก้ไขร่าง" icon={Pencil} onClick={() => handleLoadDraftToEditor(post)} variant="outline" fullWidth />
@@ -199,6 +241,13 @@ function StatusPage({
                   ) : (
                     <>
                       <ActionButton label="แก้ไขร่าง" icon={Pencil} onClick={() => handleLoadDraftToEditor(post)} variant="outline" fullWidth />
+                      <ActionButton
+                        label={post.status === "scheduled" ? "เปลี่ยนเวลา" : "ตั้งเวลาโพสต์"}
+                        icon={Calendar}
+                        onClick={() => handleOpenSchedule(post)}
+                        variant="amber"
+                        fullWidth
+                      />
                       <ActionButton
                         label={settings.facebookPublishMode === "live" ? "โพสต์ตอนนี้" : "ทดสอบโพสต์"}
                         icon={Send}
@@ -216,6 +265,33 @@ function StatusPage({
                     </>
                   )}
                 </div>
+
+                {isRemotePost && isScheduleOpen ? (
+                  <div className="w-full rounded-2xl border border-amber-500/20 bg-amber-500/5 p-4 lg:ml-[calc(11rem+1.25rem)]">
+                    <div className="flex flex-col gap-3 lg:flex-row lg:items-end">
+                      <label className="block flex-1">
+                        <span className="mb-2 block text-[10px] font-bold uppercase tracking-wider text-amber-300">Schedule Post</span>
+                        <input
+                          type="datetime-local"
+                          value={scheduleValue}
+                          min={getMinDateTimeLocalValue()}
+                          onChange={(event) => setScheduleValue(event.target.value)}
+                          className="w-full rounded-xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm text-slate-200 outline-none transition focus:border-amber-400"
+                        />
+                      </label>
+                      <div className="flex gap-2">
+                        <ActionButton
+                          label="บันทึกเวลา"
+                          icon={CheckCircle2}
+                          onClick={() => void handleSubmitSchedule(post.id)}
+                          variant="amber"
+                          isLoading={isSchedulingPostId === post.id}
+                        />
+                        <ActionButton label="ยกเลิก" icon={Trash2} onClick={handleCloseSchedule} variant="outline" />
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
               </article>
             );
           })
