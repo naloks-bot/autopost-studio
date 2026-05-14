@@ -61,28 +61,50 @@ function isMissingPostsColumnError(error) {
   );
 }
 
-async function selectPostsQuery(builder, { single = false, maybeSingle = false } = {}) {
-  let query = builder.select(POSTS_SELECT);
+function applyRowMode(query, { single = false, maybeSingle = false } = {}) {
   if (single) query = query.single();
   if (maybeSingle) query = query.maybeSingle();
+  return query;
+}
 
-  let result = await query;
+async function selectPostsQuery(buildQuery, options = {}) {
+  let result = await applyRowMode(buildQuery(POSTS_SELECT), options);
+
   if (result.error && isMissingPostsColumnError(result.error)) {
-    let fallbackQuery = builder.select(POSTS_SELECT_FALLBACK);
-    if (single) fallbackQuery = fallbackQuery.single();
-    if (maybeSingle) fallbackQuery = fallbackQuery.maybeSingle();
-    result = await fallbackQuery;
+    result = await applyRowMode(buildQuery(POSTS_SELECT_FALLBACK), options);
+  }
+
+  return result;
+}
+
+function removeUndefinedEntries(record = {}) {
+  return Object.fromEntries(Object.entries(record).filter(([, value]) => typeof value !== "undefined"));
+}
+
+function stripUnsupportedPostsWriteColumns(payload = {}) {
+  const nextPayload = { ...payload };
+  delete nextPayload.updated_at;
+  delete nextPayload.facebook_post_id;
+  return removeUndefinedEntries(nextPayload);
+}
+
+async function writePostsMutation(buildMutation, payload, options = {}) {
+  let result = await selectPostsQuery((columns) => buildMutation(payload).select(columns), options);
+
+  if (result.error && isMissingPostsColumnError(result.error)) {
+    const fallbackPayload = stripUnsupportedPostsWriteColumns(payload);
+    result = await selectPostsQuery((columns) => buildMutation(fallbackPayload).select(columns), options);
   }
 
   return result;
 }
 
 function buildStatusPayload(status, extraData = {}) {
-  return {
+  return removeUndefinedEntries({
     status,
     ...extraData,
     updated_at: extraData.updated_at || new Date().toISOString(),
-  };
+  });
 }
 
 function normalizeWorkspacePage(record) {
@@ -163,6 +185,16 @@ function buildRemotePagePayload(page = {}) {
   };
 }
 
+function applyScheduledAtFilter(query, extraFilters = {}) {
+  if (typeof extraFilters.scheduled_at === "undefined") {
+    return query;
+  }
+
+  return extraFilters.scheduled_at === null
+    ? query.is("scheduled_at", null)
+    : query.eq("scheduled_at", extraFilters.scheduled_at);
+}
+
 async function ensureRemotePages(workspacePages = [], requestedPageId = "default") {
   if (!supabase) {
     return { data: [], error: new Error("Missing Supabase environment variables."), mode: "offline" };
@@ -215,7 +247,7 @@ async function ensureRemotePages(workspacePages = [], requestedPageId = "default
 }
 
 function buildDraftPayload(draft = {}) {
-  return {
+  return removeUndefinedEntries({
     page_id: draft.page_id || "default",
     topic: draft.topic,
     content: draft.content,
@@ -229,7 +261,7 @@ function buildDraftPayload(draft = {}) {
     scheduled_at: draft.scheduled_at || null,
     created_at: draft.created_at || new Date().toISOString(),
     updated_at: new Date().toISOString(),
-  };
+  });
 }
 
 export async function fetchRemotePosts() {
@@ -342,10 +374,9 @@ export async function insertRemoteDraft(draft, options = {}) {
   logger.info("Inserting remote draft...");
   let payload = buildDraftPayload(draft);
 
-  let { data, error } = await selectPostsQuery(
-    supabase
-      .from("posts")
-      .insert([payload]),
+  let { data, error } = await writePostsMutation(
+    (nextPayload) => supabase.from("posts").insert([nextPayload]),
+    payload,
     { single: true }
   );
 
@@ -356,10 +387,9 @@ export async function insertRemoteDraft(draft, options = {}) {
         ? payload.page_id
         : "default";
       payload = { ...payload, page_id: validPageId };
-      const retryResult = await selectPostsQuery(
-        supabase
-          .from("posts")
-          .insert([payload]),
+      const retryResult = await writePostsMutation(
+        (nextPayload) => supabase.from("posts").insert([nextPayload]),
+        payload,
         { single: true }
       );
       data = retryResult.data;
@@ -395,11 +425,9 @@ export async function updateRemoteDraft(postId, draft, options = {}) {
   logger.info(`Updating remote draft ${postId}...`);
   let payload = buildDraftPayload(draft);
 
-  let { data, error } = await selectPostsQuery(
-    supabase
-      .from("posts")
-      .update(payload)
-      .eq("id", postId),
+  let { data, error } = await writePostsMutation(
+    (nextPayload) => supabase.from("posts").update(nextPayload).eq("id", postId),
+    payload,
     { single: true }
   );
 
@@ -410,11 +438,9 @@ export async function updateRemoteDraft(postId, draft, options = {}) {
         ? payload.page_id
         : "default";
       payload = { ...payload, page_id: validPageId };
-      const retryResult = await selectPostsQuery(
-        supabase
-          .from("posts")
-          .update(payload)
-          .eq("id", postId),
+      const retryResult = await writePostsMutation(
+        (nextPayload) => supabase.from("posts").update(nextPayload).eq("id", postId),
+        payload,
         { single: true }
       );
       data = retryResult.data;
@@ -450,11 +476,9 @@ export async function updateRemotePostStatus(postId, status, extraData = {}) {
   logger.info(`Updating status for post ${postId} to: ${status}`);
   const payload = buildStatusPayload(status, extraData);
 
-  const { data, error } = await selectPostsQuery(
-    supabase
-      .from("posts")
-      .update(payload)
-      .eq("id", postId),
+  const { data, error } = await writePostsMutation(
+    (nextPayload) => supabase.from("posts").update(nextPayload).eq("id", postId),
+    payload,
     { single: true }
   );
 
@@ -485,9 +509,7 @@ export async function fetchRemotePostById(postId) {
   }
 
   const { data, error } = await selectPostsQuery(
-    supabase
-      .from("posts")
-      .eq("id", postId),
+    (columns) => supabase.from("posts").select(columns).eq("id", postId),
     { maybeSingle: true }
   );
 
@@ -517,19 +539,19 @@ export async function claimRemotePostForPublishing(postId, allowedStatuses = ["d
   }
 
   const payload = buildStatusPayload("publishing");
-  let builder = supabase
-    .from("posts")
-    .update(payload)
-    .eq("id", postId)
-    .in("status", allowedStatuses);
-
-  if (typeof extraFilters.scheduled_at !== "undefined") {
-    builder = extraFilters.scheduled_at === null
-      ? builder.is("scheduled_at", null)
-      : builder.eq("scheduled_at", extraFilters.scheduled_at);
-  }
-
-  const { data, error } = await selectPostsQuery(builder, { maybeSingle: true });
+  const { data, error } = await writePostsMutation(
+    (nextPayload) =>
+      applyScheduledAtFilter(
+        supabase
+          .from("posts")
+          .update(nextPayload)
+          .eq("id", postId)
+          .in("status", allowedStatuses),
+        extraFilters
+      ),
+    payload,
+    { maybeSingle: true }
+  );
 
   if (error) {
     return {
@@ -575,26 +597,16 @@ export async function finalizeRemotePublishedPost(postId, { postedAt, facebookPo
     facebook_post_id: facebookPostId || null,
   });
 
-  let builder = supabase
-    .from("posts")
-    .update(fullPayload)
-    .eq("id", postId)
-    .eq("status", "publishing");
-
-  let { data, error } = await selectPostsQuery(builder, { maybeSingle: true });
-
-  if (error && isMissingPostsColumnError(error)) {
-    const fallbackPayload = buildStatusPayload("posted", {
-      posted_at: nextPostedAt,
-      scheduled_at: null,
-    });
-    builder = supabase
-      .from("posts")
-      .update(fallbackPayload)
-      .eq("id", postId)
-      .eq("status", "publishing");
-    ({ data, error } = await selectPostsQuery(builder, { maybeSingle: true }));
-  }
+  const { data, error } = await writePostsMutation(
+    (payload) =>
+      supabase
+        .from("posts")
+        .update(payload)
+        .eq("id", postId)
+        .eq("status", "publishing"),
+    fullPayload,
+    { maybeSingle: true }
+  );
 
   if (error) {
     return { data: null, error, mode: classifySupabaseError(error) };
@@ -622,14 +634,17 @@ export async function markRemotePostFailed(postId) {
     };
   }
 
-  const { data, error } = await selectPostsQuery(
-    supabase
-      .from("posts")
-      .update(buildStatusPayload("failed", {
-        scheduled_at: null,
-      }))
-      .eq("id", postId)
-      .eq("status", "publishing"),
+  const payload = buildStatusPayload("failed", {
+    scheduled_at: null,
+  });
+  const { data, error } = await writePostsMutation(
+    (nextPayload) =>
+      supabase
+        .from("posts")
+        .update(nextPayload)
+        .eq("id", postId)
+        .eq("status", "publishing"),
+    payload,
     { maybeSingle: true }
   );
 
