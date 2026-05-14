@@ -2,12 +2,12 @@ import { Calendar, ChevronRight, HelpCircle, Layers3, ListTodo, PlusCircle, Sett
 
 function Sidebar({ activeTab, setActiveTab, workspaceName, onOpenGuide }) {
   const menuItems = [
-    { id: "create", label: "à¸ªà¸£à¹‰à¸²à¸‡à¹‚à¸žà¸ªà¸•à¹Œ", icon: PlusCircle },
-    { id: "pages", label: "à¸ˆà¸±à¸”à¸à¸²à¸£à¹€à¸žà¸ˆ", icon: Layers3 },
-    { id: "status", label: "à¸ªà¸–à¸²à¸™à¸°à¸£à¸°à¸šà¸š", icon: ListTodo },
-    { id: "scheduler", label: "à¸£à¸°à¸šà¸šà¹‚à¸žà¸ªà¸•à¹Œà¸­à¸±à¸•à¹‚à¸™à¸¡à¸±à¸•à¸´", icon: Calendar },
-    { id: "logs", label: "à¸›à¸£à¸°à¸§à¸±à¸•à¸´à¸£à¸°à¸šà¸š", icon: Terminal },
-    { id: "settings", label: "à¸•à¸±à¹‰à¸‡à¸„à¹ˆà¸²", icon: Settings },
+    { id: "create", label: "สร้างโพสต์", icon: PlusCircle },
+    { id: "pages", label: "จัดการเพจ", icon: Layers3 },
+    { id: "status", label: "สถานะระบบ", icon: ListTodo },
+    { id: "scheduler", label: "ระบบโพสต์อัตโนมัติ", icon: Calendar },
+    { id: "logs", label: "ประวัติระบบ", icon: Terminal },
+    { id: "settings", label: "ตั้งค่า", icon: Settings },
   ];
 
   return (
@@ -51,13 +51,13 @@ function Sidebar({ activeTab, setActiveTab, workspaceName, onOpenGuide }) {
           className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-slate-400 transition-all hover:bg-white/5 hover:text-slate-200"
         >
           <HelpCircle className="h-5 w-5 text-slate-500" />
-          <span>à¸„à¸¹à¹ˆà¸¡à¸·à¸­à¹ƒà¸Šà¹‰à¸‡à¸²à¸™</span>
+          <span>คู่มือใช้งาน</span>
         </button>
 
         <div className="rounded-xl bg-white/5 p-4">
           <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">AutoPost Studio v0.3.0</p>
           <div className="mt-2 flex items-center justify-between">
-            <span className="text-xs text-slate-400">à¸žà¸£à¹‰à¸­à¸¡à¹ƒà¸Šà¹‰à¸‡à¸²à¸™</span>
+            <span className="text-xs text-slate-400">พร้อมใช้งาน</span>
             <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]"></div>
           </div>
         </div>
