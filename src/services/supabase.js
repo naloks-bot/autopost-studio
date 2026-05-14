@@ -7,6 +7,11 @@ const POSTS_SELECT =
   "id, page_id, topic, content, image_prompt, image_url, image_provider, image_revised_prompt, image_storage_path, image_storage_mode, status, scheduled_at, posted_at, facebook_post_id, created_at, updated_at";
 const POSTS_SELECT_FALLBACK =
   "id, page_id, topic, content, image_prompt, image_url, image_provider, image_revised_prompt, image_storage_path, image_storage_mode, status, scheduled_at, posted_at, created_at";
+const POSTS_SELECT_LEGACY =
+  "id, page_id, topic, content, image_prompt, image_url, status, scheduled_at, posted_at, created_at";
+const POSTS_SELECT_BASE =
+  "id, topic, content, image_prompt, image_url, status, scheduled_at, posted_at, created_at";
+const POSTS_SELECT_VARIANTS = [POSTS_SELECT, POSTS_SELECT_FALLBACK, POSTS_SELECT_LEGACY, POSTS_SELECT_BASE];
 const PAGES_SELECT =
   "id, label, description, facebook_page_id, facebook_page_access_token, created_at, updated_at";
 const PAGES_SELECT_FALLBACK =
@@ -53,11 +58,42 @@ export function normalizePost(post) {
   };
 }
 
+function sanitizeLogValue(value, maxLength = 240) {
+  const next = String(value || "").replace(/\s+/g, " ").trim();
+  if (!next) return "";
+  return next.length <= maxLength ? next : `${next.slice(0, maxLength - 3)}...`;
+}
+
+function sanitizeSupabaseError(error) {
+  if (!error) {
+    return { message: "Unknown Supabase error" };
+  }
+
+  return removeUndefinedEntries({
+    code: typeof error.code === "string" ? error.code : undefined,
+    message: sanitizeLogValue(error.message || "Unknown Supabase error"),
+    details: sanitizeLogValue(error.details),
+    hint: sanitizeLogValue(error.hint),
+  });
+}
+
+function logSupabaseOperationError(operation, error) {
+  const sanitized = sanitizeSupabaseError(error);
+  const summary = `[AutoPost Supabase] ${operation} failed${sanitized.code ? ` (${sanitized.code})` : ""}: ${sanitized.message}`;
+  logger.warn(summary, sanitized);
+  if (import.meta.env.PROD) {
+    console.warn(summary, sanitized);
+  }
+}
+
 function isMissingPostsColumnError(error) {
+  const message = `${error?.message || ""} ${error?.details || ""} ${error?.hint || ""}`;
   return Boolean(
     error &&
       (error.code === "42703" ||
-        /column .*posts\.(facebook_post_id|updated_at).* does not exist/i.test(error.message || ""))
+        error.code === "PGRST204" ||
+        /column .*posts\.[a-z_]+.* does not exist/i.test(message) ||
+        /Could not find the '[a-z_]+' column of 'posts' in the schema cache/i.test(message))
   );
 }
 
@@ -68,10 +104,13 @@ function applyRowMode(query, { single = false, maybeSingle = false } = {}) {
 }
 
 async function selectPostsQuery(buildQuery, options = {}) {
-  let result = await applyRowMode(buildQuery(POSTS_SELECT), options);
+  let result = null;
 
-  if (result.error && isMissingPostsColumnError(result.error)) {
-    result = await applyRowMode(buildQuery(POSTS_SELECT_FALLBACK), options);
+  for (const columns of POSTS_SELECT_VARIANTS) {
+    result = await applyRowMode(buildQuery(columns), options);
+    if (!result.error || !isMissingPostsColumnError(result.error)) {
+      return result;
+    }
   }
 
   return result;
@@ -81,19 +120,50 @@ function removeUndefinedEntries(record = {}) {
   return Object.fromEntries(Object.entries(record).filter(([, value]) => typeof value !== "undefined"));
 }
 
-function stripUnsupportedPostsWriteColumns(payload = {}) {
+function stripPostsWriteColumns(payload = {}, columns = []) {
   const nextPayload = { ...payload };
-  delete nextPayload.updated_at;
-  delete nextPayload.facebook_post_id;
+  for (const column of columns) {
+    delete nextPayload[column];
+  }
   return removeUndefinedEntries(nextPayload);
 }
 
-async function writePostsMutation(buildMutation, payload, options = {}) {
-  let result = await selectPostsQuery((columns) => buildMutation(payload).select(columns), options);
+function buildPostsWritePayloadVariants(payload = {}) {
+  const variants = [
+    removeUndefinedEntries(payload),
+    stripPostsWriteColumns(payload, [
+      "updated_at",
+      "facebook_post_id",
+      "image_provider",
+      "image_revised_prompt",
+      "image_storage_path",
+      "image_storage_mode",
+    ]),
+    stripPostsWriteColumns(payload, [
+      "updated_at",
+      "facebook_post_id",
+      "image_provider",
+      "image_revised_prompt",
+      "image_storage_path",
+      "image_storage_mode",
+      "page_id",
+    ]),
+  ];
 
-  if (result.error && isMissingPostsColumnError(result.error)) {
-    const fallbackPayload = stripUnsupportedPostsWriteColumns(payload);
-    result = await selectPostsQuery((columns) => buildMutation(fallbackPayload).select(columns), options);
+  return variants.filter((variant, index) => {
+    const serialized = JSON.stringify(variant);
+    return variants.findIndex((candidate) => JSON.stringify(candidate) === serialized) === index;
+  });
+}
+
+async function writePostsMutation(buildMutation, payload, options = {}) {
+  let result = null;
+
+  for (const variantPayload of buildPostsWritePayloadVariants(payload)) {
+    result = await selectPostsQuery((columns) => buildMutation(variantPayload).select(columns), options);
+    if (!result.error || !isMissingPostsColumnError(result.error)) {
+      return result;
+    }
   }
 
   return result;
@@ -236,6 +306,7 @@ async function ensureRemotePages(workspacePages = [], requestedPageId = "default
     .select(PAGES_SELECT);
 
   if (error) {
+    logSupabaseOperationError("ensureRemotePages", error);
     return { data: [], error, mode: classifySupabaseError(error) };
   }
 
@@ -274,21 +345,16 @@ export async function fetchRemotePosts() {
   }
 
   logger.info("Fetching remote posts...");
-  let query = supabase
-    .from("posts")
-    .select(POSTS_SELECT)
-    .order("created_at", { ascending: false });
-  let { data, error } = await query;
-
-  if (error && isMissingPostsColumnError(error)) {
-    query = supabase
-      .from("posts")
-      .select(POSTS_SELECT_FALLBACK)
-      .order("created_at", { ascending: false });
-    ({ data, error } = await query);
-  }
+  const { data, error } = await selectPostsQuery(
+    (columns) =>
+      supabase
+        .from("posts")
+        .select(columns)
+        .order("created_at", { ascending: false })
+  );
 
   if (error) {
+    logSupabaseOperationError("fetchRemotePosts", error);
     return { data: [], error, mode: classifySupabaseError(error) };
   }
 
@@ -398,6 +464,7 @@ export async function insertRemoteDraft(draft, options = {}) {
   }
 
   if (error) {
+    logSupabaseOperationError("insertRemoteDraft", error);
     return {
       data: null,
       error,
@@ -449,6 +516,7 @@ export async function updateRemoteDraft(postId, draft, options = {}) {
   }
 
   if (error) {
+    logSupabaseOperationError("updateRemoteDraft", error);
     return {
       data: null,
       error,
@@ -483,6 +551,7 @@ export async function updateRemotePostStatus(postId, status, extraData = {}) {
   );
 
   if (error) {
+    logSupabaseOperationError("updateRemotePostStatus", error);
     return {
       data: null,
       error,
@@ -514,6 +583,7 @@ export async function fetchRemotePostById(postId) {
   );
 
   if (error) {
+    logSupabaseOperationError("fetchRemotePostById", error);
     return { data: null, error, mode: classifySupabaseError(error) };
   }
 
@@ -554,6 +624,7 @@ export async function claimRemotePostForPublishing(postId, allowedStatuses = ["d
   );
 
   if (error) {
+    logSupabaseOperationError("claimRemotePostForPublishing", error);
     return {
       data: null,
       error,
@@ -609,6 +680,7 @@ export async function finalizeRemotePublishedPost(postId, { postedAt, facebookPo
   );
 
   if (error) {
+    logSupabaseOperationError("finalizeRemotePublishedPost", error);
     return { data: null, error, mode: classifySupabaseError(error) };
   }
 
@@ -649,6 +721,7 @@ export async function markRemotePostFailed(postId) {
   );
 
   if (error) {
+    logSupabaseOperationError("markRemotePostFailed", error);
     return { data: null, error, mode: classifySupabaseError(error) };
   }
 
