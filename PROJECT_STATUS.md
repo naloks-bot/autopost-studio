@@ -38,6 +38,10 @@ Recent stable checkpoints:
 * execution logs now reflect actual publish completion/failure states
 * production scheduler cadence is now aligned for near-time posting every 5 minutes
 * Supabase setup script now aligns the full current `posts` schema contract for production recovery
+* Phase 1B Edge Function deploy completed after commit `c3a7ecd`
+* server automation recovery verified with browser closed via production GitHub Actions -> Supabase Edge Function publish
+* production due-post query now has live diagnostics and production-safe timestamp evaluation
+* Facebook image publish path now targets attached photo publishing instead of visible link-card fallback when `image_url` exists
 
 Permanent operating rules:
 
@@ -67,6 +71,13 @@ Operational lock:
 * safe deployment and configuration steps should be completed automatically whenever possible
 * if a manual platform/auth step is required, document where to go, what to click/run, what success looks like, and what failure output to report back
 * preserve stable systems: scheduler V1, publish flow, storage flow, Supabase architecture, Create flow, and provider routing
+
+Locked Model Selection Rules:
+
+* Production reliability, scheduler logic, Edge Function work, and Supabase state work use `GPT-5.4 High` or `GPT-5.5 High`
+* UI, layout, and operator UX work use `GPT-5.4 Medium`
+* docs and cleanup use `GPT-5.4 Low` or `GPT-5.4 Medium`
+* `Extra High` is reserved for cases where High has already failed after 2 serious attempts or production data risk is high
 
 Removed or deferred:
 
@@ -114,6 +125,9 @@ Current Phase 1 checkpoint:
 * publish mode persistence hardened
 * final reliability hardening applied for claim locking, atomic finalization, DB-truth refresh, and execution-truth logging
 * production schema alignment now covers every current `posts` column used by save, fetch, schedule, claim, finalize, and status flows
+* Phase 1B deployed to production
+* server automation recovery verified by successful production scheduled publish with browser closed
+* remaining Phase 1 work should stay focused on QA and observability, not scheduler redesign
 
 ## Phase 2 — Content Factory Workflow
 

@@ -184,6 +184,34 @@ function buildLogMetadata(post: Record<string, any>, publishConfig: Record<strin
   };
 }
 
+function buildFacebookPublishRequest(post: Record<string, any>) {
+  const params = new URLSearchParams();
+  const message = post.content || post.topic || "";
+  const safeImageUrl = !isUnsafeImageUrl(post.image_url) ? String(post.image_url || "").trim() : "";
+
+  if (safeImageUrl) {
+    params.append("url", safeImageUrl);
+    if (message) {
+      params.append("caption", message);
+    }
+    return {
+      endpoint: "photos",
+      params,
+      publishTarget: "photo",
+    };
+  }
+
+  if (message) {
+    params.append("message", message);
+  }
+
+  return {
+    endpoint: "feed",
+    params,
+    publishTarget: "feed",
+  };
+}
+
 function parseScheduledTimestamp(value: string | null | undefined) {
   const next = String(value || "").trim();
   if (!next) return null;
@@ -494,19 +522,16 @@ serve(async (req) => {
 
         let facebookPostId = `mock-edge-id-${Date.now()}`;
         if (publishMode === "live") {
-          const payload = new URLSearchParams();
-          payload.append("message", post.content || post.topic || "");
-          if (post.image_url) payload.append("link", post.image_url);
-
-          const fbResponse = await fetch(`${FB_BASE_URL}/${publishConfig.pageId}/feed?access_token=${publishConfig.accessToken}`, {
+          const publishRequest = buildFacebookPublishRequest(post);
+          const fbResponse = await fetch(`${FB_BASE_URL}/${publishConfig.pageId}/${publishRequest.endpoint}?access_token=${publishConfig.accessToken}`, {
             method: "POST",
-            body: payload,
+            body: publishRequest.params,
           });
           const fbData = await fbResponse.json();
           if (!fbResponse.ok) {
             throw new Error(fbData.error?.message || `Facebook API Error: ${fbResponse.status}`);
           }
-          facebookPostId = fbData.id || facebookPostId;
+          facebookPostId = fbData.post_id || fbData.id || facebookPostId;
         }
 
         await writeOperationLog({

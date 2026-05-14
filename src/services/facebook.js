@@ -97,32 +97,35 @@ export function getFacebookPublishDiagnostics(post = {}) {
     resolvedImageUrl,
     imageStatus,
     imageBlocked: Boolean(originalImageUrl && !resolvedImageUrl),
+    publishTarget: resolvedImageUrl ? "photo" : "feed",
     originalImageUrlType: getFacebookImageUrlType(originalImageUrl),
     resolvedImageUrlType: getFacebookImageUrlType(resolvedImageUrl),
     payloadPreview: {
       messageLength: String(post.content || post.topic || "").length,
-      includesLink: Boolean(resolvedImageUrl),
-      link: resolvedImageUrl || null,
+      includesImage: Boolean(resolvedImageUrl),
+      imageUrl: resolvedImageUrl || null,
     },
   };
 }
 
 /**
- * Builds the payload for the Facebook Graph API /feed endpoint.
+ * Builds the payload for the Facebook Graph API publish endpoint.
  * @param {Object} post - The post object (topic, content, image_url, etc).
  * @param {Object} options - Optional parameters (published, scheduled_publish_time).
- * @returns {URLSearchParams}
+ * @returns {{params: URLSearchParams, diagnostics: Object, endpoint: string}}
  */
 export function buildFacebookPostPayload(post, options = {}) {
   const diagnostics = getFacebookPublishDiagnostics(post);
   const params = new URLSearchParams();
+  const message = post.content || post.topic || "";
   
-  // Facebook uses 'message' for the main text body
-  params.append("message", post.content || post.topic || "");
-  
-  // If an image URL is present, Facebook can attach it via link parameter
   if (diagnostics.resolvedImageUrl) {
-    params.append("link", diagnostics.resolvedImageUrl);
+    params.append("url", diagnostics.resolvedImageUrl);
+    if (message) {
+      params.append("caption", message);
+    }
+  } else if (message) {
+    params.append("message", message);
   }
   
   // Scheduling options
@@ -134,7 +137,11 @@ export function buildFacebookPostPayload(post, options = {}) {
     }
   }
 
-  return { params, diagnostics };
+  return {
+    params,
+    diagnostics,
+    endpoint: diagnostics.resolvedImageUrl ? "photos" : "feed",
+  };
 }
 
 /**
@@ -209,10 +216,15 @@ export async function publishFacebookPost(post, settings) {
 
   logger.info(`Publishing to Facebook Page: ${settings.facebookPageId}`);
   try {
-    const { params: payload, diagnostics: payloadDiagnostics } = buildFacebookPostPayload(post);
-    const url = `${FB_BASE_URL}/${settings.facebookPageId}/feed?access_token=${settings.facebookPageAccessToken}`;
+    const {
+      params: payload,
+      diagnostics: payloadDiagnostics,
+      endpoint,
+    } = buildFacebookPostPayload(post);
+    const url = `${FB_BASE_URL}/${settings.facebookPageId}/${endpoint}?access_token=${settings.facebookPageAccessToken}`;
     logger.info("Facebook publish payload prepared.", {
       publishMode: settings.facebookPublishMode,
+      publishTarget: payloadDiagnostics.publishTarget,
       imageUrlType: payloadDiagnostics.resolvedImageUrlType,
       ...payloadDiagnostics.payloadPreview,
     });
@@ -241,7 +253,10 @@ export async function publishFacebookPost(post, settings) {
 
     logger.info("Facebook Publish Successful.", result);
     return {
-      data: result,
+      data: {
+        ...result,
+        id: result.post_id || result.id || null,
+      },
       error: null,
       mode: "connected",
       diagnostics: {
@@ -320,13 +335,18 @@ export async function scheduleFacebookPost(post, scheduledTime, settings) {
 
   logger.info(`Scheduling Facebook post for timestamp: ${scheduledTime}`);
   try {
-    const { params: payload, diagnostics: payloadDiagnostics } = buildFacebookPostPayload(post, { 
+    const {
+      params: payload,
+      diagnostics: payloadDiagnostics,
+      endpoint,
+    } = buildFacebookPostPayload(post, { 
       published: false, 
       scheduled_publish_time: scheduledTime 
     });
-    const url = `${FB_BASE_URL}/${settings.facebookPageId}/feed?access_token=${settings.facebookPageAccessToken}`;
+    const url = `${FB_BASE_URL}/${settings.facebookPageId}/${endpoint}?access_token=${settings.facebookPageAccessToken}`;
     logger.info("Facebook schedule payload prepared.", {
       publishMode: settings.facebookPublishMode,
+      publishTarget: payloadDiagnostics.publishTarget,
       imageUrlType: payloadDiagnostics.resolvedImageUrlType,
       ...payloadDiagnostics.payloadPreview,
     });
@@ -355,7 +375,10 @@ export async function scheduleFacebookPost(post, scheduledTime, settings) {
 
     logger.info("Facebook Schedule Successful.", result);
     return {
-      data: result,
+      data: {
+        ...result,
+        id: result.post_id || result.id || null,
+      },
       error: null,
       mode: "connected",
       diagnostics: {

@@ -96,6 +96,7 @@ Current reliability boundary inside this layer:
 * successful publish finalization clears `scheduled_at`, persists `facebook_post_id`, and re-reads DB truth
 * failed publishes transition to `failed` instead of silently remaining in queue
 * scheduler observability must log execution truth, not optimistic intent
+* image posts must publish as attached Facebook photos, while text-only posts continue to publish through the stable feed path
 
 ## 4. Storage + Persistence Layer
 
@@ -138,6 +139,13 @@ Operational workflow rules:
 7. Codex must connect changes to the real deployed website and production path, not local-only behavior.
 8. Safe deployment/configuration steps should be completed automatically whenever possible.
 9. If a manual platform step is required, provide exact navigation, actions, expected success result, and failure details to report back.
+
+Locked model selection rules:
+
+1. Production reliability, scheduler logic, Edge Function work, and Supabase state work use `GPT-5.4 High` or `GPT-5.5 High`.
+2. UI, layout, and operator UX work use `GPT-5.4 Medium`.
+3. Docs and cleanup use `GPT-5.4 Low` or `GPT-5.4 Medium`.
+4. Use `Extra High` only when High has already failed after 2 serious attempts or production data risk is high.
 
 ---
 
@@ -217,5 +225,9 @@ The stable production boundary now includes:
 * execution-truth operation logging
 * 5-minute production cron cadence for scheduler triggering
 * migration-safe Supabase `posts` schema alignment for the full current publish lifecycle contract
+* Phase 1B production Edge Function deployment
+* browser-closed server automation recovery verification
+* production-safe due-post evaluation diagnostics
+* attached-photo publish behavior for posts with `image_url`
 
 Future work should build on this boundary, not reopen it without a proven blocker.

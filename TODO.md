@@ -49,6 +49,13 @@ Operational workflow lock:
 * if a manual/auth-required step blocks progress, provide exact manual instructions with where to go, what to click/run, expected success result, and the result/error to report back
 * preserve stable systems: scheduler V1, publish flow, storage flow, Supabase architecture, Create flow, and provider routing
 
+Locked Model Selection Rules:
+
+* Production reliability, scheduler logic, Edge Function work, and Supabase state work use `GPT-5.4 High` or `GPT-5.5 High`
+* UI, layout, and operator UX work use `GPT-5.4 Medium`
+* docs and cleanup use `GPT-5.4 Low` or `GPT-5.4 Medium`
+* `Extra High` is used only if High fails after 2 serious attempts or production data risk is high
+
 ---
 
 # Locked Roadmap
@@ -71,6 +78,9 @@ Current checkpoint:
 
 * final reliability hardening batch is now in code
 * migration-safe `posts` schema alignment is now included in `supabase-setup.sql` for production recovery
+* Phase 1B Edge Function deploy is complete in production
+* server automation recovery is verified with browser-closed production publish evidence
+* image publish path is now locked to attached Facebook photo publishing when `image_url` exists
 * remaining Phase 1 work should focus on real overnight QA and production confirmation, not architecture changes
 
 Not allowed:
