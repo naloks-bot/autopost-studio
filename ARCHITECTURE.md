@@ -84,7 +84,7 @@ Responsible for:
 * scheduled publish
 * failed publish handling
 * duplicate prevention
-* cron + Edge Function execution reliability
+* cron trigger + Edge Function execution reliability
 
 Rule:
 Reliability hardening is allowed. Redesign is not.
@@ -97,6 +97,8 @@ Current reliability boundary inside this layer:
 * failed publishes transition to `failed` instead of silently remaining in queue
 * scheduler observability must log execution truth, not optimistic intent
 * image posts must publish as attached Facebook photos, while text-only posts continue to publish through the stable feed path
+* production cron delivery comes from an external cron provider hitting the stable Supabase Edge Function endpoint with `x-cron-secret`
+* GitHub Actions is retained only for manual `workflow_dispatch` fallback/debug execution and is not the production scheduler trigger
 
 ## 4. Storage + Persistence Layer
 
@@ -223,11 +225,20 @@ The stable production boundary now includes:
 * stale-state overwrite protection for manual and scheduled publish
 * duplicate prevention claim lock for due scheduled posts
 * execution-truth operation logging
-* 5-minute production cron cadence for scheduler triggering
+* 5-minute production cron cadence for scheduler triggering via external cron
 * migration-safe Supabase `posts` schema alignment for the full current publish lifecycle contract
 * Phase 1B production Edge Function deployment
-* browser-closed server automation recovery verification
+* browser-closed server automation path verification through the Edge Function and manual cron invocation
 * production-safe due-post evaluation diagnostics
 * attached-photo publish behavior for posts with `image_url`
+
+External cron setup contract:
+
+* provider: `cron-job.org`
+* endpoint: `https://qydjsobtspoykhzcckht.supabase.co/functions/v1/process-scheduled-posts`
+* method: `POST`
+* cadence: every 5 minutes
+* auth header: `x-cron-secret: <CRON_SECRET>`
+* success response: HTTP `200` with either `No due posts` or `Processing complete`
 
 Future work should build on this boundary, not reopen it without a proven blocker.

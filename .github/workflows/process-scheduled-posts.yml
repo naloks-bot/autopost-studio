@@ -4,12 +4,8 @@ env:
   SCHEDULER_FUNCTION_URL: https://qydjsobtspoykhzcckht.supabase.co/functions/v1/process-scheduled-posts
 
 on:
-  schedule:
-    # Run every 5 minutes on an offset cadence to avoid the busiest minute buckets,
-    # which GitHub notes are more likely to be delayed or dropped under load.
-    - cron: '2,7,12,17,22,27,32,37,42,47,52,57 * * * *'
   workflow_dispatch:
-    # Allow manual trigger from GitHub UI
+    # Manual fallback/debug trigger only. Production automation uses external cron.
 
 jobs:
   trigger-scheduler:

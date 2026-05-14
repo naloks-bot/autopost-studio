@@ -79,9 +79,11 @@ Current checkpoint:
 * final reliability hardening batch is now in code
 * migration-safe `posts` schema alignment is now included in `supabase-setup.sql` for production recovery
 * Phase 1B Edge Function deploy is complete in production
-* server automation recovery is verified with browser-closed production publish evidence
+* browser-closed server automation path is verified through the Edge Function and manual cron invocation
 * image publish path is now locked to attached Facebook photo publishing when `image_url` exists
-* remaining Phase 1 work should focus on real overnight QA and production confirmation, not architecture changes
+* GitHub Actions scheduled cron is retired from production use; `workflow_dispatch` remains as manual fallback/debug only
+* production automation should now be triggered by external cron calling the same Edge Function with `x-cron-secret`
+* remaining Phase 1 work should focus on external cron production confirmation and overnight QA, not architecture changes
 
 Not allowed:
 
@@ -91,6 +93,21 @@ Not allowed:
 
 Success condition:
 System can reliably auto-post with the app/browser/computer closed.
+
+External cron setup to apply:
+
+* Provider: `cron-job.org`
+* URL: `https://qydjsobtspoykhzcckht.supabase.co/functions/v1/process-scheduled-posts`
+* Method: `POST`
+* Interval: every 5 minutes
+* Required header: `x-cron-secret: <CRON_SECRET>`
+* Optional header: `Content-Type: application/json`
+* Expected success response: HTTP `200`
+
+Recommended visibility:
+
+* keep cron-job.org execution history enabled
+* spot-check Supabase post rows for `scheduled -> posted` transitions and cleared `scheduled_at`
 
 ## Phase 2 — Content Factory Workflow
 

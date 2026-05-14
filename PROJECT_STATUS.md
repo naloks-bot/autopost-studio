@@ -42,6 +42,8 @@ Recent stable checkpoints:
 * server automation recovery verified with browser closed via production GitHub Actions -> Supabase Edge Function publish
 * production due-post query now has live diagnostics and production-safe timestamp evaluation
 * Facebook image publish path now targets attached photo publishing instead of visible link-card fallback when `image_url` exists
+* GitHub Actions `workflow_dispatch` remains available as a manual scheduler fallback/debug tool
+* production cron triggering is now locked to an external cron provider instead of GitHub `event=schedule`
 
 Permanent operating rules:
 
@@ -126,8 +128,21 @@ Current Phase 1 checkpoint:
 * final reliability hardening applied for claim locking, atomic finalization, DB-truth refresh, and execution-truth logging
 * production schema alignment now covers every current `posts` column used by save, fetch, schedule, claim, finalize, and status flows
 * Phase 1B deployed to production
-* server automation recovery verified by successful production scheduled publish with browser closed
+* browser-closed server automation path is verified through the Supabase Edge Function and manual cron invocation
+* GitHub scheduled Actions are retired from the production trigger role due to unreliable schedule delivery on this repo
+* production trigger ownership now moves to an external cron service using the same Edge Function and `x-cron-secret` auth
 * remaining Phase 1 work should stay focused on QA and observability, not scheduler redesign
+
+Production external cron setup:
+
+* Provider: `cron-job.org`
+* URL: `https://qydjsobtspoykhzcckht.supabase.co/functions/v1/process-scheduled-posts`
+* Method: `POST`
+* Interval: every 5 minutes
+* Required header: `x-cron-secret: <CRON_SECRET>`
+* Optional header: `Content-Type: application/json`
+* Expected success response: HTTP `200` with either `{"message":"No due posts","count":0,...}` or `{"message":"Processing complete","count":<n>,...}`
+* Recommended health check: enable cron-job.org run notifications/history and periodically confirm recent HTTP `200` responses plus matching Supabase post state transitions
 
 ## Phase 2 — Content Factory Workflow
 
