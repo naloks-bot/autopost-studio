@@ -8,6 +8,7 @@ const corsHeaders = {
 
 const FB_API_VERSION = "v23.0";
 const FB_BASE_URL = `https://graph.facebook.com/${FB_API_VERSION}`;
+const SCHEDULER_DIAGNOSTIC_LIMIT = 100;
 
 function normalizePageId(pageId: string | null | undefined) {
   return typeof pageId === "string" && pageId.trim() ? pageId.trim() : "default";
@@ -183,6 +184,57 @@ function buildLogMetadata(post: Record<string, any>, publishConfig: Record<strin
   };
 }
 
+function parseScheduledTimestamp(value: string | null | undefined) {
+  const next = String(value || "").trim();
+  if (!next) return null;
+
+  const direct = new Date(next);
+  if (!Number.isNaN(direct.getTime())) {
+    return direct;
+  }
+
+  const normalized = /(?:[zZ]|[+-]\d{2}:\d{2})$/.test(next) ? next : `${next}Z`;
+  const fallback = new Date(normalized);
+  if (!Number.isNaN(fallback.getTime())) {
+    return fallback;
+  }
+
+  return null;
+}
+
+function getServerTimezone() {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || "unknown";
+  } catch {
+    return "unknown";
+  }
+}
+
+function evaluateDuePostCandidate(post: Record<string, any>, serverNow: Date) {
+  const scheduledDate = parseScheduledTimestamp(post.scheduled_at);
+  const scheduledAtMs = scheduledDate?.getTime() ?? null;
+  const serverNowMs = serverNow.getTime();
+  const due = scheduledAtMs !== null && scheduledAtMs <= serverNowMs;
+
+  return {
+    post,
+    due,
+    diagnostics: {
+      id: String(post.id || ""),
+      status: post.status || null,
+      scheduled_at: post.scheduled_at || null,
+      parsed_scheduled_at: scheduledDate?.toISOString() || null,
+      server_now: serverNow.toISOString(),
+      server_now_ms: serverNowMs,
+      scheduled_at_ms: scheduledAtMs,
+      comparison_result: due ? "due" : scheduledAtMs === null ? "invalid_scheduled_at" : "not_due",
+      comparison_expression: scheduledAtMs === null ? "invalid scheduled_at" : `${scheduledAtMs} <= ${serverNowMs}`,
+      filter_logic_path:
+        "db: status = scheduled AND scheduled_at IS NOT NULL -> edge: parse scheduled_at -> due if scheduled_at_ms <= server_now_ms",
+    },
+  };
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -243,18 +295,60 @@ serve(async (req) => {
       });
     }
 
-    const now = new Date().toISOString();
-    const { data: duePosts, error: postsError } = await supabase
+    const serverNow = new Date();
+    const serverNowIso = serverNow.toISOString();
+    const publishMode = settings.facebook_publish_mode || "mock";
+    const { data: scheduledCandidates, error: postsError } = await supabase
       .from("posts")
       .select("*")
       .eq("status", "scheduled")
-      .lte("scheduled_at", now)
+      .not("scheduled_at", "is", null)
       .order("scheduled_at", { ascending: true });
 
     if (postsError) throw postsError;
 
+    const candidateEvaluations = (scheduledCandidates || []).map((post) => evaluateDuePostCandidate(post, serverNow));
+    const duePosts = candidateEvaluations.filter((entry) => entry.due).map((entry) => entry.post);
+    const schedulerDiagnostics = {
+      attempted_at: serverNowIso,
+      publish_mode: publishMode,
+      scheduler_enabled: true,
+      server_timestamp: serverNowIso,
+      server_timezone: getServerTimezone(),
+      fetched_scheduled_posts_count: scheduledCandidates?.length || 0,
+      due_count: duePosts.length,
+      filter_logic_path:
+        "db: status = scheduled AND scheduled_at IS NOT NULL -> edge: parse scheduled_at -> due if scheduled_at_ms <= server_now_ms",
+      candidate_posts: candidateEvaluations
+        .slice(0, SCHEDULER_DIAGNOSTIC_LIMIT)
+        .map((entry) => entry.diagnostics),
+    };
+
+    console.log("scheduler_edge_due_query_diagnostics", JSON.stringify(schedulerDiagnostics));
+
+    await writeOperationLog({
+      category: "scheduler",
+      level: "info",
+      source: "scheduler_edge",
+      event: "scheduler_due_query_diagnostics",
+      message: "Scheduler due-post query diagnostics recorded.",
+      metadata: {
+        ...schedulerDiagnostics,
+        result: duePosts.length > 0 ? "due_found" : "no_due",
+      },
+    });
+
     if (!duePosts || duePosts.length === 0) {
-      return new Response(JSON.stringify({ message: "No due posts", count: 0 }), {
+      return new Response(JSON.stringify({
+        message: "No due posts",
+        count: 0,
+        diagnostics: {
+          server_timestamp: serverNowIso,
+          fetched_scheduled_posts_count: scheduledCandidates?.length || 0,
+          due_count: 0,
+          filter_logic_path: schedulerDiagnostics.filter_logic_path,
+        },
+      }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -266,8 +360,8 @@ serve(async (req) => {
       event: "scheduler_started",
       message: "Scheduler run started.",
       metadata: {
-        attempted_at: new Date().toISOString(),
-        publish_mode: settings.facebook_publish_mode || "mock",
+        attempted_at: serverNowIso,
+        publish_mode: publishMode,
         scheduler_enabled: true,
         due_count: duePosts.length,
         result: "started",
@@ -280,7 +374,6 @@ serve(async (req) => {
     const pages = pagesResult.error ? [] : pagesResult.data || [];
 
     const results: Array<Record<string, any>> = [];
-    const publishMode = settings.facebook_publish_mode || "mock";
 
     for (const post of duePosts) {
       const publishConfig = resolveEffectivePublishConfig(post, settings, pages);
