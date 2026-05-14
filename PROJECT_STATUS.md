@@ -37,6 +37,7 @@ Recent stable checkpoints:
 * duplicate prevention now claims due posts before publish
 * execution logs now reflect actual publish completion/failure states
 * production scheduler cadence is now aligned for near-time posting every 5 minutes
+* Supabase setup script now aligns the full current `posts` schema contract for production recovery
 
 Permanent operating rules:
 
@@ -106,6 +107,7 @@ Current Phase 1 checkpoint:
 * operation log persistence path present
 * publish mode persistence hardened
 * final reliability hardening applied for claim locking, atomic finalization, DB-truth refresh, and execution-truth logging
+* production schema alignment now covers every current `posts` column used by save, fetch, schedule, claim, finalize, and status flows
 
 ## Phase 2 — Content Factory Workflow
 

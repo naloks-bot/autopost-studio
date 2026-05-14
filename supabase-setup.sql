@@ -19,18 +19,66 @@ create table if not exists public.posts (
   updated_at timestamptz not null default now()
 );
 
--- Migration-safe column additions for existing tables
+-- Migration-safe posts schema alignment
+-- Editorial core columns used by Create flow, draft save/edit, Status page, and scheduler fetches
+alter table public.posts add column if not exists page_id text;
+alter table public.posts add column if not exists topic text;
+alter table public.posts add column if not exists content text;
+alter table public.posts add column if not exists image_prompt text default '';
+alter table public.posts add column if not exists image_url text default '';
+
+-- Image generation and storage columns used by save draft, reload/edit, and publish safety checks
 alter table public.posts add column if not exists image_provider text;
 alter table public.posts add column if not exists image_revised_prompt text;
 alter table public.posts add column if not exists image_storage_path text;
 alter table public.posts add column if not exists image_storage_mode text;
+
+-- Publish lifecycle and audit columns used by claim/finalize/fail transitions and recent-status displays
+alter table public.posts add column if not exists status text default 'draft';
+alter table public.posts add column if not exists scheduled_at timestamptz;
+alter table public.posts add column if not exists posted_at timestamptz;
 alter table public.posts add column if not exists facebook_post_id text;
+alter table public.posts add column if not exists created_at timestamptz default now();
 alter table public.posts add column if not exists updated_at timestamptz default now();
+
+update public.posts
+set topic = ''
+where topic is null;
+
+update public.posts
+set content = ''
+where content is null;
+
+update public.posts
+set image_prompt = ''
+where image_prompt is null;
+
+update public.posts
+set image_url = ''
+where image_url is null;
+
+update public.posts
+set status = 'draft'
+where status is null or btrim(status) = '';
+
+update public.posts
+set created_at = now()
+where created_at is null;
 
 update public.posts
 set updated_at = coalesce(updated_at, created_at, now())
 where updated_at is null;
 
+alter table public.posts alter column topic set default '';
+alter table public.posts alter column topic set not null;
+alter table public.posts alter column content set default '';
+alter table public.posts alter column content set not null;
+alter table public.posts alter column image_prompt set default '';
+alter table public.posts alter column image_url set default '';
+alter table public.posts alter column status set default 'draft';
+alter table public.posts alter column status set not null;
+alter table public.posts alter column created_at set default now();
+alter table public.posts alter column created_at set not null;
 alter table public.posts alter column updated_at set default now();
 alter table public.posts alter column updated_at set not null;
 

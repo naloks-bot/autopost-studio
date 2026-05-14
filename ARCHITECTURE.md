@@ -211,5 +211,6 @@ The stable production boundary now includes:
 * duplicate prevention claim lock for due scheduled posts
 * execution-truth operation logging
 * 5-minute production cron cadence for scheduler triggering
+* migration-safe Supabase `posts` schema alignment for the full current publish lifecycle contract
 
 Future work should build on this boundary, not reopen it without a proven blocker.

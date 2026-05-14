@@ -65,6 +65,7 @@ TODO:
 Current checkpoint:
 
 * final reliability hardening batch is now in code
+* migration-safe `posts` schema alignment is now included in `supabase-setup.sql` for production recovery
 * remaining Phase 1 work should focus on real overnight QA and production confirmation, not architecture changes
 
 Not allowed:

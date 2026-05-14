@@ -12,6 +12,7 @@ const POSTS_SELECT_LEGACY =
 const POSTS_SELECT_BASE =
   "id, topic, content, image_prompt, image_url, status, scheduled_at, posted_at, created_at";
 const POSTS_SELECT_VARIANTS = [POSTS_SELECT, POSTS_SELECT_FALLBACK, POSTS_SELECT_LEGACY, POSTS_SELECT_BASE];
+const POSTS_SELECT_VARIANT_LABELS = ["full", "current-no-audit", "legacy-page-aware", "legacy-base"];
 const PAGES_SELECT =
   "id, label, description, facebook_page_id, facebook_page_access_token, created_at, updated_at";
 const PAGES_SELECT_FALLBACK =
@@ -28,6 +29,8 @@ if (!hasSupabaseConfig) {
 export const supabase = hasSupabaseConfig
   ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
   : null;
+
+const postsSchemaFallbackWarnings = new Set();
 
 export function getSupabaseEnvSnapshot() {
   return {
@@ -86,6 +89,18 @@ function logSupabaseOperationError(operation, error) {
   }
 }
 
+function warnPostsSchemaFallbackOnce(key, summary, details) {
+  if (postsSchemaFallbackWarnings.has(key)) {
+    return;
+  }
+
+  postsSchemaFallbackWarnings.add(key);
+  logger.warn(summary, details);
+  if (import.meta.env.PROD) {
+    console.warn(summary, details);
+  }
+}
+
 function isMissingPostsColumnError(error) {
   const message = `${error?.message || ""} ${error?.details || ""} ${error?.hint || ""}`;
   return Boolean(
@@ -106,9 +121,20 @@ function applyRowMode(query, { single = false, maybeSingle = false } = {}) {
 async function selectPostsQuery(buildQuery, options = {}) {
   let result = null;
 
-  for (const columns of POSTS_SELECT_VARIANTS) {
+  for (const [index, columns] of POSTS_SELECT_VARIANTS.entries()) {
     result = await applyRowMode(buildQuery(columns), options);
     if (!result.error || !isMissingPostsColumnError(result.error)) {
+      if (!result.error && index > 0) {
+        const operation = options.operation || "posts";
+        warnPostsSchemaFallbackOnce(
+          `select:${operation}:${POSTS_SELECT_VARIANT_LABELS[index]}`,
+          `[AutoPost Supabase] ${operation} used posts schema fallback: ${POSTS_SELECT_VARIANT_LABELS[index]}`,
+          {
+            operation,
+            fallback: POSTS_SELECT_VARIANT_LABELS[index],
+          }
+        );
+      }
       return result;
     }
   }
@@ -159,9 +185,22 @@ function buildPostsWritePayloadVariants(payload = {}) {
 async function writePostsMutation(buildMutation, payload, options = {}) {
   let result = null;
 
-  for (const variantPayload of buildPostsWritePayloadVariants(payload)) {
+  for (const [index, variantPayload] of buildPostsWritePayloadVariants(payload).entries()) {
     result = await selectPostsQuery((columns) => buildMutation(variantPayload).select(columns), options);
     if (!result.error || !isMissingPostsColumnError(result.error)) {
+      if (!result.error && index > 0) {
+        const operation = options.operation || "posts";
+        const omittedColumns = Object.keys(payload).filter((key) => !(key in variantPayload));
+        warnPostsSchemaFallbackOnce(
+          `write:${operation}:${index}`,
+          `[AutoPost Supabase] ${operation} used legacy posts write fallback`,
+          {
+            operation,
+            fallback: `write-variant-${index}`,
+            omittedColumns,
+          }
+        );
+      }
       return result;
     }
   }
@@ -350,7 +389,8 @@ export async function fetchRemotePosts() {
       supabase
         .from("posts")
         .select(columns)
-        .order("created_at", { ascending: false })
+        .order("created_at", { ascending: false }),
+    { operation: "fetchRemotePosts" }
   );
 
   if (error) {
@@ -443,7 +483,7 @@ export async function insertRemoteDraft(draft, options = {}) {
   let { data, error } = await writePostsMutation(
     (nextPayload) => supabase.from("posts").insert([nextPayload]),
     payload,
-    { single: true }
+    { single: true, operation: "insertRemoteDraft" }
   );
 
   if (error && isPageForeignKeyError(error)) {
@@ -456,7 +496,7 @@ export async function insertRemoteDraft(draft, options = {}) {
       const retryResult = await writePostsMutation(
         (nextPayload) => supabase.from("posts").insert([nextPayload]),
         payload,
-        { single: true }
+        { single: true, operation: "insertRemoteDraftRetry" }
       );
       data = retryResult.data;
       error = retryResult.error;
@@ -495,7 +535,7 @@ export async function updateRemoteDraft(postId, draft, options = {}) {
   let { data, error } = await writePostsMutation(
     (nextPayload) => supabase.from("posts").update(nextPayload).eq("id", postId),
     payload,
-    { single: true }
+    { single: true, operation: "updateRemoteDraft" }
   );
 
   if (error && isPageForeignKeyError(error)) {
@@ -508,7 +548,7 @@ export async function updateRemoteDraft(postId, draft, options = {}) {
       const retryResult = await writePostsMutation(
         (nextPayload) => supabase.from("posts").update(nextPayload).eq("id", postId),
         payload,
-        { single: true }
+        { single: true, operation: "updateRemoteDraftRetry" }
       );
       data = retryResult.data;
       error = retryResult.error;
@@ -547,7 +587,7 @@ export async function updateRemotePostStatus(postId, status, extraData = {}) {
   const { data, error } = await writePostsMutation(
     (nextPayload) => supabase.from("posts").update(nextPayload).eq("id", postId),
     payload,
-    { single: true }
+    { single: true, operation: "updateRemotePostStatus" }
   );
 
   if (error) {
@@ -579,7 +619,7 @@ export async function fetchRemotePostById(postId) {
 
   const { data, error } = await selectPostsQuery(
     (columns) => supabase.from("posts").select(columns).eq("id", postId),
-    { maybeSingle: true }
+    { maybeSingle: true, operation: "fetchRemotePostById" }
   );
 
   if (error) {
@@ -620,7 +660,7 @@ export async function claimRemotePostForPublishing(postId, allowedStatuses = ["d
         extraFilters
       ),
     payload,
-    { maybeSingle: true }
+    { maybeSingle: true, operation: "claimRemotePostForPublishing" }
   );
 
   if (error) {
@@ -676,7 +716,7 @@ export async function finalizeRemotePublishedPost(postId, { postedAt, facebookPo
         .eq("id", postId)
         .eq("status", "publishing"),
     fullPayload,
-    { maybeSingle: true }
+    { maybeSingle: true, operation: "finalizeRemotePublishedPost" }
   );
 
   if (error) {
@@ -717,7 +757,7 @@ export async function markRemotePostFailed(postId) {
         .eq("id", postId)
         .eq("status", "publishing"),
     payload,
-    { maybeSingle: true }
+    { maybeSingle: true, operation: "markRemotePostFailed" }
   );
 
   if (error) {
