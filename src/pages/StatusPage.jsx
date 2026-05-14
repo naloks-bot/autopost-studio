@@ -113,10 +113,10 @@ function StatusPage({
             <Facebook className="h-4 w-4" />
           </div>
           <div>
-            <p className="font-semibold">à¸ªà¸–à¸²à¸™à¸°à¸à¸²à¸£à¹‚à¸žà¸ªà¸•à¹Œà¸‚à¸­à¸‡à¹€à¸žà¸ˆà¸›à¸±à¸ˆà¸ˆà¸¸à¸šà¸±à¸™</p>
+            <p className="font-semibold">สถานะการโพสต์ของเพจปัจจุบัน</p>
             <p className="mt-0.5 text-xs text-cyan-100/80">
-              à¹‚à¸«à¸¡à¸” {settings.facebookPublishMode === "live" ? "à¹‚à¸žà¸ªà¸•à¹Œà¸ˆà¸£à¸´à¸‡" : "à¸—à¸”à¸ªà¸­à¸š"} à¸¢à¸±à¸‡à¸„à¸‡à¹ƒà¸Šà¹‰ publish flow à¹€à¸”à¸´à¸¡à¸—à¸µà¹ˆà¹€à¸ªà¸–à¸µà¸¢à¸£
-              à¹à¸¥à¸°à¸«à¸™à¹‰à¸²à¸™à¸µà¹‰à¹€à¸™à¹‰à¸™à¸„à¸´à¸§à¸›à¸±à¸ˆà¸ˆà¸¸à¸šà¸±à¸™à¹à¸šà¸šà¸ªà¹à¸à¸™à¹„à¸”à¹‰à¹€à¸£à¹‡à¸§
+              โหมด {settings.facebookPublishMode === "live" ? "โพสต์จริง" : "ทดสอบ"} ยังคงใช้ publish flow เดิมที่เสถียร
+              และหน้านี้เน้นคิวปัจจุบันแบบสแกนได้เร็ว
             </p>
           </div>
         </div>
@@ -124,19 +124,19 @@ function StatusPage({
 
       <div className="grid gap-3 sm:grid-cols-4">
         <div className="rounded-2xl border border-white/5 bg-slate-900/40 p-4 shadow-sm">
-          <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">à¸—à¸±à¹‰à¸‡à¸«à¸¡à¸”</span>
+          <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">ทั้งหมด</span>
           <p className="mt-2 text-3xl font-bold tracking-tight text-white">{pageAware.total}</p>
         </div>
         <div className="rounded-2xl border border-white/5 bg-slate-900/40 p-4 shadow-sm">
-          <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">à¸£à¸­à¸„à¸´à¸§à¹‚à¸žà¸ªà¸•à¹Œ</span>
+          <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">รอคิวโพสต์</span>
           <p className="mt-2 text-3xl font-bold tracking-tight text-white">{pageAware.queued}</p>
         </div>
         <div className="rounded-2xl border border-white/5 bg-slate-900/40 p-4 shadow-sm">
-          <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">à¹‚à¸žà¸ªà¸•à¹Œà¸ªà¸³à¹€à¸£à¹‡à¸ˆ</span>
+          <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">โพสต์สำเร็จ</span>
           <p className="mt-2 text-3xl font-bold tracking-tight text-white">{pageAware.success}</p>
         </div>
         <div className="rounded-2xl border border-white/5 bg-slate-900/40 p-4 shadow-sm">
-          <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">à¸¥à¹‰à¸¡à¹€à¸«à¸¥à¸§</span>
+          <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">ล้มเหลว</span>
           <p className="mt-2 text-3xl font-bold tracking-tight text-white">{pageAware.failed}</p>
         </div>
       </div>
@@ -147,9 +147,9 @@ function StatusPage({
             <Clock className="h-4 w-4" />
           </div>
           <div>
-            <p className="font-bold uppercase tracking-tight">à¸£à¸°à¸šà¸šà¹‚à¸žà¸ªà¸•à¹Œà¸­à¸±à¸•à¹‚à¸™à¸¡à¸±à¸•à¸´</p>
+            <p className="font-bold uppercase tracking-tight">ระบบโพสต์อัตโนมัติ</p>
             <p className="mt-0.5 opacity-80">
-              à¸¥à¹ˆà¸²à¸ªà¸¸à¸” {formatDate(schedulerStatus.lastRun)} â€¢ à¸ªà¸³à¹€à¸£à¹‡à¸ˆ {schedulerStatus.published} â€¢ à¹„à¸¡à¹ˆà¸ªà¸³à¹€à¸£à¹‡à¸ˆ {schedulerStatus.failed}
+              ล่าสุด {formatDate(schedulerStatus.lastRun)} • สำเร็จ {schedulerStatus.published} • ไม่สำเร็จ {schedulerStatus.failed}
             </p>
           </div>
         </div>
@@ -157,15 +157,15 @@ function StatusPage({
 
       <div className="space-y-3">
         <div className="flex items-center justify-between pl-1">
-          <h3 className="text-sm font-semibold uppercase tracking-widest text-slate-300">à¸„à¸´à¸§à¸›à¸±à¸ˆà¸ˆà¸¸à¸šà¸±à¸™</h3>
-          <span className="text-[11px] text-slate-500">posted à¸–à¸¹à¸à¸à¹ˆà¸­à¸™à¹„à¸§à¹‰à¹‚à¸”à¸¢à¸„à¹ˆà¸²à¹€à¸£à¸´à¹ˆà¸¡à¸•à¹‰à¸™</span>
+          <h3 className="text-sm font-semibold uppercase tracking-widest text-slate-300">คิวปัจจุบัน</h3>
+          <span className="text-[11px] text-slate-500">posted ถูกซ่อนไว้โดยค่าเริ่มต้น</span>
         </div>
 
         {pageAware.list.length === 0 ? (
           <div className="flex flex-col items-center justify-center rounded-[2rem] border border-dashed border-white/10 p-12 text-center">
             <Info className="mb-3 h-10 w-10 text-slate-700" />
-            <p className="text-lg font-medium text-slate-500">à¸¢à¸±à¸‡à¹„à¸¡à¹ˆà¸¡à¸µà¸£à¹ˆà¸²à¸‡à¹ƒà¸™à¹€à¸žà¸ˆà¸™à¸µà¹‰</p>
-            <p className="mt-1 text-sm text-slate-600">à¹€à¸£à¸´à¹ˆà¸¡à¸ªà¸£à¹‰à¸²à¸‡à¹‚à¸žà¸ªà¸•à¹Œà¹ƒà¸«à¸¡à¹ˆà¸«à¸£à¸·à¸­à¸ªà¸¥à¸±à¸šà¹€à¸žà¸ˆà¸ˆà¸²à¸à¹à¸–à¸šà¸”à¹‰à¸²à¸™à¸šà¸™à¹€à¸žà¸·à¹ˆà¸­à¸”à¸¹à¸‚à¹‰à¸­à¸¡à¸¹à¸¥à¸‚à¸­à¸‡à¹€à¸žà¸ˆà¸­à¸·à¹ˆà¸™</p>
+            <p className="text-lg font-medium text-slate-500">ยังไม่มีร่างในเพจนี้</p>
+            <p className="mt-1 text-sm text-slate-600">เริ่มสร้างโพสต์ใหม่หรือสลับเพจจากแถบด้านบนเพื่อดูข้อมูลของเพจอื่น</p>
           </div>
         ) : (
           pageAware.list.map((post) => {
@@ -202,21 +202,21 @@ function StatusPage({
                 <div className="flex flex-1 flex-col justify-between">
                   <div>
                     <div className="flex flex-wrap items-center gap-2">
-                      <h3 className="text-base font-bold text-white">{post.topic || "à¸¢à¸±à¸‡à¹„à¸¡à¹ˆà¹„à¸”à¹‰à¸•à¸±à¹‰à¸‡à¸«à¸±à¸§à¸‚à¹‰à¸­"}</h3>
+                      <h3 className="text-base font-bold text-white">{post.topic || "ยังไม่ได้ตั้งหัวข้อ"}</h3>
                       <CompactMetaPill tone={post.source === "local" ? "warning" : "accent"}>
-                        {post.source === "local" ? "à¹ƒà¸™à¹€à¸„à¸£à¸·à¹ˆà¸­à¸‡" : "Supabase"}
+                        {post.source === "local" ? "ในเครื่อง" : "Supabase"}
                       </CompactMetaPill>
                     </div>
                     <p className="mt-1 line-clamp-2 text-sm leading-relaxed text-slate-400">{post.content}</p>
 
                     <div className="mt-2 flex flex-wrap gap-2">
-                      <CompactMetaPill>à¹€à¸žà¸ˆ: {pageReadiness.label}</CompactMetaPill>
+                      <CompactMetaPill>เพจ: {pageReadiness.label}</CompactMetaPill>
                       <CompactMetaPill tone={pageReadiness.pageConfigReady ? "success" : "warning"}>
-                        {pageReadiness.pageConfigReady ? "à¸žà¸£à¹‰à¸­à¸¡à¹ƒà¸Šà¹‰à¸„à¹ˆà¸²à¸‚à¸­à¸‡à¹€à¸žà¸ˆ" : "à¹ƒà¸Šà¹‰à¸„à¹ˆà¸²à¸à¸¥à¸²à¸‡"}
+                        {pageReadiness.pageConfigReady ? "พร้อมใช้ค่าของเพจ" : "ใช้ค่ากลาง"}
                       </CompactMetaPill>
-                      <CompactMetaPill tone="accent">à¹€à¸ªà¹‰à¸™à¸—à¸²à¸‡: {effectivePublish.effectivePublishLabel}</CompactMetaPill>
+                      <CompactMetaPill tone="accent">เส้นทาง: {effectivePublish.effectivePublishLabel}</CompactMetaPill>
                       <CompactMetaPill tone={post.status === "failed" ? "danger" : isScheduled ? "warning" : "neutral"}>
-                        à¸ªà¸–à¸²à¸™à¸°: {post.status || "draft"}
+                        สถานะ: {post.status || "draft"}
                       </CompactMetaPill>
                     </div>
                   </div>
@@ -224,12 +224,12 @@ function StatusPage({
                   <div className="mt-3 flex flex-wrap items-center gap-3 border-t border-white/5 pt-3">
                     <div className="flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-tight text-slate-500">
                       <Calendar className="h-3 w-3" />
-                      <span>à¸ªà¸£à¹‰à¸²à¸‡à¹€à¸¡à¸·à¹ˆà¸­ {formatDate(post.created_at)}</span>
+                      <span>สร้างเมื่อ {formatDate(post.created_at)}</span>
                     </div>
                     {post.scheduled_at && isScheduled ? (
                       <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-tight text-amber-400">
                         <Clock className="h-3 w-3" />
-                        <span>à¸•à¸±à¹‰à¸‡à¹€à¸§à¸¥à¸² {formatDate(post.scheduled_at)}</span>
+                        <span>ตั้งเวลา {formatDate(post.scheduled_at)}</span>
                       </div>
                     ) : null}
                   </div>
@@ -243,8 +243,8 @@ function StatusPage({
                       <div className="rounded-lg border border-cyan-500/10 bg-cyan-500/5 px-3 py-2">
                         <p className="text-[10px] font-bold uppercase tracking-wider text-cyan-400">{pageDryRun.dryRunLabel}</p>
                         <p className="mt-1 text-[10px] text-slate-400">
-                          à¸ˆà¸°à¹„à¸›à¸—à¸µà¹ˆ {pageDryRun.resolvedPageLabel} â€¢ Page ID {pageDryRun.pageSpecificPageIdReady ? "à¸žà¸£à¹‰à¸­à¸¡" : "à¹„à¸¡à¹ˆà¸¡à¸µ"} â€¢ Token{" "}
-                          {pageDryRun.pageSpecificTokenReady ? "à¸žà¸£à¹‰à¸­à¸¡" : "à¹„à¸¡à¹ˆà¸¡à¸µ"}
+                          จะไปที่ {pageDryRun.resolvedPageLabel} • Page ID {pageDryRun.pageSpecificPageIdReady ? "พร้อม" : "ไม่มี"} • Token{" "}
+                          {pageDryRun.pageSpecificTokenReady ? "พร้อม" : "ไม่มี"}
                         </p>
                       </div>
                       {effectivePublish.fallbackReason || effectivePublish.blockedReason ? (
@@ -260,7 +260,7 @@ function StatusPage({
                   {post.source === "local" ? (
                     <>
                       <ActionButton
-                        label="à¹à¸à¹‰à¹„à¸‚à¸£à¹ˆà¸²à¸‡"
+                        label="แก้ไขร่าง"
                         icon={Pencil}
                         onClick={() => handleLoadDraftToEditor(post)}
                         variant="outline"
@@ -268,7 +268,7 @@ function StatusPage({
                         fullWidth
                       />
                       <ActionButton
-                        label="à¸¥à¸šà¹ƒà¸™à¹€à¸„à¸£à¸·à¹ˆà¸­à¸‡"
+                        label="ลบในเครื่อง"
                         icon={Trash2}
                         onClick={() => handleDeleteLocalDraft(post.id)}
                         variant="danger"
@@ -279,7 +279,7 @@ function StatusPage({
                   ) : (
                     <>
                       <ActionButton
-                        label="à¹à¸à¹‰à¹„à¸‚à¸£à¹ˆà¸²à¸‡"
+                        label="แก้ไขร่าง"
                         icon={Pencil}
                         onClick={() => handleLoadDraftToEditor(post)}
                         variant="outline"
@@ -287,7 +287,7 @@ function StatusPage({
                         fullWidth
                       />
                       <ActionButton
-                        label={isScheduled ? "à¹€à¸›à¸¥à¸µà¹ˆà¸¢à¸™à¹€à¸§à¸¥à¸²" : "à¸•à¸±à¹‰à¸‡à¹€à¸§à¸¥à¸²à¹‚à¸žà¸ªà¸•à¹Œ"}
+                        label={isScheduled ? "เปลี่ยนเวลา" : "ตั้งเวลาโพสต์"}
                         icon={Calendar}
                         onClick={() => handleOpenSchedule(post)}
                         variant="amber"
@@ -296,7 +296,7 @@ function StatusPage({
                       />
                       {isScheduled ? (
                         <ActionButton
-                          label="à¸¢à¸à¹€à¸¥à¸´à¸à¹€à¸§à¸¥à¸²à¹‚à¸žà¸ªà¸•à¹Œ"
+                          label="ยกเลิกเวลาโพสต์"
                           icon={RotateCcw}
                           onClick={() => void handleUnschedulePost(post.id)}
                           variant="outline"
@@ -306,7 +306,7 @@ function StatusPage({
                         />
                       ) : null}
                       <ActionButton
-                        label={settings.facebookPublishMode === "live" ? "à¹‚à¸žà¸ªà¸•à¹Œà¸•à¸­à¸™à¸™à¸µà¹‰" : "à¸—à¸”à¸ªà¸­à¸šà¹‚à¸žà¸ªà¸•à¹Œ"}
+                        label={settings.facebookPublishMode === "live" ? "โพสต์ตอนนี้" : "ทดสอบโพสต์"}
                         icon={Send}
                         onClick={() => handlePublishPost(post.id)}
                         variant={settings.facebookPublishMode === "live" ? "emerald" : "secondary"}
@@ -317,7 +317,7 @@ function StatusPage({
                       {!effectivePublish.canAttemptPublish ? (
                         <div className="flex items-center justify-center gap-1 text-center text-[9px] font-bold uppercase text-rose-400">
                           <AlertCircle className="h-3 w-3" />
-                          {effectivePublish.livePerPagePublishStatus === "Blocked" ? "à¸¢à¸±à¸‡à¹‚à¸žà¸ªà¸•à¹Œà¹„à¸¡à¹ˆà¹„à¸”à¹‰" : "à¸‚à¹‰à¸­à¸¡à¸¹à¸¥à¹„à¸¡à¹ˆà¸„à¸£à¸š"}
+                          {effectivePublish.livePerPagePublishStatus === "Blocked" ? "ยังโพสต์ไม่ได้" : "ข้อมูลไม่ครบ"}
                         </div>
                       ) : null}
                     </>
@@ -339,13 +339,13 @@ function StatusPage({
                       </label>
                       <div className="flex gap-2">
                         <ActionButton
-                          label="à¸šà¸±à¸™à¸—à¸¶à¸à¹€à¸§à¸¥à¸²"
+                          label="บันทึกเวลา"
                           icon={CheckCircle2}
                           onClick={() => void handleSubmitSchedule(post.id)}
                           variant="amber"
                           isLoading={isSchedulingPostId === post.id}
                         />
-                        <ActionButton label="à¸¢à¸à¹€à¸¥à¸´à¸" icon={Trash2} onClick={handleCloseSchedule} variant="outline" />
+                        <ActionButton label="ยกเลิก" icon={Trash2} onClick={handleCloseSchedule} variant="outline" />
                       </div>
                     </div>
                   </div>
@@ -360,7 +360,7 @@ function StatusPage({
         <summary className="flex cursor-pointer list-none items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <CheckCircle2 className="h-4 w-4 text-emerald-400" />
-            <h3 className="text-sm font-semibold uppercase tracking-wider text-white">à¹‚à¸žà¸ªà¸•à¹Œà¸ªà¸³à¹€à¸£à¹‡à¸ˆà¸¥à¹ˆà¸²à¸ªà¸¸à¸”</h3>
+            <h3 className="text-sm font-semibold uppercase tracking-wider text-white">โพสต์สำเร็จล่าสุด</h3>
           </div>
           <div className="flex items-center gap-3 text-[11px] text-slate-500">
             <span>{pageAware.recentPosted.length} items</span>
@@ -369,14 +369,14 @@ function StatusPage({
         </summary>
         <div className="mt-4">
           {pageAware.recentPosted.length === 0 ? (
-            <p className="text-sm text-slate-500">à¸¢à¸±à¸‡à¹„à¸¡à¹ˆà¸¡à¸µà¸£à¸²à¸¢à¸à¸²à¸£à¹‚à¸žà¸ªà¸•à¹Œà¸ªà¸³à¹€à¸£à¹‡à¸ˆà¸¥à¹ˆà¸²à¸ªà¸¸à¸”à¹ƒà¸™à¹€à¸žà¸ˆà¸™à¸µà¹‰</p>
+            <p className="text-sm text-slate-500">ยังไม่มีรายการโพสต์สำเร็จล่าสุดในเพจนี้</p>
           ) : (
             <div className="space-y-2">
               {pageAware.recentPosted.map((post) => (
                 <div key={post.id} className="flex items-center justify-between gap-4 rounded-xl border border-white/5 bg-slate-950/40 px-4 py-3">
                   <div>
-                    <p className="text-sm font-semibold text-white">{post.topic || "à¸¢à¸±à¸‡à¹„à¸¡à¹ˆà¹„à¸”à¹‰à¸•à¸±à¹‰à¸‡à¸«à¸±à¸§à¸‚à¹‰à¸­"}</p>
-                    <p className="mt-1 text-[11px] text-slate-500">à¹‚à¸žà¸ªà¸•à¹Œà¹€à¸¡à¸·à¹ˆà¸­ {formatDate(post.posted_at || post.created_at)}</p>
+                    <p className="text-sm font-semibold text-white">{post.topic || "ยังไม่ได้ตั้งหัวข้อ"}</p>
+                    <p className="mt-1 text-[11px] text-slate-500">โพสต์เมื่อ {formatDate(post.posted_at || post.created_at)}</p>
                   </div>
                   <span className="rounded-full bg-emerald-500/10 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-emerald-300">
                     posted
@@ -392,14 +392,14 @@ function StatusPage({
         <div className="rounded-2xl border border-white/5 bg-slate-900/40 p-5 shadow-sm">
           <div className="mb-4 flex items-center gap-2">
             <AlertCircle className="h-4 w-4 text-rose-400" />
-            <h3 className="text-sm font-semibold uppercase tracking-wider text-white">à¹‚à¸žà¸ªà¸•à¹Œà¸¥à¹ˆà¸²à¸ªà¸¸à¸”à¸—à¸µà¹ˆà¸¥à¹‰à¸¡à¹€à¸«à¸¥à¸§</h3>
+            <h3 className="text-sm font-semibold uppercase tracking-wider text-white">โพสต์ล่าสุดที่ล้มเหลว</h3>
           </div>
           <div className="space-y-2">
             {pageAware.recentFailed.map((post) => (
               <div key={post.id} className="flex items-center justify-between gap-4 rounded-xl border border-white/5 bg-slate-950/40 px-4 py-3">
                 <div>
-                  <p className="text-sm font-semibold text-white">{post.topic || "à¸¢à¸±à¸‡à¹„à¸¡à¹ˆà¹„à¸”à¹‰à¸•à¸±à¹‰à¸‡à¸«à¸±à¸§à¸‚à¹‰à¸­"}</p>
-                  <p className="mt-1 text-[11px] text-slate-500">à¸­à¸±à¸›à¹€à¸”à¸•à¸¥à¹ˆà¸²à¸ªà¸¸à¸” {formatDate(post.updated_at || post.created_at)}</p>
+                  <p className="text-sm font-semibold text-white">{post.topic || "ยังไม่ได้ตั้งหัวข้อ"}</p>
+                  <p className="mt-1 text-[11px] text-slate-500">อัปเดตล่าสุด {formatDate(post.updated_at || post.created_at)}</p>
                 </div>
                 <span className="rounded-full bg-rose-500/10 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-rose-300">
                   failed
