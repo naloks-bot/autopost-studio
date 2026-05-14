@@ -32,6 +32,7 @@ Stable systems that must be preserved:
 * scheduler V1
 * Create flow
 * storage layer
+* storage flow
 * Supabase architecture
 * current provider routing architecture
 * current production deployment path
@@ -115,24 +116,28 @@ Preserve the current stable Supabase/storage architecture.
 Permanent workflow rules:
 
 1. Minimize token usage.
-2. Minimize phase fragmentation.
+2. Use the fewest phases possible to reduce tokens and time.
 3. Prefer large safe batches.
 4. Avoid rewrites and architecture churn.
 5. Avoid speculative systems.
 6. Preserve rollback safety.
 7. Commit only meaningful checkpoints.
 8. Update docs only after meaningful milestones.
+9. Keep Codex instructions concise, specific, and outcome-based.
+10. Every Codex task must clearly state what to change, what not to touch, expected result, required verification, and what summary to report back.
+11. Check the actual production root cause before attempting another fix for the same issue.
 
 Operational workflow rules:
 
 1. Production reliability, backend safety, scheduler logic, and state synchronization default to High reasoning.
-2. Architecture planning and large safe batch refactors use High, or Extra High only when truly necessary.
+2. Architecture planning and large safe refactors use High reasoning.
 3. UI polish, small components, and styling default to Medium.
 4. Docs and cleanup default to Low or Medium.
 5. Prompt intelligence and cinematic content quality default to High.
-6. Production-affecting work should continue through local build, meaningful checkpoint commit, GitHub push, and production-path verification when possible.
-7. Safe deployment/configuration steps should be completed automatically whenever possible.
-8. If a manual platform step is required, provide exact navigation, actions, expected success result, and failure details to report back.
+6. Production-affecting work must continue through local implementation, `npm run build`, meaningful checkpoint commit, GitHub push, Vercel production deployment verification, and live production behavior verification when possible.
+7. Codex must connect changes to the real deployed website and production path, not local-only behavior.
+8. Safe deployment/configuration steps should be completed automatically whenever possible.
+9. If a manual platform step is required, provide exact navigation, actions, expected success result, and failure details to report back.
 
 ---
 

@@ -28,7 +28,7 @@ Current development direction:
 # Permanent Rules
 
 1. Minimize token usage.
-2. Minimize phase fragmentation.
+2. Use the fewest phases possible to reduce tokens and time.
 3. Preserve rollback safety.
 4. Avoid rewrites.
 5. Avoid architecture churn.
@@ -36,13 +36,18 @@ Current development direction:
 7. Prefer large safe batches.
 8. Commit only meaningful checkpoints.
 9. Update docs only after meaningful milestones.
+10. Keep Codex instructions concise, specific, and outcome-based.
+11. Every Codex task must clearly state what to change, what not to touch, expected result, required verification, and what summary to report back.
+12. Check the actual production root cause before attempting another fix for the same issue.
 
 Operational workflow lock:
 
 * production-affecting tasks do not stop at local verification only
-* required path: implement locally -> run `npm run build` -> verify no critical errors -> commit meaningful checkpoint -> push to GitHub -> verify production path when possible -> verify live behavior when possible
+* required path: implement locally -> run `npm run build` -> verify no critical errors -> commit meaningful checkpoint -> push to GitHub -> verify Vercel production deployment -> verify live production behavior when possible
+* connect every production-affecting change to the real deployed website and production path, not local-only behavior
 * complete safe deployment/configuration steps automatically whenever possible
-* if a manual/auth-required step blocks progress, provide exact manual instructions and the result/error to report back
+* if a manual/auth-required step blocks progress, provide exact manual instructions with where to go, what to click/run, expected success result, and the result/error to report back
+* preserve stable systems: scheduler V1, publish flow, storage flow, Supabase architecture, Create flow, and provider routing
 
 ---
 

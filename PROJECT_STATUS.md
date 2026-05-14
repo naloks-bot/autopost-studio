@@ -42,6 +42,7 @@ Recent stable checkpoints:
 Permanent operating rules:
 
 * minimize token usage
+* use the fewest phases possible to reduce tokens and time
 * minimize phase fragmentation
 * preserve rollback safety
 * avoid rewrites
@@ -50,17 +51,22 @@ Permanent operating rules:
 * prefer large safe batches
 * commit only meaningful checkpoints
 * update docs only after meaningful milestones
+* keep Codex instructions concise, specific, and outcome-based
+* every Codex task must clearly state what to change, what not to touch, expected result, required verification, and what summary to report back
+* avoid repeated fixes to the same issue by checking the actual production root cause first
 
 Operational lock:
 
 * production reliability, backend safety, scheduler logic, and state synchronization use High reasoning by default
-* architecture planning and large safe batch refactors use High, or Extra High only when truly necessary
+* architecture planning and large safe refactors use High reasoning
 * UI polish, small components, and styling use Medium
 * docs and cleanup use Low or Medium
 * prompt intelligence, content quality, and cinematic generation use High
-* production-affecting work must continue past local verification through build, meaningful commit, GitHub push, and production-path verification when possible
+* production-affecting work must continue past local verification through local implementation, `npm run build`, meaningful commit, GitHub push, Vercel production deployment verification, and live production behavior verification when possible
+* Codex must connect changes to the real deployed website and production path, not local-only behavior
 * safe deployment and configuration steps should be completed automatically whenever possible
 * if a manual platform/auth step is required, document where to go, what to click/run, what success looks like, and what failure output to report back
+* preserve stable systems: scheduler V1, publish flow, storage flow, Supabase architecture, Create flow, and provider routing
 
 Removed or deferred:
 
