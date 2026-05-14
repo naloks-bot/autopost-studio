@@ -1,5 +1,8 @@
 name: Process Scheduled Posts
 
+env:
+  SCHEDULER_FUNCTION_URL: https://qydjsobtspoykhzcckht.supabase.co/functions/v1/process-scheduled-posts
+
 on:
   schedule:
     # Run every 5 minutes to keep scheduled publishing near the requested time.
@@ -13,7 +16,23 @@ jobs:
     steps:
       - name: Trigger Supabase Edge Function
         run: |
-          curl -X POST "${{ secrets.SUPABASE_FUNCTION_URL }}" \
-          -H "Content-Type: application/json" \
-          -H "x-cron-secret: ${{ secrets.CRON_SECRET }}" \
-          --fail
+          if [ -z "${{ secrets.CRON_SECRET }}" ]; then
+            echo "::error::Missing GitHub Actions secret CRON_SECRET."
+            exit 1
+          fi
+
+          echo "Triggering ${SCHEDULER_FUNCTION_URL}"
+          http_code=$(curl --silent --show-error \
+            --output response.json \
+            --write-out "%{http_code}" \
+            -X POST "${SCHEDULER_FUNCTION_URL}" \
+            -H "Content-Type: application/json" \
+            -H "x-cron-secret: ${{ secrets.CRON_SECRET }}")
+
+          echo "HTTP ${http_code}"
+          cat response.json
+
+          if [ "${http_code}" -lt 200 ] || [ "${http_code}" -ge 300 ]; then
+            echo "::error::Scheduler trigger failed with HTTP ${http_code}."
+            exit 1
+          fi
