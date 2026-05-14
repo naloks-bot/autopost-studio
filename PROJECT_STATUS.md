@@ -46,6 +46,7 @@ Recent stable checkpoints:
 * production cron triggering is now locked to an external cron provider instead of GitHub `event=schedule`
 * Phase 2A operator UI simplification is now in progress with sticky actions, denser queue scanning, calmer logs styling, and collapsed advanced diagnostics
 * Phase 2B content factory workflow upgrade is now in progress with quick schedule presets, draft duplication/reuse, queue filters, queue summary counts, and fast reschedule actions
+* Phase 2B.1 targeted operator UI fixes are now in progress with a cleaned quick-schedule layout, content-derived image prompt generation, sticky Status controls, delete-with-confirm queue cleanup, and modal scheduling
 
 Permanent operating rules:
 
@@ -177,6 +178,15 @@ Current Phase 2B checkpoint:
 * operators now get lightweight queue summary counts for drafts, scheduled items, posted today, and failed items
 * draft and posted content can be duplicated into a new reusable draft without overwriting the original
 * scheduled items now have fast reschedule actions for `+1 Hour`, `+1 Day`, and `Next Prime Time`
+
+Current Phase 2B.1 checkpoint:
+
+* Create quick-schedule presets are now laid out in a cleaner two-row operator block
+* image prompt generation now derives from the current topic/caption context instead of returning canned template text
+* Status keeps operator summary and filters sticky while scrolling the queue
+* active queue cards now use delete-with-confirm instead of duplicate, without changing publish or scheduler behavior
+* schedule editing now opens in a modal instead of expanding inline
+* AI Library navigation is hidden until a functional persistence-backed version exists
 
 ## Phase 3 — Prompt Intelligence Layer
 

@@ -83,6 +83,7 @@ Current operator UX boundary inside this layer:
 * posted/completed visibility can be collapsed by default to prioritize active work
 * advanced runtime diagnostics should be hidden behind explicit operator intent when possible
 * quick schedule presets, duplicate/reuse actions, queue filters, and fast reschedule controls are allowed when they only orchestrate the existing draft/save/schedule handlers
+* targeted operator UI cleanup may replace queue-card actions, schedule presentation, and non-functional navigation when backend behavior stays unchanged
 
 ## 3. Publishing + Automation Layer
 
@@ -202,6 +203,12 @@ Phase 2B workflow direction:
 * support draft/post reuse through safe draft duplication
 * improve queue scanning with compact filters and summary counts
 * allow fast reschedule adjustments without changing scheduler logic
+
+Phase 2B.1 operator fix direction:
+
+* keep Create and Status controls compact, sticky, and desktop-friendly
+* image prompt generation should derive from the current post context before falling back
+* non-functional UI surfaces should be hidden until they have real persistence behind them
 
 ## Phase 3 — Prompt Intelligence Layer
 

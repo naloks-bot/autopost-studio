@@ -2,7 +2,6 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import CreatePage from "./CreatePage.jsx";
 import StatusPage from "./StatusPage.jsx";
 import SchedulerPage from "./SchedulerPage.jsx";
-import LibraryPage from "./LibraryPage.jsx";
 import LogsPage from "./LogsPage.jsx";
 import SettingsPage from "./SettingsPage.jsx";
 import PagesPage from "./PagesPage.jsx";
@@ -24,6 +23,7 @@ import {
 import { getLocalDrafts, removeLocalDraft, saveLocalDraft, updateLocalDraft } from "../services/local-drafts.js";
 import {
   claimRemotePostForPublishing,
+  deleteRemotePost,
   fetchRemotePostById,
   fetchRemotePages,
   fetchRemotePosts,
@@ -206,6 +206,12 @@ function App() {
     }, 60000);
     return () => clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    if (activeTab === "library") {
+      setActiveTab("create");
+    }
+  }, [activeTab]);
 
   const envSnapshot = getSupabaseEnvSnapshot();
   const isDark = theme !== "light";
@@ -457,7 +463,7 @@ function App() {
   }, []);
 
   async function handleGenerateContent(overrides = {}) {
-    if (!form.topic.trim()) {
+    if (!form.topic.trim() && !form.content.trim()) {
       setCreateNotice({ tone: "warning", message: "กรุณาใส่หัวข้อก่อนสร้างข้อความ" });
       return;
     }
@@ -512,15 +518,13 @@ function App() {
       const message = toUserSafeMessage(error, "ยังสร้างข้อความไม่สำเร็จ");
       setGenerationError(message);
       setCreateNotice({ tone: "danger", message });
-      return { ok: false, storage: remote.mode || null, post: null };
-      return { ok: false, storage: remote.mode || null, post: null };
     } finally {
       setIsGenerating(false);
     }
   }
 
   async function handleGenerateImagePrompt(overrides = {}) {
-    if (!form.topic.trim()) {
+    if (!form.topic.trim() && !form.content.trim()) {
       setCreateNotice({ tone: "warning", message: "กรุณาใส่หัวข้อก่อนช่วยคิดคำอธิบายภาพ" });
       return;
     }
@@ -533,10 +537,12 @@ function App() {
       const result = await generateImagePrompt({
         formData: {
           ...form,
+          topic: String(form.topic || form.content || "").trim(),
           pageLabel: overrides.pageLabel ?? activeWorkspacePage?.label ?? "",
           pageImageDirection: overrides.pageImageDirection ?? activeWorkspacePage?.imageDirection ?? "",
           pageWritingDirection: overrides.pageWritingDirection ?? activeWorkspacePage?.writingDirection ?? "",
           pageReadme: overrides.pageReadme ?? activeWorkspacePage?.readme ?? "",
+          pageTone: overrides.pageTone ?? activeWorkspacePage?.tone ?? "",
         },
         settings,
       });
@@ -1195,6 +1201,30 @@ function App() {
     setLocalDrafts((current) => current.filter((draft) => draft.id !== id));
   }, []);
 
+  const handleDeletePost = useCallback(async (post) => {
+    if (!post) return false;
+
+    if (post.source === "local") {
+      removeLocalDraft(post.id);
+      setLocalDrafts((current) => current.filter((draft) => draft.id !== post.id));
+      setStatusNotice({ tone: "success", message: "Draft removed from this device." });
+      return true;
+    }
+
+    const deleted = await deleteRemotePost(post.id);
+    if (!deleted.data) {
+      setStatusNotice({
+        tone: "danger",
+        message: `Delete failed: ${toUserSafeMessage(deleted.error, "Unable to remove this app record")}`,
+      });
+      return false;
+    }
+
+    setRemotePosts((current) => current.filter((item) => item.id !== post.id));
+    setStatusNotice({ tone: "success", message: "Queue item removed from the app." });
+    return true;
+  }, []);
+
   const handleDuplicatePost = useCallback(
     async (post) => {
       if (!post) return null;
@@ -1359,8 +1389,6 @@ function App() {
                 />
               )}
 
-              {!isLoading && activeTab === "library" && <LibraryPage />}
-
               {!isLoading && activeTab === "logs" && <LogsPage logs={operationLogs} logsMode={logsMode} />}
 
               {!isLoading && activeTab === "status" && (
@@ -1370,6 +1398,7 @@ function App() {
                   localDrafts={localDrafts}
                   formatDate={formatDate}
                   handleDeleteLocalDraft={handleDeleteLocalDraft}
+                  handleDeletePost={handleDeletePost}
                   handleDuplicatePost={handleDuplicatePost}
                   handleLoadDraftToEditor={handleLoadDraftToEditor}
                   handlePublishPost={handlePublishPost}

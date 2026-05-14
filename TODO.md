@@ -137,6 +137,14 @@ Phase 2B checkpoint:
 * Status page now supports compact queue filters and summary counts
 * scheduled items now have fast reschedule actions using the existing schedule handler only
 
+Phase 2B.1 checkpoint:
+
+* quick schedule layout cleaned up for better Create-page scanning
+* image prompt generation now uses current post context instead of canned placeholder output
+* Status header and queue filters stay visible while scrolling
+* active queue cards now support delete-with-confirm and modal schedule editing
+* AI Library navigation is hidden until a functional version is ready
+
 Important:
 Focus on operator efficiency and low token usage. Avoid unnecessary UI redesign.
 

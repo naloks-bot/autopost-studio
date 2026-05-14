@@ -608,6 +608,37 @@ export async function updateRemotePostStatus(postId, status, extraData = {}) {
   };
 }
 
+export async function deleteRemotePost(postId) {
+  if (!supabase) {
+    return {
+      data: null,
+      error: new Error("Missing Supabase environment variables."),
+      mode: "offline",
+    };
+  }
+
+  logger.info(`Deleting remote post ${postId}...`);
+  const { data, error } = await selectPostsQuery(
+    (columns) => supabase.from("posts").delete().eq("id", postId).select(columns),
+    { single: true, operation: "deleteRemotePost" }
+  );
+
+  if (error) {
+    logSupabaseOperationError("deleteRemotePost", error);
+    return {
+      data: null,
+      error,
+      mode: classifySupabaseError(error),
+    };
+  }
+
+  return {
+    data: data ? normalizePost({ ...data, source: "remote" }) : null,
+    error: null,
+    mode: "connected",
+  };
+}
+
 export async function fetchRemotePostById(postId) {
   if (!supabase) {
     return {

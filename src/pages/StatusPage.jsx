@@ -5,13 +5,13 @@ import {
   CheckCircle2,
   ChevronDown,
   Clock,
-  Copy,
   Facebook,
   Info,
   Pencil,
   RotateCcw,
   Send,
   Trash2,
+  X,
 } from "lucide-react";
 import ActionButton from "../components/ActionButton.jsx";
 import { getPagePublishReadiness, resolveEffectivePublishConfig, runPerPagePublishDryRun } from "../services/page-context.js";
@@ -80,9 +80,64 @@ function SummaryCard({ label, value, tone = "neutral" }) {
           : "text-white";
 
   return (
-    <div className="rounded-2xl border border-white/5 bg-slate-900/40 p-4 shadow-sm">
-      <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">{label}</span>
-      <p className={`mt-2 text-3xl font-bold tracking-tight ${valueClass}`}>{value}</p>
+    <div className="rounded-2xl border border-white/5 bg-slate-900/50 p-3 shadow-sm">
+      <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">{label}</span>
+      <p className={`mt-1.5 text-2xl font-bold tracking-tight ${valueClass}`}>{value}</p>
+    </div>
+  );
+}
+
+function ScheduleModal({ post, value, onChange, presets, onSave, onCancel, isSaving }) {
+  if (!post) return null;
+
+  return (
+    <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-sm">
+      <div className="w-full max-w-xl rounded-[1.75rem] border border-white/10 bg-slate-950 p-5 shadow-2xl shadow-slate-950/60">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-amber-300">Schedule Post</p>
+            <h3 className="mt-2 text-lg font-bold text-white">{post.topic || "Untitled post"}</h3>
+            <p className="mt-1 text-sm text-slate-500">Pick a preset or set an exact time. Existing scheduler logic stays unchanged.</p>
+          </div>
+          <button
+            type="button"
+            onClick={onCancel}
+            className="rounded-full border border-white/10 bg-white/5 p-2 text-slate-400 transition hover:bg-white/10 hover:text-white"
+            aria-label="Close schedule modal"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="mt-4 flex flex-wrap gap-2">
+          {presets.map((preset) => (
+            <button
+              key={`${post.id}-${preset.id}`}
+              type="button"
+              onClick={() => onChange(preset.value)}
+              className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-[11px] font-semibold text-slate-300 transition hover:bg-white/10"
+            >
+              {preset.label}
+            </button>
+          ))}
+        </div>
+
+        <label className="mt-4 block">
+          <span className="mb-2 block text-[10px] font-bold uppercase tracking-wider text-amber-300">Schedule Time</span>
+          <input
+            type="datetime-local"
+            value={value}
+            min={getMinDateTimeLocalValue()}
+            onChange={(event) => onChange(event.target.value)}
+            className="w-full rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-sm text-slate-200 outline-none transition focus:border-amber-400"
+          />
+        </label>
+
+        <div className="mt-5 flex justify-end gap-2">
+          <ActionButton label="Cancel" icon={X} onClick={onCancel} variant="outline" />
+          <ActionButton label="Save Time" icon={CheckCircle2} onClick={onSave} variant="amber" isLoading={isSaving} />
+        </div>
+      </div>
     </div>
   );
 }
@@ -93,6 +148,7 @@ function StatusPage({
   localDrafts,
   formatDate,
   handleDeleteLocalDraft,
+  handleDeletePost,
   handleDuplicatePost,
   handleLoadDraftToEditor,
   handlePublishPost,
@@ -106,7 +162,7 @@ function StatusPage({
   statusNotice,
 }) {
   const activePageId = settings.activePageId || "default";
-  const [openSchedulePostId, setOpenSchedulePostId] = useState(null);
+  const [scheduleModalPost, setScheduleModalPost] = useState(null);
   const [scheduleValue, setScheduleValue] = useState("");
   const [selectedFilter, setSelectedFilter] = useState("all");
 
@@ -136,7 +192,6 @@ function StatusPage({
       scheduledPosts,
       failedPosts,
       postedPosts,
-      activePosts,
       filteredList,
       postedToday: postedPosts.filter((post) => isSameLocalDay(post.posted_at || post.created_at)).length,
     };
@@ -165,27 +220,43 @@ function StatusPage({
 
   const queueHint =
     selectedFilter === "posted"
-      ? "Posted items are shown directly here."
+      ? "Posted items are visible in this filter only."
       : "Posted items stay collapsed by default so active work stays on top.";
 
   const handleOpenSchedule = (post) => {
-    setOpenSchedulePostId(post.id);
+    setScheduleModalPost(post);
     setScheduleValue(toLocalDateTimeValue(post.scheduled_at) || getMinDateTimeLocalValue());
   };
 
   const handleCloseSchedule = () => {
-    setOpenSchedulePostId(null);
+    setScheduleModalPost(null);
     setScheduleValue("");
   };
 
-  const handleSubmitSchedule = async (postId) => {
-    const success = await handleSchedulePost(postId, scheduleValue);
+  const handleSubmitSchedule = async () => {
+    if (!scheduleModalPost) return;
+    const success = await handleSchedulePost(scheduleModalPost.id, scheduleValue);
     if (success) handleCloseSchedule();
   };
 
   const handleApplyQuickSchedule = async (postId, nextValue) => {
     if (!nextValue) return;
     await handleSchedulePost(postId, nextValue);
+  };
+
+  const handleDeleteRequest = async (post) => {
+    if (!post) return;
+
+    const isPosted = post.status === "posted";
+    const confirmationMessage = isPosted
+      ? `Remove "${post.topic || "this post"}" from the app only? This will not delete the Facebook post.`
+      : `Delete "${post.topic || "this queue item"}" from the app queue?`;
+
+    if (!window.confirm(confirmationMessage)) {
+      return;
+    }
+
+    await handleDeletePost(post);
   };
 
   return (
@@ -204,64 +275,66 @@ function StatusPage({
         </div>
       ) : null}
 
-      <div className="rounded-2xl border border-cyan-500/20 bg-cyan-500/10 p-4 text-sm text-cyan-100 shadow-sm">
-        <div className="flex items-center gap-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-black/10">
-            <Facebook className="h-4 w-4" />
-          </div>
-          <div>
-            <p className="font-semibold text-cyan-100">Operator Queue</p>
-            <p className="mt-0.5 text-xs text-cyan-100/80">
-              Publish mode: {settings.facebookPublishMode === "live" ? "Live" : "Mock"}.
-              This page keeps content scanning, scheduling, and recovery fast without changing the stable publish flow.
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <div className="grid gap-3 sm:grid-cols-4">
-        <SummaryCard label="Drafts" value={pageAware.draftPosts.length} />
-        <SummaryCard label="Scheduled" value={pageAware.scheduledPosts.length} tone="warning" />
-        <SummaryCard label="Posted Today" value={pageAware.postedToday} tone="success" />
-        <SummaryCard label="Failed" value={pageAware.failedPosts.length} tone="danger" />
-      </div>
-
-      {schedulerStatus ? (
-        <div className="flex items-center gap-3 rounded-2xl border border-cyan-500/20 bg-cyan-500/10 p-4 text-xs text-cyan-300 shadow-sm">
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-cyan-500/20">
-            <Clock className="h-4 w-4" />
-          </div>
-          <div>
-            <p className="font-bold uppercase tracking-tight">Automation Status</p>
-            <p className="mt-0.5 opacity-80">
-              Last run {formatDate(schedulerStatus.lastRun)} | Published {schedulerStatus.published} | Failed {schedulerStatus.failed}
-            </p>
+      <div className="sticky top-3 z-20 space-y-3 rounded-[1.75rem] border border-cyan-500/15 bg-slate-950/92 p-4 shadow-lg shadow-slate-950/40 backdrop-blur">
+        <div className="rounded-2xl border border-cyan-500/20 bg-cyan-500/10 p-4 text-sm text-cyan-100 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-black/10">
+              <Facebook className="h-4 w-4" />
+            </div>
+            <div>
+              <p className="font-semibold text-cyan-100">Operator Queue</p>
+              <p className="mt-0.5 text-xs text-cyan-100/80">
+                Publish mode: {settings.facebookPublishMode === "live" ? "Live" : "Mock"}.
+                This view keeps queue scanning, scheduling, and cleanup visible while you scroll.
+              </p>
+            </div>
           </div>
         </div>
-      ) : null}
 
-      <div className="rounded-2xl border border-white/5 bg-slate-900/40 p-4 shadow-sm">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400">Queue Filters</p>
-            <p className="mt-1 text-xs text-slate-500">Focus on one content state at a time without changing queue behavior.</p>
+        <div className="grid gap-3 sm:grid-cols-4">
+          <SummaryCard label="Drafts" value={pageAware.draftPosts.length} />
+          <SummaryCard label="Scheduled" value={pageAware.scheduledPosts.length} tone="warning" />
+          <SummaryCard label="Posted Today" value={pageAware.postedToday} tone="success" />
+          <SummaryCard label="Failed" value={pageAware.failedPosts.length} tone="danger" />
+        </div>
+
+        {schedulerStatus ? (
+          <div className="flex items-center gap-3 rounded-2xl border border-cyan-500/20 bg-cyan-500/10 p-3 text-xs text-cyan-300 shadow-sm">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-cyan-500/20">
+              <Clock className="h-4 w-4" />
+            </div>
+            <div>
+              <p className="font-bold uppercase tracking-tight">Automation Status</p>
+              <p className="mt-0.5 opacity-80">
+                Last run {formatDate(schedulerStatus.lastRun)} | Published {schedulerStatus.published} | Failed {schedulerStatus.failed}
+              </p>
+            </div>
           </div>
-          <div className="flex flex-wrap gap-2">
-            <FilterButton active={selectedFilter === "all"} onClick={() => setSelectedFilter("all")}>
-              All
-            </FilterButton>
-            <FilterButton active={selectedFilter === "draft"} onClick={() => setSelectedFilter("draft")}>
-              Draft
-            </FilterButton>
-            <FilterButton active={selectedFilter === "scheduled"} onClick={() => setSelectedFilter("scheduled")}>
-              Scheduled
-            </FilterButton>
-            <FilterButton active={selectedFilter === "posted"} onClick={() => setSelectedFilter("posted")}>
-              Posted
-            </FilterButton>
-            <FilterButton active={selectedFilter === "failed"} onClick={() => setSelectedFilter("failed")}>
-              Failed
-            </FilterButton>
+        ) : null}
+
+        <div className="rounded-2xl border border-white/5 bg-slate-900/50 p-3 shadow-sm">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400">Queue Filters</p>
+              <p className="mt-1 text-xs text-slate-500">Focus on one content state at a time without changing the queue model.</p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <FilterButton active={selectedFilter === "all"} onClick={() => setSelectedFilter("all")}>
+                All
+              </FilterButton>
+              <FilterButton active={selectedFilter === "draft"} onClick={() => setSelectedFilter("draft")}>
+                Draft
+              </FilterButton>
+              <FilterButton active={selectedFilter === "scheduled"} onClick={() => setSelectedFilter("scheduled")}>
+                Scheduled
+              </FilterButton>
+              <FilterButton active={selectedFilter === "posted"} onClick={() => setSelectedFilter("posted")}>
+                Posted
+              </FilterButton>
+              <FilterButton active={selectedFilter === "failed"} onClick={() => setSelectedFilter("failed")}>
+                Failed
+              </FilterButton>
+            </div>
           </div>
         </div>
       </div>
@@ -295,11 +368,9 @@ function StatusPage({
               settings,
               pages: workspacePages,
             });
-            const isScheduleOpen = openSchedulePostId === post.id;
             const isRemotePost = post.source !== "local";
             const isScheduled = post.status === "scheduled";
             const isPosted = post.status === "posted";
-            const fastActions = fastReschedulePresets;
 
             return (
               <article
@@ -387,20 +458,11 @@ function StatusPage({
                     />
                   ) : null}
 
-                  <ActionButton
-                    label="Duplicate"
-                    icon={Copy}
-                    onClick={() => void handleDuplicatePost(post)}
-                    variant="outline"
-                    className="px-3 py-2 text-xs"
-                    fullWidth
-                  />
-
-                  {post.source === "local" ? (
+                  {!isPosted ? (
                     <ActionButton
-                      label="Delete Local"
+                      label="Delete"
                       icon={Trash2}
-                      onClick={() => handleDeleteLocalDraft(post.id)}
+                      onClick={() => void handleDeleteRequest(post)}
                       variant="danger"
                       className="px-3 py-2 text-xs"
                       fullWidth
@@ -420,7 +482,7 @@ function StatusPage({
 
                       {isScheduled ? (
                         <div className="grid grid-cols-3 gap-1">
-                          {fastActions.map((preset) => (
+                          {fastReschedulePresets.map((preset) => (
                             <button
                               key={`${post.id}-${preset.id}`}
                               type="button"
@@ -464,48 +526,6 @@ function StatusPage({
                     </>
                   ) : null}
                 </div>
-
-                {isRemotePost && !isPosted && isScheduleOpen ? (
-                  <div className="w-full rounded-2xl border border-amber-500/20 bg-amber-500/5 p-4 lg:ml-[calc(8rem+1rem)]">
-                    <div className="space-y-3">
-                      <div className="flex flex-wrap gap-2">
-                        {quickSchedulePresets.map((preset) => (
-                          <button
-                            key={`${post.id}-preset-${preset.id}`}
-                            type="button"
-                            onClick={() => setScheduleValue(preset.value)}
-                            className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-[11px] font-semibold text-slate-300 transition hover:bg-white/10"
-                          >
-                            {preset.label}
-                          </button>
-                        ))}
-                      </div>
-
-                      <div className="flex flex-col gap-3 lg:flex-row lg:items-end">
-                        <label className="block flex-1">
-                          <span className="mb-2 block text-[10px] font-bold uppercase tracking-wider text-amber-300">Schedule Time</span>
-                          <input
-                            type="datetime-local"
-                            value={scheduleValue}
-                            min={getMinDateTimeLocalValue()}
-                            onChange={(event) => setScheduleValue(event.target.value)}
-                            className="w-full rounded-xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm text-slate-200 outline-none transition focus:border-amber-400"
-                          />
-                        </label>
-                        <div className="flex gap-2">
-                          <ActionButton
-                            label="Save Time"
-                            icon={CheckCircle2}
-                            onClick={() => void handleSubmitSchedule(post.id)}
-                            variant="amber"
-                            isLoading={isSchedulingPostId === post.id}
-                          />
-                          <ActionButton label="Cancel" icon={Trash2} onClick={handleCloseSchedule} variant="outline" />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ) : null}
               </article>
             );
           })
@@ -535,18 +555,13 @@ function StatusPage({
                       <p className="text-sm font-semibold text-white">{post.topic || "Untitled post"}</p>
                       <p className="mt-1 text-[11px] text-slate-500">Posted {formatDate(post.posted_at || post.created_at)}</p>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => void handleDuplicatePost(post)}
-                        className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-[11px] font-semibold text-slate-300 transition hover:bg-white/10"
-                      >
-                        Duplicate
-                      </button>
-                      <span className="rounded-full bg-emerald-500/10 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-emerald-300">
-                        posted
-                      </span>
-                    </div>
+                    <button
+                      type="button"
+                      onClick={() => void handleDuplicatePost(post)}
+                      className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-[11px] font-semibold text-slate-300 transition hover:bg-white/10"
+                    >
+                      Duplicate
+                    </button>
                   </div>
                 ))}
               </div>
@@ -554,6 +569,16 @@ function StatusPage({
           </div>
         </details>
       ) : null}
+
+      <ScheduleModal
+        post={scheduleModalPost}
+        value={scheduleValue}
+        onChange={setScheduleValue}
+        presets={quickSchedulePresets}
+        onSave={() => void handleSubmitSchedule()}
+        onCancel={handleCloseSchedule}
+        isSaving={isSchedulingPostId === scheduleModalPost?.id}
+      />
     </div>
   );
 }

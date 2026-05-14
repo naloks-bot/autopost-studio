@@ -322,6 +322,30 @@ function getImagePromptProvider(settings) {
   return "mock";
 }
 
+function buildFallbackImagePromptFromContent(formData = {}) {
+  const topic = String(formData.topic || "").trim();
+  const caption = sanitizeGeneratedCaption(String(formData.content || "").trim());
+  const pageDirection = String(formData.pageImageDirection || "").trim();
+  const vibe = String(formData.pageTone || "").trim();
+  const captionSnippet = caption
+    .replace(/\s+/g, " ")
+    .slice(0, 180)
+    .trim();
+
+  const segments = [
+    topic || "editorial social media concept",
+    captionSnippet ? `inspired by: ${captionSnippet}` : "",
+    "cinematic editorial social media image",
+    vibe ? `${vibe} tone` : "clear emotional storytelling",
+    pageDirection || "strong subject, realistic lighting, clean composition",
+    "vertical 4:5 framing",
+  ]
+    .filter(Boolean)
+    .map((segment) => String(segment).replace(/\.$/, "").trim());
+
+  return segments.join(", ");
+}
+
 export function buildContentPrompt(formData, settings) {
   const voice = settings.brandVoice || "Professional";
   const business = settings.businessName || "My Brand";
@@ -652,41 +676,60 @@ export async function generatePostContent({ formData, settings }) {
 }
 
 export async function generateImagePrompt({ formData, settings }) {
-  if (!formData?.topic || formData.topic.trim().length < 5) {
+  const topicOrCaption = String(formData?.topic || formData?.content || "").trim();
+
+  if (!topicOrCaption || topicOrCaption.length < 5) {
     return {
       data: null,
-      error: "Please enter at least 5 characters for the topic before generating an image prompt.",
+      error: "Please enter at least 5 characters of topic or caption before generating an image prompt.",
       mode: "mock",
     };
   }
 
   const provider = getImagePromptProvider(settings);
   const prompt = buildImagePrompt(formData, settings);
-  const pageDirection = formData.pageImageDirection ? `. ${formData.pageImageDirection}` : "";
+  const fallbackPrompt = buildFallbackImagePromptFromContent(formData);
 
   if (provider === "openai") {
-    await new Promise((resolve) => setTimeout(resolve, 800));
+    const result = await generateWithOpenAI(prompt, settings.openaiApiKey, settings.openaiModel || "gpt-4o-mini");
+    if (result.data) {
+      return {
+        data: sanitizeImagePromptValue(result.data),
+        error: null,
+        mode: "openai",
+        requestedPrompt: prompt,
+      };
+    }
+
     return {
-      data: `Beginner learning AI with laptop, clean desk setup, approachable technology mood, realistic social media style, soft natural light, clear focal subject${pageDirection}`.trim(),
-      error: null,
-      mode: "openai",
+      data: fallbackPrompt,
+      error: result.error || null,
+      mode: "mock",
       requestedPrompt: prompt,
     };
   }
 
   if (provider === "gemini") {
-    await new Promise((resolve) => setTimeout(resolve, 800));
+    const result = await generateWithGemini(prompt, getGeminiApiKey(settings), getGeminiModel(settings));
+    if (result.data) {
+      return {
+        data: sanitizeImagePromptValue(result.data),
+        error: null,
+        mode: "gemini",
+        requestedPrompt: prompt,
+      };
+    }
+
     return {
-      data: `Thai beginner exploring AI tools, warm friendly workspace, modern laptop on desk, inviting educational atmosphere, realistic composition, vertical social media framing${pageDirection}`.trim(),
-      error: null,
-      mode: "gemini",
+      data: fallbackPrompt,
+      error: result.error || null,
+      mode: "mock",
       requestedPrompt: prompt,
     };
   }
 
-  await new Promise((resolve) => setTimeout(resolve, 800));
   return {
-    data: `Person starting to use AI for the first time, modern workspace, laptop screen with helpful assistant interface, friendly and easy-to-understand learning vibe, realistic lighting, clean composition, vertical social media image${pageDirection}`.trim(),
+    data: fallbackPrompt,
     error: null,
     mode: "mock",
     requestedPrompt: prompt,

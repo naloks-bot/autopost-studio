@@ -375,24 +375,22 @@ function CreatePage({
           </div>
         </div>
         <div className="mt-3 border-t border-white/5 pt-3">
-          <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">Quick Schedule</p>
-              <p className="mt-1 text-xs text-slate-500">Save the current post as a new draft and schedule it with one click.</p>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {quickSchedulePresets.map((preset) => (
-                <button
-                  key={preset.id}
-                  type="button"
-                  onClick={() => void handleQuickSchedule(preset)}
-                  disabled={isSavingDraft || quickScheduleId === preset.id}
-                  className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-[11px] font-semibold text-slate-300 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {quickScheduleId === preset.id ? "Scheduling..." : preset.label}
-                </button>
-              ))}
-            </div>
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">Quick Schedule</p>
+            <p className="mt-1 text-xs text-slate-500">Save the current post as a new draft, then send it into the queue with one preset click.</p>
+          </div>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {quickSchedulePresets.map((preset) => (
+              <button
+                key={preset.id}
+                type="button"
+                onClick={() => void handleQuickSchedule(preset)}
+                disabled={isSavingDraft || quickScheduleId === preset.id}
+                className="min-w-[8.75rem] rounded-full border border-white/10 bg-white/5 px-3 py-2 text-[11px] font-semibold text-slate-300 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {quickScheduleId === preset.id ? "Scheduling..." : preset.label}
+              </button>
+            ))}
           </div>
         </div>
       </div>
