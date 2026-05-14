@@ -87,24 +87,24 @@ export default function LogsPage({ logs = [], logsMode = "offline" }) {
         : "Persistent logs are unavailable right now. The publish and scheduler flows still continue safely.";
 
   const categories = [
-    { id: "all", label: "ทั้งหมด", icon: History, count: counts.all },
+    { id: "all", label: "à¸—à¸±à¹‰à¸‡à¸«à¸¡à¸”", icon: History, count: counts.all },
     { id: "ai", label: "AI", icon: Cpu, count: counts.ai },
-    { id: "scheduler", label: "ระบบอัตโนมัติ", icon: History, count: counts.scheduler },
-    { id: "publishing", label: "การโพสต์", icon: Share2, count: counts.publishing },
-    { id: "errors", label: "ข้อผิดพลาด", icon: ShieldAlert, count: counts.errors },
+    { id: "scheduler", label: "à¸£à¸°à¸šà¸šà¸­à¸±à¸•à¹‚à¸™à¸¡à¸±à¸•à¸´", icon: History, count: counts.scheduler },
+    { id: "publishing", label: "à¸à¸²à¸£à¹‚à¸žà¸ªà¸•à¹Œ", icon: Share2, count: counts.publishing },
+    { id: "errors", label: "à¸‚à¹‰à¸­à¸œà¸´à¸”à¸žà¸¥à¸²à¸”", icon: ShieldAlert, count: counts.errors },
   ];
 
   return (
-    <div className="space-y-6">
-      <div className="rounded-2xl border border-white/5 bg-slate-900/40 p-6 shadow-sm">
+    <div className="space-y-5">
+      <div className="rounded-2xl border border-white/5 bg-slate-900/40 p-5 shadow-sm">
         <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
           <div className="flex items-center gap-3">
-            <div className="rounded-xl bg-rose-500/10 p-2 text-rose-400">
+            <div className="rounded-xl bg-cyan-500/10 p-2 text-cyan-300">
               <Terminal className="h-6 w-6" />
             </div>
             <div>
-              <h2 className="text-xl font-bold tracking-tight text-white">ประวัติระบบ</h2>
-              <p className="text-xs text-slate-400">ติดตาม scheduler, publish, และผลลัพธ์ของ scheduled posts แบบละเอียด</p>
+              <h2 className="text-xl font-bold tracking-tight text-white">à¸›à¸£à¸°à¸§à¸±à¸•à¸´à¸£à¸°à¸šà¸š</h2>
+              <p className="text-xs text-slate-400">à¸¥à¸³à¸”à¸±à¸šà¹€à¸«à¸•à¸¸à¸à¸²à¸£à¸“à¹Œà¸‚à¸­à¸‡ scheduler, publish à¹à¸¥à¸°à¸ªà¸–à¸²à¸™à¸°à¸£à¸°à¸šà¸šà¹à¸šà¸šà¸­à¹ˆà¸²à¸™à¸‡à¹ˆà¸²à¸¢</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
@@ -117,20 +117,20 @@ export default function LogsPage({ logs = [], logsMode = "offline" }) {
           </div>
         </div>
 
-        <div className="mt-6 flex items-start gap-3 rounded-xl border border-rose-500/10 bg-rose-500/5 p-3">
-          <Info className="mt-0.5 h-5 w-5 text-rose-400" />
+        <div className="mt-5 flex items-start gap-3 rounded-xl border border-cyan-500/10 bg-cyan-500/5 p-3">
+          <Info className="mt-0.5 h-5 w-5 text-cyan-300" />
           <div>
-            <p className="text-xs font-semibold text-rose-300">
-              {hasPersistentLogs ? "บันทึกถาวรพร้อมใช้งาน" : "โหมดพื้นฐาน"}
+            <p className="text-xs font-semibold text-cyan-200">
+              {hasPersistentLogs ? "à¸šà¸±à¸™à¸—à¸¶à¸à¸–à¸²à¸§à¸£à¸žà¸£à¹‰à¸­à¸¡à¹ƒà¸Šà¹‰à¸‡à¸²à¸™" : "à¹‚à¸«à¸¡à¸”à¸žà¸·à¹‰à¸™à¸à¸²à¸™"}
             </p>
-            <p className="text-[10px] leading-relaxed text-rose-400/80">{infoMessage}</p>
+            <p className="text-[10px] leading-relaxed text-cyan-100/75">{infoMessage}</p>
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-[18rem_1fr]">
         <div className="space-y-4">
-          <div className="rounded-2xl border border-white/5 bg-slate-900/40 p-6">
+          <div className="rounded-2xl border border-white/5 bg-slate-900/40 p-4">
             <h3 className="mb-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Log Categories</h3>
             <div className="space-y-1">
               {categories.map((cat) => (
@@ -138,7 +138,7 @@ export default function LogsPage({ logs = [], logsMode = "offline" }) {
                   key={cat.id}
                   onClick={() => setActiveCategory(cat.id)}
                   className={`w-full rounded-lg px-3 py-2 text-xs transition ${
-                    activeCategory === cat.id ? "bg-rose-500/10 text-rose-400" : "text-slate-400 hover:bg-white/5 hover:text-slate-200"
+                    activeCategory === cat.id ? "bg-cyan-500/10 text-cyan-300" : "text-slate-400 hover:bg-white/5 hover:text-slate-200"
                   }`}
                 >
                   <div className="flex items-center justify-between">
@@ -154,16 +154,16 @@ export default function LogsPage({ logs = [], logsMode = "offline" }) {
           </div>
         </div>
 
-        <div className="lg:col-span-3">
+        <div>
           <div className="overflow-hidden rounded-2xl border border-white/5 bg-slate-950/80 shadow-inner">
             <div className="flex items-center justify-between border-b border-white/5 bg-white/5 px-4 py-2">
               <div className="flex items-center gap-2">
-                <div className="h-2 w-2 rounded-full bg-rose-500"></div>
-                <span className="text-[9px] font-bold uppercase tracking-widest text-slate-500">รายการล่าสุด</span>
+                <div className="h-2 w-2 rounded-full bg-cyan-400"></div>
+                <span className="text-[9px] font-bold uppercase tracking-widest text-slate-500">à¸£à¸²à¸¢à¸à¸²à¸£à¸¥à¹ˆà¸²à¸ªà¸¸à¸”</span>
               </div>
-              <span className="text-[9px] text-slate-600">ใหม่สุดก่อน</span>
+              <span className="text-[9px] text-slate-600">à¹ƒà¸«à¸¡à¹ˆà¸ªà¸¸à¸”à¸à¹ˆà¸­à¸™</span>
             </div>
-            <div className="h-[400px] space-y-3 overflow-y-auto p-4">
+            <div className="h-[420px] space-y-2 overflow-y-auto p-4">
               {filteredLogs.length === 0 ? (
                 <div className="rounded-xl border border-white/5 bg-white/5 p-4 text-slate-400">
                   {logs.length === 0
@@ -172,7 +172,7 @@ export default function LogsPage({ logs = [], logsMode = "offline" }) {
                       : logsMode === "missing-table"
                         ? "Persistent log storage is not installed yet. Apply the latest Supabase SQL to start recording logs."
                         : "Log storage is unavailable right now, but publish and scheduler flows continue safely."
-                    : "ไม่มี log ในหมวดนี้จากข้อมูลที่โหลดอยู่ตอนนี้"}
+                    : "à¹„à¸¡à¹ˆà¸¡à¸µ log à¹ƒà¸™à¸«à¸¡à¸§à¸”à¸™à¸µà¹‰à¸ˆà¸²à¸à¸‚à¹‰à¸­à¸¡à¸¹à¸¥à¸—à¸µà¹ˆà¹‚à¸«à¸¥à¸”à¸­à¸¢à¸¹à¹ˆà¸•à¸­à¸™à¸™à¸µà¹‰"}
                 </div>
               ) : (
                 filteredLogs.map((log) => {
@@ -185,7 +185,12 @@ export default function LogsPage({ logs = [], logsMode = "offline" }) {
                   const publishMode = details.publish_mode || "-";
 
                   return (
-                    <div key={log.id} className="rounded-xl border border-white/5 bg-white/5 p-4 text-[11px]">
+                    <div
+                      key={log.id}
+                      className={`rounded-xl border p-3 text-[11px] ${
+                        log.level === "error" ? "border-rose-500/20 bg-rose-500/8" : "border-white/5 bg-white/5"
+                      }`}
+                    >
                       <div className="flex flex-wrap items-center gap-3">
                         <span className="shrink-0 text-slate-600">[{formatLogTime(log.created_at)}]</span>
                         <span className={`shrink-0 font-bold uppercase ${getSourceTone(log)}`}>[{log.source}]</span>
@@ -196,7 +201,7 @@ export default function LogsPage({ logs = [], logsMode = "offline" }) {
                       </div>
                       <p className="mt-2 text-sm text-white">{log.message}</p>
                       <div className="mt-3 grid gap-2 text-[10px] text-slate-400 md:grid-cols-2">
-                        <p>โพสต์: <span className="text-slate-200">{topic}</span></p>
+                        <p>à¹‚à¸žà¸ªà¸•à¹Œ: <span className="text-slate-200">{topic}</span></p>
                         <p>Scheduled: <span className="text-slate-200">{formatLogDateTime(scheduledAt)}</span></p>
                         <p>Attempted: <span className="text-slate-200">{formatLogDateTime(attemptedAt)}</span></p>
                         <p>Result: <span className={getResultTone(result, log.level)}>{formatResultLabel(result)}</span></p>
@@ -212,7 +217,7 @@ export default function LogsPage({ logs = [], logsMode = "offline" }) {
                 })
               )}
               <div className="flex gap-4">
-                <span className="animate-pulse text-rose-500">_</span>
+                <span className="animate-pulse text-cyan-400">_</span>
               </div>
             </div>
           </div>

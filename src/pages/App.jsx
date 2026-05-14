@@ -1252,6 +1252,7 @@ function App() {
                   textProviderRuntime={textProviderRuntime}
                   createNotice={createNotice}
                   editingDraft={editingDraft}
+                  onOpenStatusTab={() => setActiveTab("status")}
                 />
               )}
 

@@ -44,6 +44,7 @@ Recent stable checkpoints:
 * Facebook image publish path now targets attached photo publishing instead of visible link-card fallback when `image_url` exists
 * GitHub Actions `workflow_dispatch` remains available as a manual scheduler fallback/debug tool
 * production cron triggering is now locked to an external cron provider instead of GitHub `event=schedule`
+* Phase 2A operator UI simplification is now in progress with sticky actions, denser queue scanning, calmer logs styling, and collapsed advanced diagnostics
 
 Permanent operating rules:
 
@@ -159,6 +160,14 @@ In scope:
 
 Success condition:
 Can stockpile and schedule 30–100 posts consistently.
+
+Current Phase 2A checkpoint:
+
+* Create flow now keeps primary operator actions visible while scrolling
+* Status queue is denser and faster to scan on desktop
+* posted items are collapsed by default to keep active queue items visible first
+* logs page now uses neutral/cyan operational styling, with red reserved for actual failures
+* advanced diagnostics are moving behind collapsible sections instead of staying always visible
 
 ## Phase 3 — Prompt Intelligence Layer
 

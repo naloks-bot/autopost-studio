@@ -76,6 +76,13 @@ Responsible for:
 Rule:
 Preserve the current stable Create flow and optimize operator efficiency without unnecessary UI redesign.
 
+Current operator UX boundary inside this layer:
+
+* sticky operator actions are allowed if they do not change Create flow behavior
+* desktop queue density can be improved without changing queue architecture
+* posted/completed visibility can be collapsed by default to prioritize active work
+* advanced runtime diagnostics should be hidden behind explicit operator intent when possible
+
 ## 3. Publishing + Automation Layer
 
 Responsible for:
@@ -179,6 +186,14 @@ Focus:
 
 Architecture rule:
 Improve workflow efficiency using the current system boundary.
+
+Phase 2A UI direction:
+
+* simplify operator scanning
+* reduce oversized cards and spacing
+* keep primary actions visible
+* treat logs as an operational timeline, not a permanent failure console
+* hide diagnostics behind advanced disclosure instead of making them always-on
 
 ## Phase 3 — Prompt Intelligence Layer
 

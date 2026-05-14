@@ -122,6 +122,14 @@ TODO:
 * save/schedule workflow optimization
 * cinematic consistency workflow
 
+Phase 2A checkpoint:
+
+* sticky Create actions implemented for faster operator access
+* queue density improved for faster desktop scanning
+* posted items collapsed by default
+* logs styling softened to operational cyan/neutral tone
+* advanced diagnostics moved behind collapsible sections
+
 Important:
 Focus on operator efficiency and low token usage. Avoid unnecessary UI redesign.
 

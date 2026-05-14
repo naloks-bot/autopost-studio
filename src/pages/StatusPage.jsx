@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { AlertCircle, Calendar, CheckCircle2, Clock, Facebook, Info, Pencil, RotateCcw, Send, Trash2 } from "lucide-react";
+import { AlertCircle, Calendar, CheckCircle2, ChevronDown, Clock, Facebook, Info, Pencil, RotateCcw, Send, Trash2 } from "lucide-react";
 import ActionButton from "../components/ActionButton.jsx";
 import { getPagePublishReadiness, resolveEffectivePublishConfig, runPerPagePublishDryRun } from "../services/page-context.js";
 
@@ -17,6 +17,21 @@ function getMinDateTimeLocalValue() {
   const offset = now.getTimezoneOffset();
   const localNow = new Date(now.getTime() - offset * 60 * 1000);
   return localNow.toISOString().slice(0, 16);
+}
+
+function CompactMetaPill({ children, tone = "neutral" }) {
+  const toneClass =
+    tone === "success"
+      ? "bg-emerald-500/10 text-emerald-400"
+      : tone === "warning"
+        ? "bg-amber-500/10 text-amber-400"
+        : tone === "danger"
+          ? "bg-rose-500/10 text-rose-300"
+          : tone === "accent"
+            ? "bg-cyan-500/10 text-cyan-400"
+            : "border border-white/5 bg-slate-950/40 text-slate-400";
+
+  return <span className={`rounded-full px-2 py-1 text-[10px] font-bold uppercase tracking-wider ${toneClass}`}>{children}</span>;
 }
 
 function StatusPage({
@@ -77,7 +92,7 @@ function StatusPage({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       {statusNotice ? (
         <div
           className={`rounded-2xl border px-4 py-3 text-sm ${
@@ -98,31 +113,31 @@ function StatusPage({
             <Facebook className="h-4 w-4" />
           </div>
           <div>
-            <p className="font-semibold">สถานะการโพสต์ของเพจปัจจุบัน</p>
+            <p className="font-semibold">à¸ªà¸–à¸²à¸™à¸°à¸à¸²à¸£à¹‚à¸žà¸ªà¸•à¹Œà¸‚à¸­à¸‡à¹€à¸žà¸ˆà¸›à¸±à¸ˆà¸ˆà¸¸à¸šà¸±à¸™</p>
             <p className="mt-0.5 text-xs text-cyan-100/80">
-              โหมด {settings.facebookPublishMode === "live" ? "โพสต์จริง" : "ทดสอบ"} ยังคงใช้ publish flow เดิมที่เสถียร
-              และหน้านี้เน้นดูคิวปัจจุบันกับรายการที่เพิ่งโพสต์สำเร็จ
+              à¹‚à¸«à¸¡à¸” {settings.facebookPublishMode === "live" ? "à¹‚à¸žà¸ªà¸•à¹Œà¸ˆà¸£à¸´à¸‡" : "à¸—à¸”à¸ªà¸­à¸š"} à¸¢à¸±à¸‡à¸„à¸‡à¹ƒà¸Šà¹‰ publish flow à¹€à¸”à¸´à¸¡à¸—à¸µà¹ˆà¹€à¸ªà¸–à¸µà¸¢à¸£
+              à¹à¸¥à¸°à¸«à¸™à¹‰à¸²à¸™à¸µà¹‰à¹€à¸™à¹‰à¸™à¸„à¸´à¸§à¸›à¸±à¸ˆà¸ˆà¸¸à¸šà¸±à¸™à¹à¸šà¸šà¸ªà¹à¸à¸™à¹„à¸”à¹‰à¹€à¸£à¹‡à¸§
             </p>
           </div>
         </div>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-4">
-        <div className="rounded-2xl border border-white/5 bg-slate-900/40 p-5 shadow-sm">
-          <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">ทั้งหมด</span>
-          <p className="mt-3 text-4xl font-bold tracking-tight text-white">{pageAware.total}</p>
+      <div className="grid gap-3 sm:grid-cols-4">
+        <div className="rounded-2xl border border-white/5 bg-slate-900/40 p-4 shadow-sm">
+          <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">à¸—à¸±à¹‰à¸‡à¸«à¸¡à¸”</span>
+          <p className="mt-2 text-3xl font-bold tracking-tight text-white">{pageAware.total}</p>
         </div>
-        <div className="rounded-2xl border border-white/5 bg-slate-900/40 p-5 shadow-sm">
-          <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">รอคิวโพสต์</span>
-          <p className="mt-3 text-4xl font-bold tracking-tight text-white">{pageAware.queued}</p>
+        <div className="rounded-2xl border border-white/5 bg-slate-900/40 p-4 shadow-sm">
+          <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">à¸£à¸­à¸„à¸´à¸§à¹‚à¸žà¸ªà¸•à¹Œ</span>
+          <p className="mt-2 text-3xl font-bold tracking-tight text-white">{pageAware.queued}</p>
         </div>
-        <div className="rounded-2xl border border-white/5 bg-slate-900/40 p-5 shadow-sm">
-          <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">โพสต์สำเร็จล่าสุด</span>
-          <p className="mt-3 text-4xl font-bold tracking-tight text-white">{pageAware.success}</p>
+        <div className="rounded-2xl border border-white/5 bg-slate-900/40 p-4 shadow-sm">
+          <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">à¹‚à¸žà¸ªà¸•à¹Œà¸ªà¸³à¹€à¸£à¹‡à¸ˆ</span>
+          <p className="mt-2 text-3xl font-bold tracking-tight text-white">{pageAware.success}</p>
         </div>
-        <div className="rounded-2xl border border-white/5 bg-slate-900/40 p-5 shadow-sm">
-          <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">ล้มเหลวล่าสุด</span>
-          <p className="mt-3 text-4xl font-bold tracking-tight text-white">{pageAware.failed}</p>
+        <div className="rounded-2xl border border-white/5 bg-slate-900/40 p-4 shadow-sm">
+          <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">à¸¥à¹‰à¸¡à¹€à¸«à¸¥à¸§</span>
+          <p className="mt-2 text-3xl font-bold tracking-tight text-white">{pageAware.failed}</p>
         </div>
       </div>
 
@@ -132,22 +147,25 @@ function StatusPage({
             <Clock className="h-4 w-4" />
           </div>
           <div>
-            <p className="font-bold uppercase tracking-tight">ระบบโพสต์อัตโนมัติ</p>
+            <p className="font-bold uppercase tracking-tight">à¸£à¸°à¸šà¸šà¹‚à¸žà¸ªà¸•à¹Œà¸­à¸±à¸•à¹‚à¸™à¸¡à¸±à¸•à¸´</p>
             <p className="mt-0.5 opacity-80">
-              ล่าสุด {formatDate(schedulerStatus.lastRun)} • สำเร็จ {schedulerStatus.published} • ไม่สำเร็จ {schedulerStatus.failed}
+              à¸¥à¹ˆà¸²à¸ªà¸¸à¸” {formatDate(schedulerStatus.lastRun)} â€¢ à¸ªà¸³à¹€à¸£à¹‡à¸ˆ {schedulerStatus.published} â€¢ à¹„à¸¡à¹ˆà¸ªà¸³à¹€à¸£à¹‡à¸ˆ {schedulerStatus.failed}
             </p>
           </div>
         </div>
       ) : null}
 
-      <div className="space-y-4">
-        <h3 className="pl-1 text-sm font-semibold uppercase tracking-widest text-slate-300">รายการของเพจปัจจุบัน</h3>
+      <div className="space-y-3">
+        <div className="flex items-center justify-between pl-1">
+          <h3 className="text-sm font-semibold uppercase tracking-widest text-slate-300">à¸„à¸´à¸§à¸›à¸±à¸ˆà¸ˆà¸¸à¸šà¸±à¸™</h3>
+          <span className="text-[11px] text-slate-500">posted à¸–à¸¹à¸à¸à¹ˆà¸­à¸™à¹„à¸§à¹‰à¹‚à¸”à¸¢à¸„à¹ˆà¸²à¹€à¸£à¸´à¹ˆà¸¡à¸•à¹‰à¸™</span>
+        </div>
 
         {pageAware.list.length === 0 ? (
           <div className="flex flex-col items-center justify-center rounded-[2rem] border border-dashed border-white/10 p-12 text-center">
             <Info className="mb-3 h-10 w-10 text-slate-700" />
-            <p className="text-lg font-medium text-slate-500">ยังไม่มีร่างในเพจนี้</p>
-            <p className="mt-1 text-sm text-slate-600">เริ่มสร้างโพสต์ใหม่หรือสลับเพจจากแถบด้านบนเพื่อดูข้อมูลของเพจอื่น</p>
+            <p className="text-lg font-medium text-slate-500">à¸¢à¸±à¸‡à¹„à¸¡à¹ˆà¸¡à¸µà¸£à¹ˆà¸²à¸‡à¹ƒà¸™à¹€à¸žà¸ˆà¸™à¸µà¹‰</p>
+            <p className="mt-1 text-sm text-slate-600">à¹€à¸£à¸´à¹ˆà¸¡à¸ªà¸£à¹‰à¸²à¸‡à¹‚à¸žà¸ªà¸•à¹Œà¹ƒà¸«à¸¡à¹ˆà¸«à¸£à¸·à¸­à¸ªà¸¥à¸±à¸šà¹€à¸žà¸ˆà¸ˆà¸²à¸à¹à¸–à¸šà¸”à¹‰à¸²à¸™à¸šà¸™à¹€à¸žà¸·à¹ˆà¸­à¸”à¸¹à¸‚à¹‰à¸­à¸¡à¸¹à¸¥à¸‚à¸­à¸‡à¹€à¸žà¸ˆà¸­à¸·à¹ˆà¸™</p>
           </div>
         ) : (
           pageAware.list.map((post) => {
@@ -173,124 +191,133 @@ function StatusPage({
             return (
               <article
                 key={post.id}
-                className="group relative flex flex-col gap-5 overflow-hidden rounded-[2rem] border border-white/5 bg-slate-900/60 p-5 transition-all hover:bg-slate-900/80 lg:flex-row"
+                className="group relative flex flex-col gap-3 overflow-hidden rounded-[1.65rem] border border-white/5 bg-slate-900/60 p-4 transition-all hover:bg-slate-900/80 lg:flex-row"
               >
                 {post.image_url ? (
-                  <div className="h-32 w-full shrink-0 overflow-hidden rounded-2xl lg:h-32 lg:w-44">
+                  <div className="h-24 w-full shrink-0 overflow-hidden rounded-xl lg:h-24 lg:w-32">
                     <img src={post.image_url} alt="Preview" className="h-full w-full object-cover transition duration-500 group-hover:scale-105" />
                   </div>
                 ) : null}
 
                 <div className="flex flex-1 flex-col justify-between">
                   <div>
-                    <div className="flex items-center gap-3">
-                      <h3 className="text-lg font-bold text-white">{post.topic || "ยังไม่ได้ตั้งหัวข้อ"}</h3>
-                      <span
-                        className={`rounded-full border px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
-                          post.source === "local"
-                            ? "border-amber-500/20 bg-amber-500/10 text-amber-400"
-                            : "border-cyan-500/20 bg-cyan-500/10 text-cyan-400"
-                        }`}
-                      >
-                        {post.source === "local" ? "ในเครื่อง" : "Supabase"}
-                      </span>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h3 className="text-base font-bold text-white">{post.topic || "à¸¢à¸±à¸‡à¹„à¸¡à¹ˆà¹„à¸”à¹‰à¸•à¸±à¹‰à¸‡à¸«à¸±à¸§à¸‚à¹‰à¸­"}</h3>
+                      <CompactMetaPill tone={post.source === "local" ? "warning" : "accent"}>
+                        {post.source === "local" ? "à¹ƒà¸™à¹€à¸„à¸£à¸·à¹ˆà¸­à¸‡" : "Supabase"}
+                      </CompactMetaPill>
                     </div>
-                    <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-slate-400">{post.content}</p>
+                    <p className="mt-1 line-clamp-2 text-sm leading-relaxed text-slate-400">{post.content}</p>
 
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      <span className="rounded-full border border-white/5 bg-slate-950/40 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                        เพจ: {pageReadiness.label}
-                      </span>
-                      <span
-                        className={`rounded-full px-2 py-1 text-[10px] font-bold uppercase tracking-wider ${
-                          pageReadiness.pageConfigReady ? "bg-emerald-500/10 text-emerald-400" : "bg-amber-500/10 text-amber-400"
-                        }`}
-                      >
-                        {pageReadiness.pageConfigReady ? "พร้อมใช้ค่าของเพจ" : "ใช้ค่ากลาง"}
-                      </span>
-                      <span className="rounded-full bg-cyan-500/10 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-cyan-400">
-                        เส้นทางโพสต์: {effectivePublish.effectivePublishLabel}
-                      </span>
-                      <span
-                        className={`rounded-full px-2 py-1 text-[10px] font-bold uppercase tracking-wider ${
-                          post.status === "failed"
-                            ? "bg-rose-500/10 text-rose-300"
-                            : isScheduled
-                              ? "bg-amber-500/10 text-amber-300"
-                              : "bg-white/5 text-slate-300"
-                        }`}
-                      >
-                        สถานะ: {post.status || "draft"}
-                      </span>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      <CompactMetaPill>à¹€à¸žà¸ˆ: {pageReadiness.label}</CompactMetaPill>
+                      <CompactMetaPill tone={pageReadiness.pageConfigReady ? "success" : "warning"}>
+                        {pageReadiness.pageConfigReady ? "à¸žà¸£à¹‰à¸­à¸¡à¹ƒà¸Šà¹‰à¸„à¹ˆà¸²à¸‚à¸­à¸‡à¹€à¸žà¸ˆ" : "à¹ƒà¸Šà¹‰à¸„à¹ˆà¸²à¸à¸¥à¸²à¸‡"}
+                      </CompactMetaPill>
+                      <CompactMetaPill tone="accent">à¹€à¸ªà¹‰à¸™à¸—à¸²à¸‡: {effectivePublish.effectivePublishLabel}</CompactMetaPill>
+                      <CompactMetaPill tone={post.status === "failed" ? "danger" : isScheduled ? "warning" : "neutral"}>
+                        à¸ªà¸–à¸²à¸™à¸°: {post.status || "draft"}
+                      </CompactMetaPill>
                     </div>
-
-                    <div className="mt-2 rounded-lg border border-cyan-500/10 bg-cyan-500/5 px-3 py-2">
-                      <p className="text-[10px] font-bold uppercase tracking-wider text-cyan-400">{pageDryRun.dryRunLabel}</p>
-                      <p className="mt-1 text-[10px] text-slate-400">
-                        จะไปที่ {pageDryRun.resolvedPageLabel} • Page ID {pageDryRun.pageSpecificPageIdReady ? "พร้อม" : "ไม่มี"} • Token{" "}
-                        {pageDryRun.pageSpecificTokenReady ? "พร้อม" : "ไม่มี"}
-                      </p>
-                    </div>
-
-                    {effectivePublish.fallbackReason || effectivePublish.blockedReason ? (
-                      <p className="mt-2 text-[10px] italic text-slate-500">
-                        {effectivePublish.blockedReason || effectivePublish.fallbackReason}
-                      </p>
-                    ) : null}
                   </div>
 
-                  <div className="mt-4 flex flex-wrap items-center gap-4 border-t border-white/5 pt-4">
+                  <div className="mt-3 flex flex-wrap items-center gap-3 border-t border-white/5 pt-3">
                     <div className="flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-tight text-slate-500">
                       <Calendar className="h-3 w-3" />
-                      <span>สร้างเมื่อ {formatDate(post.created_at)}</span>
+                      <span>à¸ªà¸£à¹‰à¸²à¸‡à¹€à¸¡à¸·à¹ˆà¸­ {formatDate(post.created_at)}</span>
                     </div>
                     {post.scheduled_at && isScheduled ? (
                       <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-tight text-amber-400">
                         <Clock className="h-3 w-3" />
-                        <span>ตั้งเวลา {formatDate(post.scheduled_at)}</span>
+                        <span>à¸•à¸±à¹‰à¸‡à¹€à¸§à¸¥à¸² {formatDate(post.scheduled_at)}</span>
                       </div>
                     ) : null}
                   </div>
+
+                  <details className="mt-3 rounded-xl border border-white/5 bg-slate-950/35 px-3 py-2">
+                    <summary className="flex cursor-pointer list-none items-center justify-between text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400">
+                      Advanced
+                      <ChevronDown className="h-3.5 w-3.5" />
+                    </summary>
+                    <div className="mt-2 space-y-2">
+                      <div className="rounded-lg border border-cyan-500/10 bg-cyan-500/5 px-3 py-2">
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-cyan-400">{pageDryRun.dryRunLabel}</p>
+                        <p className="mt-1 text-[10px] text-slate-400">
+                          à¸ˆà¸°à¹„à¸›à¸—à¸µà¹ˆ {pageDryRun.resolvedPageLabel} â€¢ Page ID {pageDryRun.pageSpecificPageIdReady ? "à¸žà¸£à¹‰à¸­à¸¡" : "à¹„à¸¡à¹ˆà¸¡à¸µ"} â€¢ Token{" "}
+                          {pageDryRun.pageSpecificTokenReady ? "à¸žà¸£à¹‰à¸­à¸¡" : "à¹„à¸¡à¹ˆà¸¡à¸µ"}
+                        </p>
+                      </div>
+                      {effectivePublish.fallbackReason || effectivePublish.blockedReason ? (
+                        <p className="text-[10px] italic text-slate-500">
+                          {effectivePublish.blockedReason || effectivePublish.fallbackReason}
+                        </p>
+                      ) : null}
+                    </div>
+                  </details>
                 </div>
 
-                <div className="flex shrink-0 flex-col justify-center gap-2 lg:w-52 lg:border-l lg:border-white/5 lg:pl-5">
+                <div className="flex shrink-0 flex-col justify-center gap-2 lg:w-44 lg:border-l lg:border-white/5 lg:pl-4">
                   {post.source === "local" ? (
                     <>
-                      <ActionButton label="แก้ไขร่าง" icon={Pencil} onClick={() => handleLoadDraftToEditor(post)} variant="outline" fullWidth />
-                      <ActionButton label="ลบในเครื่อง" icon={Trash2} onClick={() => handleDeleteLocalDraft(post.id)} variant="danger" fullWidth />
+                      <ActionButton
+                        label="à¹à¸à¹‰à¹„à¸‚à¸£à¹ˆà¸²à¸‡"
+                        icon={Pencil}
+                        onClick={() => handleLoadDraftToEditor(post)}
+                        variant="outline"
+                        className="px-3 py-2 text-xs"
+                        fullWidth
+                      />
+                      <ActionButton
+                        label="à¸¥à¸šà¹ƒà¸™à¹€à¸„à¸£à¸·à¹ˆà¸­à¸‡"
+                        icon={Trash2}
+                        onClick={() => handleDeleteLocalDraft(post.id)}
+                        variant="danger"
+                        className="px-3 py-2 text-xs"
+                        fullWidth
+                      />
                     </>
                   ) : (
                     <>
-                      <ActionButton label="แก้ไขร่าง" icon={Pencil} onClick={() => handleLoadDraftToEditor(post)} variant="outline" fullWidth />
                       <ActionButton
-                        label={isScheduled ? "เปลี่ยนเวลา" : "ตั้งเวลาโพสต์"}
+                        label="à¹à¸à¹‰à¹„à¸‚à¸£à¹ˆà¸²à¸‡"
+                        icon={Pencil}
+                        onClick={() => handleLoadDraftToEditor(post)}
+                        variant="outline"
+                        className="px-3 py-2 text-xs"
+                        fullWidth
+                      />
+                      <ActionButton
+                        label={isScheduled ? "à¹€à¸›à¸¥à¸µà¹ˆà¸¢à¸™à¹€à¸§à¸¥à¸²" : "à¸•à¸±à¹‰à¸‡à¹€à¸§à¸¥à¸²à¹‚à¸žà¸ªà¸•à¹Œ"}
                         icon={Calendar}
                         onClick={() => handleOpenSchedule(post)}
                         variant="amber"
+                        className="px-3 py-2 text-xs"
                         fullWidth
                       />
                       {isScheduled ? (
                         <ActionButton
-                          label="ยกเลิกเวลาโพสต์"
+                          label="à¸¢à¸à¹€à¸¥à¸´à¸à¹€à¸§à¸¥à¸²à¹‚à¸žà¸ªà¸•à¹Œ"
                           icon={RotateCcw}
                           onClick={() => void handleUnschedulePost(post.id)}
                           variant="outline"
                           isLoading={isUnschedulingPostId === post.id}
+                          className="px-3 py-2 text-xs"
                           fullWidth
                         />
                       ) : null}
                       <ActionButton
-                        label={settings.facebookPublishMode === "live" ? "โพสต์ตอนนี้" : "ทดสอบโพสต์"}
+                        label={settings.facebookPublishMode === "live" ? "à¹‚à¸žà¸ªà¸•à¹Œà¸•à¸­à¸™à¸™à¸µà¹‰" : "à¸—à¸”à¸ªà¸­à¸šà¹‚à¸žà¸ªà¸•à¹Œ"}
                         icon={Send}
                         onClick={() => handlePublishPost(post.id)}
                         variant={settings.facebookPublishMode === "live" ? "emerald" : "secondary"}
                         disabled={!effectivePublish.canAttemptPublish}
+                        className="px-3 py-2 text-xs"
                         fullWidth
                       />
                       {!effectivePublish.canAttemptPublish ? (
                         <div className="flex items-center justify-center gap-1 text-center text-[9px] font-bold uppercase text-rose-400">
                           <AlertCircle className="h-3 w-3" />
-                          {effectivePublish.livePerPagePublishStatus === "Blocked" ? "ยังโพสต์ไม่ได้" : "ข้อมูลไม่ครบ"}
+                          {effectivePublish.livePerPagePublishStatus === "Blocked" ? "à¸¢à¸±à¸‡à¹‚à¸žà¸ªà¸•à¹Œà¹„à¸¡à¹ˆà¹„à¸”à¹‰" : "à¸‚à¹‰à¸­à¸¡à¸¹à¸¥à¹„à¸¡à¹ˆà¸„à¸£à¸š"}
                         </div>
                       ) : null}
                     </>
@@ -298,7 +325,7 @@ function StatusPage({
                 </div>
 
                 {isRemotePost && isScheduleOpen ? (
-                  <div className="w-full rounded-2xl border border-amber-500/20 bg-amber-500/5 p-4 lg:ml-[calc(11rem+1.25rem)]">
+                  <div className="w-full rounded-2xl border border-amber-500/20 bg-amber-500/5 p-4 lg:ml-[calc(8rem+1rem)]">
                     <div className="flex flex-col gap-3 lg:flex-row lg:items-end">
                       <label className="block flex-1">
                         <span className="mb-2 block text-[10px] font-bold uppercase tracking-wider text-amber-300">Schedule Post</span>
@@ -312,13 +339,13 @@ function StatusPage({
                       </label>
                       <div className="flex gap-2">
                         <ActionButton
-                          label="บันทึกเวลา"
+                          label="à¸šà¸±à¸™à¸—à¸¶à¸à¹€à¸§à¸¥à¸²"
                           icon={CheckCircle2}
                           onClick={() => void handleSubmitSchedule(post.id)}
                           variant="amber"
                           isLoading={isSchedulingPostId === post.id}
                         />
-                        <ActionButton label="ยกเลิก" icon={Trash2} onClick={handleCloseSchedule} variant="outline" />
+                        <ActionButton label="à¸¢à¸à¹€à¸¥à¸´à¸" icon={Trash2} onClick={handleCloseSchedule} variant="outline" />
                       </div>
                     </div>
                   </div>
@@ -329,42 +356,50 @@ function StatusPage({
         )}
       </div>
 
-      <div className="rounded-2xl border border-white/5 bg-slate-900/40 p-5 shadow-sm">
-        <div className="mb-4 flex items-center gap-2">
-          <CheckCircle2 className="h-4 w-4 text-emerald-400" />
-          <h3 className="text-sm font-semibold uppercase tracking-wider text-white">โพสต์ล่าสุดที่สำเร็จ</h3>
-        </div>
-        {pageAware.recentPosted.length === 0 ? (
-          <p className="text-sm text-slate-500">ยังไม่มีรายการโพสต์สำเร็จล่าสุดในเพจนี้</p>
-        ) : (
-          <div className="space-y-3">
-            {pageAware.recentPosted.map((post) => (
-              <div key={post.id} className="flex items-center justify-between gap-4 rounded-xl border border-white/5 bg-slate-950/40 px-4 py-3">
-                <div>
-                  <p className="text-sm font-semibold text-white">{post.topic || "ยังไม่ได้ตั้งหัวข้อ"}</p>
-                  <p className="mt-1 text-[11px] text-slate-500">โพสต์เมื่อ {formatDate(post.posted_at || post.created_at)}</p>
-                </div>
-                <span className="rounded-full bg-emerald-500/10 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-emerald-300">
-                  posted
-                </span>
-              </div>
-            ))}
+      <details className="rounded-2xl border border-white/5 bg-slate-900/40 p-5 shadow-sm">
+        <summary className="flex cursor-pointer list-none items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+            <h3 className="text-sm font-semibold uppercase tracking-wider text-white">à¹‚à¸žà¸ªà¸•à¹Œà¸ªà¸³à¹€à¸£à¹‡à¸ˆà¸¥à¹ˆà¸²à¸ªà¸¸à¸”</h3>
           </div>
-        )}
-      </div>
+          <div className="flex items-center gap-3 text-[11px] text-slate-500">
+            <span>{pageAware.recentPosted.length} items</span>
+            <ChevronDown className="h-4 w-4" />
+          </div>
+        </summary>
+        <div className="mt-4">
+          {pageAware.recentPosted.length === 0 ? (
+            <p className="text-sm text-slate-500">à¸¢à¸±à¸‡à¹„à¸¡à¹ˆà¸¡à¸µà¸£à¸²à¸¢à¸à¸²à¸£à¹‚à¸žà¸ªà¸•à¹Œà¸ªà¸³à¹€à¸£à¹‡à¸ˆà¸¥à¹ˆà¸²à¸ªà¸¸à¸”à¹ƒà¸™à¹€à¸žà¸ˆà¸™à¸µà¹‰</p>
+          ) : (
+            <div className="space-y-2">
+              {pageAware.recentPosted.map((post) => (
+                <div key={post.id} className="flex items-center justify-between gap-4 rounded-xl border border-white/5 bg-slate-950/40 px-4 py-3">
+                  <div>
+                    <p className="text-sm font-semibold text-white">{post.topic || "à¸¢à¸±à¸‡à¹„à¸¡à¹ˆà¹„à¸”à¹‰à¸•à¸±à¹‰à¸‡à¸«à¸±à¸§à¸‚à¹‰à¸­"}</p>
+                    <p className="mt-1 text-[11px] text-slate-500">à¹‚à¸žà¸ªà¸•à¹Œà¹€à¸¡à¸·à¹ˆà¸­ {formatDate(post.posted_at || post.created_at)}</p>
+                  </div>
+                  <span className="rounded-full bg-emerald-500/10 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-emerald-300">
+                    posted
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </details>
 
       {pageAware.recentFailed.length > 0 ? (
         <div className="rounded-2xl border border-white/5 bg-slate-900/40 p-5 shadow-sm">
           <div className="mb-4 flex items-center gap-2">
             <AlertCircle className="h-4 w-4 text-rose-400" />
-            <h3 className="text-sm font-semibold uppercase tracking-wider text-white">โพสต์ล่าสุดที่ล้มเหลว</h3>
+            <h3 className="text-sm font-semibold uppercase tracking-wider text-white">à¹‚à¸žà¸ªà¸•à¹Œà¸¥à¹ˆà¸²à¸ªà¸¸à¸”à¸—à¸µà¹ˆà¸¥à¹‰à¸¡à¹€à¸«à¸¥à¸§</h3>
           </div>
-          <div className="space-y-3">
+          <div className="space-y-2">
             {pageAware.recentFailed.map((post) => (
               <div key={post.id} className="flex items-center justify-between gap-4 rounded-xl border border-white/5 bg-slate-950/40 px-4 py-3">
                 <div>
-                  <p className="text-sm font-semibold text-white">{post.topic || "ยังไม่ได้ตั้งหัวข้อ"}</p>
-                  <p className="mt-1 text-[11px] text-slate-500">อัปเดตล่าสุด {formatDate(post.updated_at || post.created_at)}</p>
+                  <p className="text-sm font-semibold text-white">{post.topic || "à¸¢à¸±à¸‡à¹„à¸¡à¹ˆà¹„à¸”à¹‰à¸•à¸±à¹‰à¸‡à¸«à¸±à¸§à¸‚à¹‰à¸­"}</p>
+                  <p className="mt-1 text-[11px] text-slate-500">à¸­à¸±à¸›à¹€à¸”à¸•à¸¥à¹ˆà¸²à¸ªà¸¸à¸” {formatDate(post.updated_at || post.created_at)}</p>
                 </div>
                 <span className="rounded-full bg-rose-500/10 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-rose-300">
                   failed
