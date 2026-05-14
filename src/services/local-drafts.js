@@ -1,3 +1,5 @@
+import { deriveHookFromContent, normalizeQualityChecklist } from "./content-stock.js";
+
 const STORAGE_KEY = "autopost-studio-local-drafts";
 
 function normalizeLocalDraft(draft = {}) {
@@ -12,6 +14,10 @@ function normalizeLocalDraft(draft = {}) {
     image_revised_prompt: draft.image_revised_prompt || null,
     image_storage_path: draft.image_storage_path || null,
     image_storage_mode: draft.image_storage_mode || null,
+    hook: draft.hook || deriveHookFromContent(draft.content, draft.topic),
+    content_pillar: draft.content_pillar || "",
+    approved_at: draft.approved_at || null,
+    quality_checklist: normalizeQualityChecklist(draft.quality_checklist),
     status: draft.status || "draft",
     scheduled_at: draft.scheduled_at || null,
     posted_at: draft.posted_at || null,

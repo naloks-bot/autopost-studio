@@ -1,10 +1,11 @@
 import { createClient } from "@supabase/supabase-js";
 import { logger } from "./logger.js";
+import { deriveHookFromContent, normalizeQualityChecklist } from "./content-stock.js";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
 const POSTS_SELECT =
-  "id, page_id, topic, content, image_prompt, image_url, image_provider, image_revised_prompt, image_storage_path, image_storage_mode, status, scheduled_at, posted_at, facebook_post_id, created_at, updated_at";
+  "id, page_id, topic, content, image_prompt, image_url, image_provider, image_revised_prompt, image_storage_path, image_storage_mode, hook, content_pillar, approved_at, quality_checklist, status, scheduled_at, posted_at, facebook_post_id, created_at, updated_at";
 const POSTS_SELECT_FALLBACK =
   "id, page_id, topic, content, image_prompt, image_url, image_provider, image_revised_prompt, image_storage_path, image_storage_mode, status, scheduled_at, posted_at, created_at";
 const POSTS_SELECT_LEGACY =
@@ -51,6 +52,10 @@ export function normalizePost(post) {
     image_revised_prompt: post.image_revised_prompt ?? null,
     image_storage_path: post.image_storage_path ?? null,
     image_storage_mode: post.image_storage_mode ?? null,
+    hook: post.hook ?? deriveHookFromContent(post.content, post.topic),
+    content_pillar: post.content_pillar ?? "",
+    approved_at: post.approved_at ?? null,
+    quality_checklist: normalizeQualityChecklist(post.quality_checklist),
     status: post.status ?? "draft",
     scheduled_at: post.scheduled_at ?? null,
     posted_at: post.posted_at ?? null,
@@ -164,6 +169,10 @@ function buildPostsWritePayloadVariants(payload = {}) {
       "image_revised_prompt",
       "image_storage_path",
       "image_storage_mode",
+      "hook",
+      "content_pillar",
+      "approved_at",
+      "quality_checklist",
     ]),
     stripPostsWriteColumns(payload, [
       "updated_at",
@@ -172,6 +181,10 @@ function buildPostsWritePayloadVariants(payload = {}) {
       "image_revised_prompt",
       "image_storage_path",
       "image_storage_mode",
+      "hook",
+      "content_pillar",
+      "approved_at",
+      "quality_checklist",
       "page_id",
     ]),
   ];
@@ -367,6 +380,10 @@ function buildDraftPayload(draft = {}) {
     image_revised_prompt: draft.image_revised_prompt || null,
     image_storage_path: draft.image_storage_path || null,
     image_storage_mode: draft.image_storage_mode || null,
+    hook: draft.hook || deriveHookFromContent(draft.content, draft.topic),
+    content_pillar: draft.content_pillar || "",
+    approved_at: draft.approved_at || null,
+    quality_checklist: normalizeQualityChecklist(draft.quality_checklist),
     status: draft.status || "draft",
     scheduled_at: draft.scheduled_at || null,
     created_at: draft.created_at || new Date().toISOString(),

@@ -47,6 +47,14 @@ import {
   sanitizeGeneratedCaption,
   splitGeneratedPostContent,
 } from "../services/ai-generation.js";
+import {
+  buildBatchTopic,
+  canPublishPost,
+  deriveHookFromContent,
+  getChecklistCompletion,
+  normalizeQualityChecklist,
+  parseContentPillars,
+} from "../services/content-stock.js";
 import { resolveEffectivePublishConfig } from "../services/page-context.js";
 import { runSchedulerTick } from "../services/scheduler.js";
 
@@ -118,6 +126,10 @@ function resolveSafeDraftPageId(activePageId, workspacePages = []) {
   return workspacePages.some((page) => page.id === activePageId) ? activePageId : fallbackId;
 }
 
+function sortPostsByCreatedDesc(posts = []) {
+  return [...posts].sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
+}
+
 function SettingsField({ label, value, onChange, placeholder, multiline = false, secret = false, type = "text", options = [] }) {
   const sharedClassName =
     "w-full rounded-xl border border-white/10 bg-slate-900/80 px-4 py-3 text-sm outline-none transition focus:border-cyan-400 appearance-none";
@@ -169,6 +181,7 @@ function App() {
   const [settingsMessage, setSettingsMessage] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isGeneratingBatch, setIsGeneratingBatch] = useState(false);
   const [isGeneratingImagePrompt, setIsGeneratingImagePrompt] = useState(false);
   const [isSavingDraft, setIsSavingDraft] = useState(false);
   const [isSchedulingPostId, setIsSchedulingPostId] = useState(null);
@@ -182,6 +195,7 @@ function App() {
   const [operationLogs, setOperationLogs] = useState([]);
   const [logsMode, setLogsMode] = useState(hasSupabaseConfig ? "connected" : "offline");
   const [editingDraft, setEditingDraft] = useState(null);
+  const [batchProgress, setBatchProgress] = useState(null);
 
   const schedulerLock = useRef(false);
   const dataLock = useRef(false);
@@ -394,11 +408,15 @@ function App() {
           category: "",
           status: "draft",
           readme: "",
+          purpose: "",
           writingDirection: "",
           imageDirection: "",
           visualStyle: "",
           targetAudience: "",
           tone: "",
+          contentPillars: "",
+          avoidList: "",
+          defaultCta: "",
         },
       ];
       return sanitizeSettings({ ...current, activePageId: nextPageId, workspacePages });
@@ -477,10 +495,15 @@ function App() {
         formData: {
           ...form,
           pageLabel: overrides.pageLabel ?? activeWorkspacePage?.label ?? "",
+          pagePurpose: overrides.pagePurpose ?? activeWorkspacePage?.purpose ?? "",
+          pageTargetAudience: overrides.pageTargetAudience ?? activeWorkspacePage?.targetAudience ?? "",
           pageWritingDirection: overrides.pageWritingDirection ?? activeWorkspacePage?.writingDirection ?? "",
           pageImageDirection: overrides.pageImageDirection ?? activeWorkspacePage?.imageDirection ?? "",
           pageReadme: overrides.pageReadme ?? activeWorkspacePage?.readme ?? "",
           pageTone: overrides.pageTone ?? activeWorkspacePage?.tone ?? "",
+          pageContentPillars: overrides.pageContentPillars ?? activeWorkspacePage?.contentPillars ?? "",
+          pageAvoidList: overrides.pageAvoidList ?? activeWorkspacePage?.avoidList ?? "",
+          pageDefaultCta: overrides.pageDefaultCta ?? activeWorkspacePage?.defaultCta ?? "",
         },
         settings,
       });
@@ -495,9 +518,13 @@ function App() {
               ...form,
               content: nextCaption,
               pageLabel: overrides.pageLabel ?? activeWorkspacePage?.label ?? "",
+              pagePurpose: overrides.pagePurpose ?? activeWorkspacePage?.purpose ?? "",
+              pageTargetAudience: overrides.pageTargetAudience ?? activeWorkspacePage?.targetAudience ?? "",
               pageImageDirection: overrides.pageImageDirection ?? activeWorkspacePage?.imageDirection ?? "",
               pageWritingDirection: overrides.pageWritingDirection ?? activeWorkspacePage?.writingDirection ?? "",
               pageReadme: overrides.pageReadme ?? activeWorkspacePage?.readme ?? "",
+              pageContentPillars: overrides.pageContentPillars ?? activeWorkspacePage?.contentPillars ?? "",
+              pageAvoidList: overrides.pageAvoidList ?? activeWorkspacePage?.avoidList ?? "",
             },
             settings,
           });
@@ -539,10 +566,14 @@ function App() {
           ...form,
           topic: String(form.topic || form.content || "").trim(),
           pageLabel: overrides.pageLabel ?? activeWorkspacePage?.label ?? "",
+          pagePurpose: overrides.pagePurpose ?? activeWorkspacePage?.purpose ?? "",
+          pageTargetAudience: overrides.pageTargetAudience ?? activeWorkspacePage?.targetAudience ?? "",
           pageImageDirection: overrides.pageImageDirection ?? activeWorkspacePage?.imageDirection ?? "",
           pageWritingDirection: overrides.pageWritingDirection ?? activeWorkspacePage?.writingDirection ?? "",
           pageReadme: overrides.pageReadme ?? activeWorkspacePage?.readme ?? "",
           pageTone: overrides.pageTone ?? activeWorkspacePage?.tone ?? "",
+          pageContentPillars: overrides.pageContentPillars ?? activeWorkspacePage?.contentPillars ?? "",
+          pageAvoidList: overrides.pageAvoidList ?? activeWorkspacePage?.avoidList ?? "",
         },
         settings,
       });
@@ -563,6 +594,133 @@ function App() {
       setCreateNotice({ tone: "danger", message });
     } finally {
       setIsGeneratingImagePrompt(false);
+    }
+  }
+
+  async function handleGenerateBatchDrafts({ count = 5, overrides = {} } = {}) {
+    const baseTopic = String(form.topic || form.content || "").trim();
+    if (!baseTopic) {
+      setCreateNotice({ tone: "warning", message: "à¸à¸£à¸¸à¸“à¸²à¹ƒà¸ªà¹ˆà¸«à¸±à¸§à¸‚à¹‰à¸­à¸à¹ˆà¸­à¸™à¸ªà¸£à¹‰à¸²à¸‡ batch draft" });
+      return { ok: false, count: 0 };
+    }
+
+    setIsGeneratingBatch(true);
+    setBatchProgress({ current: 0, total: count, saved: 0 });
+    setCreateNotice({ tone: "info", message: `à¸à¸³à¸¥à¸±à¸‡à¸ªà¸£à¹‰à¸²à¸‡ batch draft ${count} à¸£à¸²à¸¢à¸à¸²à¸£...` });
+
+    const workspacePages = getWorkspacePages(settings);
+    const safePageId = resolveSafeDraftPageId(settings.activePageId, workspacePages);
+    const contentPillars = parseContentPillars(overrides.pageContentPillars ?? activeWorkspacePage?.contentPillars ?? "");
+    const reviewChecklist = normalizeQualityChecklist();
+    const remoteEntries = [];
+    const localEntries = [];
+    let savedCount = 0;
+    let fallbackCount = 0;
+
+    try {
+      for (let index = 0; index < count; index += 1) {
+        const contentPillar = contentPillars[index % contentPillars.length] || "";
+        const variationAngle = contentPillar || `Distinct angle ${index + 1}`;
+        const result = await generatePostContent({
+          formData: {
+            ...form,
+            topic: `${baseTopic}\nBatch draft ${index + 1} of ${count}. Focus: ${variationAngle}. Make this item meaningfully distinct from the other drafts.`,
+            pageLabel: overrides.pageLabel ?? activeWorkspacePage?.label ?? "",
+            pagePurpose: overrides.pagePurpose ?? activeWorkspacePage?.purpose ?? "",
+            pageTargetAudience: overrides.pageTargetAudience ?? activeWorkspacePage?.targetAudience ?? "",
+            pageWritingDirection: overrides.pageWritingDirection ?? activeWorkspacePage?.writingDirection ?? "",
+            pageImageDirection: overrides.pageImageDirection ?? activeWorkspacePage?.imageDirection ?? "",
+            pageReadme: overrides.pageReadme ?? activeWorkspacePage?.readme ?? "",
+            pageTone: overrides.pageTone ?? activeWorkspacePage?.tone ?? "",
+            pageContentPillars: overrides.pageContentPillars ?? activeWorkspacePage?.contentPillars ?? "",
+            pageAvoidList: overrides.pageAvoidList ?? activeWorkspacePage?.avoidList ?? "",
+            pageDefaultCta: overrides.pageDefaultCta ?? activeWorkspacePage?.defaultCta ?? "",
+          },
+          settings,
+        });
+
+        const { cleanCaption, cleanImagePrompt } = splitGeneratedPostContent(result.data || "");
+        const caption = sanitizeGeneratedCaption(cleanCaption || "");
+        let imagePrompt = cleanImagePrompt || "";
+
+        if (!imagePrompt) {
+          const imagePromptResult = await generateImagePrompt({
+            formData: {
+              ...form,
+              topic: baseTopic,
+              content: caption,
+              pageLabel: overrides.pageLabel ?? activeWorkspacePage?.label ?? "",
+              pagePurpose: overrides.pagePurpose ?? activeWorkspacePage?.purpose ?? "",
+              pageTargetAudience: overrides.pageTargetAudience ?? activeWorkspacePage?.targetAudience ?? "",
+              pageImageDirection: overrides.pageImageDirection ?? activeWorkspacePage?.imageDirection ?? "",
+              pageWritingDirection: overrides.pageWritingDirection ?? activeWorkspacePage?.writingDirection ?? "",
+              pageReadme: overrides.pageReadme ?? activeWorkspacePage?.readme ?? "",
+              pageTone: overrides.pageTone ?? activeWorkspacePage?.tone ?? "",
+              pageContentPillars: overrides.pageContentPillars ?? activeWorkspacePage?.contentPillars ?? "",
+              pageAvoidList: overrides.pageAvoidList ?? activeWorkspacePage?.avoidList ?? "",
+            },
+            settings,
+          });
+          imagePrompt = imagePromptResult.data || "";
+        }
+
+        const draft = {
+          page_id: safePageId,
+          topic: buildBatchTopic(baseTopic, contentPillar, index),
+          content: caption,
+          hook: deriveHookFromContent(caption, baseTopic),
+          content_pillar: contentPillar,
+          image_prompt: imagePrompt,
+          image_url: "",
+          status: "review",
+          approved_at: null,
+          quality_checklist: reviewChecklist,
+          created_at: new Date().toISOString(),
+        };
+
+        const remote = await insertRemoteDraft(draft, { workspacePages });
+        if (remote.data) {
+          remoteEntries.push(remote.data);
+          savedCount += 1;
+          setBatchProgress({ current: index + 1, total: count, saved: savedCount });
+          continue;
+        }
+
+        if (["read-only", "offline", "missing-table"].includes(remote.mode)) {
+          const localEntry = saveLocalDraft(draft);
+          if (localEntry) {
+            localEntries.push(localEntry);
+            savedCount += 1;
+            fallbackCount += 1;
+            setBatchProgress({ current: index + 1, total: count, saved: savedCount });
+            continue;
+          }
+        }
+
+        setBatchProgress({ current: index + 1, total: count, saved: savedCount });
+      }
+
+      if (remoteEntries.length) {
+        setRemotePosts((current) => sortPostsByCreatedDesc([...remoteEntries, ...current]));
+      }
+      if (localEntries.length) {
+        setLocalDrafts((current) => sortPostsByCreatedDesc([...localEntries, ...current]));
+      }
+
+      setCreateNotice({
+        tone: fallbackCount > 0 ? "warning" : "success",
+        message:
+          fallbackCount > 0
+            ? `à¸ªà¸£à¹‰à¸²à¸‡ batch draft ${savedCount}/${count} à¸£à¸²à¸¢à¸à¸²à¸£ à¹‚à¸”à¸¢à¸¡à¸µ ${fallbackCount} à¸£à¸²à¸¢à¸à¸²à¸£à¸—à¸µà¹ˆà¹€à¸à¹‡à¸šà¹„à¸§à¹‰à¹ƒà¸™à¹€à¸„à¸£à¸·à¹ˆà¸­à¸‡`
+            : `à¸ªà¸£à¹‰à¸²à¸‡ batch draft ${savedCount}/${count} à¸£à¸²à¸¢à¸à¸²à¸£à¹€à¸£à¸µà¸¢à¸šà¸£à¹‰à¸­à¸¢à¹à¸¥à¹‰à¸§`,
+      });
+      return { ok: savedCount > 0, count: savedCount };
+    } catch (error) {
+      setCreateNotice({ tone: "danger", message: toUserSafeMessage(error, "à¸ªà¸£à¹‰à¸²à¸‡ batch draft à¹„à¸¡à¹ˆà¸ªà¸³à¹€à¸£à¹‡à¸ˆ") });
+      return { ok: false, count: 0 };
+    } finally {
+      setIsGeneratingBatch(false);
+      setBatchProgress(null);
     }
   }
 
@@ -589,6 +747,10 @@ function App() {
         image_revised_prompt: extraData.image_revised_prompt || editingDraft?.image_revised_prompt || null,
         image_storage_path: extraData.image_storage_path || editingDraft?.image_storage_path || null,
         image_storage_mode: extraData.image_storage_mode || editingDraft?.image_storage_mode || null,
+        hook: deriveHookFromContent(String(form.content || "").trim(), String(form.topic || "").trim()),
+        content_pillar: typeof extraData.content_pillar === "string" ? extraData.content_pillar : "",
+        approved_at: null,
+        quality_checklist: normalizeQualityChecklist(extraData.quality_checklist),
         status: "draft",
         created_at: editingDraft?.created_at || new Date().toISOString(),
       };
@@ -603,7 +765,7 @@ function App() {
           if (editingDraft?.source === "remote") {
             return current.map((item) => (item.id === editingDraft.id ? remote.data : item));
           }
-          return [remote.data, ...current];
+          return sortPostsByCreatedDesc([remote.data, ...current]);
         });
 
         if (editingDraft?.source === "local") {
@@ -631,7 +793,7 @@ function App() {
           if (editingDraft?.source === "local") {
             return current.map((item) => (item.id === editingDraft.id ? localEntry : item));
           }
-          return [localEntry, ...current];
+          return sortPostsByCreatedDesc([localEntry, ...current]);
         });
 
         resetForm();
@@ -712,10 +874,106 @@ function App() {
     }
   }
 
+  const handleUpdateQualityChecklist = useCallback(
+    async (postId, checklist) => {
+      const normalizedChecklist = normalizeQualityChecklist(checklist);
+      const post = [...remotePosts, ...localDrafts].find((item) => item.id === postId);
+      if (!post) return false;
+
+      if (post.source === "local") {
+        const updated = updateLocalDraft(postId, { ...post, quality_checklist: normalizedChecklist });
+        if (updated) {
+          setLocalDrafts((current) => current.map((item) => (item.id === postId ? updated : item)));
+          return true;
+        }
+        return false;
+      }
+
+      const workspacePages = getWorkspacePages(stateRef.current.settings);
+      const updated = await updateRemoteDraft(
+        postId,
+        {
+          ...post,
+          hook: post.hook || deriveHookFromContent(post.content, post.topic),
+          quality_checklist: normalizedChecklist,
+          created_at: post.created_at || new Date().toISOString(),
+        },
+        { workspacePages }
+      );
+
+      if (updated.data) {
+        mergeRemotePostTruth(updated.data);
+        return true;
+      }
+
+      setStatusNotice({
+        tone: "danger",
+        message: `à¸­à¸±à¸›à¹€à¸”à¸• quality checklist à¹„à¸¡à¹ˆà¸ªà¸³à¹€à¸£à¹‡à¸ˆ: ${toUserSafeMessage(updated.error, "à¸¢à¸±à¸‡à¸šà¸±à¸™à¸—à¸¶à¸à¸„à¸¸à¸“à¸ à¸²à¸žà¹„à¸¡à¹ˆà¹„à¸”à¹‰")}`,
+      });
+      return false;
+    },
+    [localDrafts, mergeRemotePostTruth, remotePosts]
+  );
+
+  const handleSetDraftReviewStatus = useCallback(
+    async (postId, nextStatus) => {
+      const post = [...remotePosts, ...localDrafts].find((item) => item.id === postId);
+      if (!post) {
+        setStatusNotice({ tone: "danger", message: "à¹„à¸¡à¹ˆà¸žà¸šà¹‚à¸žà¸ªà¸•à¹Œà¸—à¸µà¹ˆà¸•à¹‰à¸­à¸‡à¸à¸²à¸£à¸­à¸±à¸›à¹€à¸”à¸•" });
+        return false;
+      }
+
+      const completion = getChecklistCompletion(post.quality_checklist);
+      if (nextStatus === "approved" && !completion.isComplete) {
+        setStatusNotice({ tone: "warning", message: "à¸à¸£à¸¸à¸“à¸²à¸•à¸´à¹Šà¸ quality checklist à¹ƒà¸«à¹‰à¸„à¸£à¸šà¸à¹ˆà¸­à¸™ approve" });
+        return false;
+      }
+
+      if (post.source === "local") {
+        const updated = updateLocalDraft(postId, {
+          ...post,
+          status: nextStatus,
+          approved_at: nextStatus === "approved" ? new Date().toISOString() : null,
+          scheduled_at: nextStatus === "scheduled" ? post.scheduled_at || null : null,
+        });
+        if (updated) {
+          setLocalDrafts((current) => current.map((item) => (item.id === postId ? updated : item)));
+          return true;
+        }
+        return false;
+      }
+
+      const updated = await updateRemotePostStatus(postId, nextStatus, {
+        approved_at: nextStatus === "approved" ? new Date().toISOString() : null,
+        scheduled_at: nextStatus === "approved" ? null : undefined,
+      });
+
+      if (updated.data) {
+        mergeRemotePostTruth(updated.data);
+        setStatusNotice({
+          tone: nextStatus === "approved" ? "success" : "warning",
+          message: nextStatus === "approved" ? "à¸­à¸™à¸¸à¸¡à¸±à¸•à¸´ draft à¹€à¸£à¸µà¸¢à¸šà¸£à¹‰à¸­à¸¢à¹à¸¥à¹‰à¸§" : "à¸¢à¹‰à¸²à¸¢à¸à¸¥à¸±à¸šà¹€à¸›à¹‡à¸™ draft à¹à¸¥à¹‰à¸§",
+        });
+        return true;
+      }
+
+      setStatusNotice({
+        tone: "danger",
+        message: `à¸­à¸±à¸›à¹€à¸”à¸•à¸ªà¸–à¸²à¸™à¸°à¹„à¸¡à¹ˆà¸ªà¸³à¹€à¸£à¹‡à¸ˆ: ${toUserSafeMessage(updated.error, "à¸¢à¸±à¸‡à¸šà¸±à¸™à¸—à¸¶à¸à¸ªà¸–à¸²à¸™à¸°à¹„à¸¡à¹ˆà¹„à¸”à¹‰")}`,
+      });
+      return false;
+    },
+    [localDrafts, mergeRemotePostTruth, remotePosts]
+  );
+
   const handlePublishPost = useCallback(
     async (postId) => {
       try {
         const post = remotePosts.find((item) => item.id === postId);
+        if (post && !canPublishPost(post)) {
+          setStatusNotice({ tone: "warning", message: "Approve this draft before publishing." });
+          return;
+        }
         if (!post) {
           setStatusNotice({ tone: "danger", message: "ไม่พบโพสต์ที่ต้องการ" });
           return;
@@ -1042,6 +1300,15 @@ function App() {
   const handleSchedulePost = useCallback(
     async (postId, scheduledAt) => {
       const post = remotePosts.find((item) => item.id === postId);
+      const requiresApproval = post && post.status !== "approved" && post.status !== "failed" && post.status !== "scheduled";
+      if (requiresApproval) {
+        setStatusNotice({ tone: "warning", message: "Approve this draft before scheduling." });
+        return false;
+      }
+      if (post && post.status !== "approved" && post.status !== "failed" && post.status !== "scheduled") {
+        setStatusNotice({ tone: "warning", message: "à¸à¹‰à¸­à¸‡ approve draft à¹ƒà¸«à¹‰à¹€à¸£à¸µà¸¢à¸šà¸£à¹‰à¸­à¸¢à¸à¹ˆà¸­à¸™à¸ˆà¸¶à¸‡à¸ˆà¸° schedule à¹„à¸”à¹‰" });
+        return false;
+      }
       if (!post) {
         setStatusNotice({ tone: "danger", message: "ไม่พบโพสต์ที่ต้องการตั้งเวลา" });
         return false;
@@ -1061,6 +1328,7 @@ function App() {
       setIsSchedulingPostId(postId);
       try {
         const update = await updateRemotePostStatus(postId, "scheduled", {
+          approved_at: post.approved_at || new Date().toISOString(),
           scheduled_at: scheduledDate.toISOString(),
         });
 
@@ -1241,6 +1509,10 @@ function App() {
         image_revised_prompt: post.image_revised_prompt || null,
         image_storage_path: post.image_storage_path || null,
         image_storage_mode: post.image_storage_mode || null,
+        hook: post.hook || deriveHookFromContent(post.content, post.topic),
+        content_pillar: post.content_pillar || "",
+        approved_at: null,
+        quality_checklist: normalizeQualityChecklist(),
         status: "draft",
         created_at: new Date().toISOString(),
       };
@@ -1259,7 +1531,7 @@ function App() {
         if (["read-only", "offline", "missing-table"].includes(remote.mode)) {
           const localEntry = saveLocalDraft(duplicateDraft);
           if (localEntry) {
-            setLocalDrafts((current) => [localEntry, ...current]);
+            setLocalDrafts((current) => sortPostsByCreatedDesc([localEntry, ...current]));
             setStatusNotice({ tone: "warning", message: "Created a local draft copy because cloud save is unavailable." });
             handleLoadDraftToEditor(localEntry);
             return localEntry;
@@ -1335,12 +1607,16 @@ function App() {
                   )}
                   updateForm={updateForm}
                   handleGenerateContent={handleGenerateContent}
+                  handleGenerateBatchDrafts={handleGenerateBatchDrafts}
                   handleGenerateImagePrompt={handleGenerateImagePrompt}
                   handleSaveDraft={handleSaveDraft}
                   handleSchedulePost={handleSchedulePost}
+                  handleSetDraftReviewStatus={handleSetDraftReviewStatus}
                   isGenerating={isGenerating}
+                  isGeneratingBatch={isGeneratingBatch}
                   isGeneratingImagePrompt={isGeneratingImagePrompt}
                   isSavingDraft={isSavingDraft}
+                  batchProgress={batchProgress}
                   generationError={generationError}
                   textProviderRuntime={textProviderRuntime}
                   createNotice={createNotice}
@@ -1403,6 +1679,8 @@ function App() {
                   handleLoadDraftToEditor={handleLoadDraftToEditor}
                   handlePublishPost={handlePublishPost}
                   handleSchedulePost={handleSchedulePost}
+                  handleSetDraftReviewStatus={handleSetDraftReviewStatus}
+                  handleUpdateQualityChecklist={handleUpdateQualityChecklist}
                   handleUnschedulePost={handleUnschedulePost}
                   isSchedulingPostId={isSchedulingPostId}
                   isUnschedulingPostId={isUnschedulingPostId}

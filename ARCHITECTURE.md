@@ -84,6 +84,7 @@ Current operator UX boundary inside this layer:
 * advanced runtime diagnostics should be hidden behind explicit operator intent when possible
 * quick schedule presets, duplicate/reuse actions, queue filters, and fast reschedule controls are allowed when they only orchestrate the existing draft/save/schedule handlers
 * targeted operator UI cleanup may replace queue-card actions, schedule presentation, and non-functional navigation when backend behavior stays unchanged
+* additive approval workflow, review checklist UI, stock counts, and batch draft generation are allowed when they reuse the stable draft/save/schedule/publish path
 
 ## 3. Publishing + Automation Layer
 
@@ -210,6 +211,14 @@ Phase 2B.1 operator fix direction:
 * image prompt generation should derive from the current post context before falling back
 * non-functional UI surfaces should be hidden until they have real persistence behind them
 
+Phase 1A content stock direction:
+
+* add stock visibility before adding new automation
+* treat `approved` as the safe state between draft review and scheduling
+* keep scheduler ownership on `scheduled` only
+* keep review metadata additive to the current post model
+* prefer local-first page memory expansion over risky architecture changes
+
 ## Phase 3 — Prompt Intelligence Layer
 
 Focus:
@@ -261,6 +270,7 @@ The stable production boundary now includes:
 * browser-closed server automation path verification through the Edge Function and manual cron invocation
 * production-safe due-post evaluation diagnostics
 * attached-photo publish behavior for posts with `image_url`
+* additive content stock workflow metadata for `hook`, `content_pillar`, `approved_at`, and manual quality checklist state
 
 External cron setup contract:
 

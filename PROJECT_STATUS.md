@@ -47,6 +47,7 @@ Recent stable checkpoints:
 * Phase 2A operator UI simplification is now in progress with sticky actions, denser queue scanning, calmer logs styling, and collapsed advanced diagnostics
 * Phase 2B content factory workflow upgrade is now in progress with quick schedule presets, draft duplication/reuse, queue filters, queue summary counts, and fast reschedule actions
 * Phase 2B.1 targeted operator UI fixes are now in progress with a cleaned quick-schedule layout, content-derived image prompt generation, sticky Status controls, delete-with-confirm queue cleanup, and modal scheduling
+* Phase 1A additive Facebook Content Stock OS is now in progress with stock dashboard counts, batch review draft generation, approval-gated scheduling, and page memory foundation fields
 
 Permanent operating rules:
 
@@ -187,6 +188,16 @@ Current Phase 2B.1 checkpoint:
 * active queue cards now use delete-with-confirm instead of duplicate, without changing publish or scheduler behavior
 * schedule editing now opens in a modal instead of expanding inline
 * AI Library navigation is hidden until a functional persistence-backed version exists
+
+Current Phase 1A checkpoint:
+
+* Status now doubles as a content stock dashboard with counts for `draft`, `review`, `approved`, `scheduled`, `posted`, and `failed`
+* low-stock warnings now highlight pages where available stock (`approved + scheduled`) falls below a small threshold
+* Create now supports additive batch draft generation for 5, 10, or 20 Facebook drafts at once
+* batch-generated content is saved as separate review items without changing the stable publish processor or scheduler engine
+* Review Queue now supports manual checklist review, approve, keep-as-draft, edit, and send-to-schedule actions
+* scheduling and manual publish now require approval-gated drafts, while explicit Create quick-schedule still works by approving before scheduling
+* page memory foundation now includes page purpose, target audience, writing tone, content pillars, avoid list, and default CTA in the existing page settings structure
 
 ## Phase 3 — Prompt Intelligence Layer
 

@@ -145,6 +145,15 @@ Phase 2B.1 checkpoint:
 * active queue cards now support delete-with-confirm and modal schedule editing
 * AI Library navigation is hidden until a functional version is ready
 
+Phase 1A checkpoint:
+
+* stock dashboard now shows counts for `draft`, `review`, `approved`, `scheduled`, `posted`, and `failed`
+* low-stock warnings now call out pages that are short on available content stock
+* batch Facebook draft generation now creates separate review items in 5/10/20 batches
+* review queue now supports manual checklist review, approve, keep-as-draft, edit, and send-to-schedule
+* page memory foundation now exposes page purpose, target audience, writing tone, content pillars, avoid list, and default CTA
+* scheduler and publish flow remain additive and approval-gated without changing the stable processor architecture
+
 Important:
 Focus on operator efficiency and low token usage. Avoid unnecessary UI redesign.
 

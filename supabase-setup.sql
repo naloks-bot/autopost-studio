@@ -11,6 +11,10 @@ create table if not exists public.posts (
   image_revised_prompt text,      -- AI revised prompt (if any)
   image_storage_path text,        -- Supabase Storage path
   image_storage_mode text,        -- storage mode (supabase, external)
+  hook text,
+  content_pillar text default '',
+  approved_at timestamptz,
+  quality_checklist jsonb not null default '{}'::jsonb,
   status text not null default 'draft',
   scheduled_at timestamptz,
   posted_at timestamptz,
@@ -32,6 +36,10 @@ alter table public.posts add column if not exists image_provider text;
 alter table public.posts add column if not exists image_revised_prompt text;
 alter table public.posts add column if not exists image_storage_path text;
 alter table public.posts add column if not exists image_storage_mode text;
+alter table public.posts add column if not exists hook text;
+alter table public.posts add column if not exists content_pillar text default '';
+alter table public.posts add column if not exists approved_at timestamptz;
+alter table public.posts add column if not exists quality_checklist jsonb default '{}'::jsonb;
 
 -- Publish lifecycle and audit columns used by claim/finalize/fail transitions and recent-status displays
 alter table public.posts add column if not exists status text default 'draft';
@@ -58,6 +66,18 @@ set image_url = ''
 where image_url is null;
 
 update public.posts
+set hook = topic
+where hook is null or btrim(hook) = '';
+
+update public.posts
+set content_pillar = ''
+where content_pillar is null;
+
+update public.posts
+set quality_checklist = '{}'::jsonb
+where quality_checklist is null;
+
+update public.posts
 set status = 'draft'
 where status is null or btrim(status) = '';
 
@@ -75,6 +95,9 @@ alter table public.posts alter column content set default '';
 alter table public.posts alter column content set not null;
 alter table public.posts alter column image_prompt set default '';
 alter table public.posts alter column image_url set default '';
+alter table public.posts alter column content_pillar set default '';
+alter table public.posts alter column quality_checklist set default '{}'::jsonb;
+alter table public.posts alter column quality_checklist set not null;
 alter table public.posts alter column status set default 'draft';
 alter table public.posts alter column status set not null;
 alter table public.posts alter column created_at set default now();

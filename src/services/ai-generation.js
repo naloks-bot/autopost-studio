@@ -355,12 +355,22 @@ export function buildContentPrompt(formData, settings) {
   const pageImageDirection = formData.pageImageDirection ? `Page image direction: ${formData.pageImageDirection}` : "";
   const pageReadme = formData.pageReadme ? `Page memory: ${formData.pageReadme}` : "";
   const pageTone = formData.pageTone ? `Page tone: ${formData.pageTone}` : "";
+  const pagePurpose = formData.pagePurpose ? `Page purpose: ${formData.pagePurpose}` : "";
+  const pageTargetAudience = formData.pageTargetAudience ? `Target audience: ${formData.pageTargetAudience}` : "";
+  const pageContentPillars = formData.pageContentPillars ? `Content pillars: ${formData.pageContentPillars}` : "";
+  const pageAvoidList = formData.pageAvoidList ? `Avoid list: ${formData.pageAvoidList}` : "";
+  const pageDefaultCta = formData.pageDefaultCta ? `Default CTA: ${formData.pageDefaultCta}` : "";
 
   return `Generate a high-engaging social media post for ${business}.
 Tone: ${voice}
 Topic: ${topic}
 ${pageLabel}
 ${pageTone}
+${pagePurpose}
+${pageTargetAudience}
+${pageContentPillars}
+${pageAvoidList}
+${pageDefaultCta}
 ${pageWritingDirection}
 ${pageImageDirection}
 ${pageReadme}
@@ -390,12 +400,20 @@ export function buildImagePrompt(formData, settings) {
   const pageImageDirection = formData.pageImageDirection ? `Page image direction: ${formData.pageImageDirection}` : "";
   const pageWritingDirection = formData.pageWritingDirection ? `Page writing direction: ${formData.pageWritingDirection}` : "";
   const pageReadme = formData.pageReadme ? `Page memory: ${formData.pageReadme}` : "";
+  const pagePurpose = formData.pagePurpose ? `Page purpose: ${formData.pagePurpose}` : "";
+  const pageTargetAudience = formData.pageTargetAudience ? `Target audience: ${formData.pageTargetAudience}` : "";
+  const pageContentPillars = formData.pageContentPillars ? `Content pillars: ${formData.pageContentPillars}` : "";
+  const pageAvoidList = formData.pageAvoidList ? `Avoid list: ${formData.pageAvoidList}` : "";
 
   return `Write one production-ready English image generation prompt for a social media post.
 Topic: ${topic}
 Brand voice: ${voice}
 ${content}
 ${pageLabel}
+${pagePurpose}
+${pageTargetAudience}
+${pageContentPillars}
+${pageAvoidList}
 ${pageWritingDirection}
 ${pageImageDirection}
 ${pageReadme}

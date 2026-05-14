@@ -13,11 +13,15 @@ export const defaultWorkspacePages = [
     category: "หลัก",
     status: "active",
     readme: "",
+    purpose: "",
     writingDirection: "",
     imageDirection: "",
     visualStyle: "",
     targetAudience: "",
     tone: "",
+    contentPillars: "",
+    avoidList: "",
+    defaultCta: "",
   },
   {
     id: "demo-mock",
@@ -28,11 +32,15 @@ export const defaultWorkspacePages = [
     category: "ทดสอบ",
     status: "mock",
     readme: "",
+    purpose: "",
     writingDirection: "",
     imageDirection: "",
     visualStyle: "",
     targetAudience: "",
     tone: "",
+    contentPillars: "",
+    avoidList: "",
+    defaultCta: "",
   },
 ];
 
@@ -68,11 +76,15 @@ function normalizeWorkspacePage(page = {}) {
     category: page.category || "",
     status: page.status || "draft",
     readme: page.readme || "",
+    purpose: page.purpose || "",
     writingDirection: page.writingDirection || "",
     imageDirection: page.imageDirection || "",
     visualStyle: page.visualStyle || "",
     targetAudience: page.targetAudience || "",
     tone: page.tone || "",
+    contentPillars: page.contentPillars || "",
+    avoidList: page.avoidList || "",
+    defaultCta: page.defaultCta || "",
   };
 }
 

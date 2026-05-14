@@ -53,13 +53,17 @@ function CreatePage({
   scheduledPostsForPage,
   updateForm,
   handleGenerateContent,
+  handleGenerateBatchDrafts,
   handleGenerateImagePrompt,
   handleSaveDraft,
   handleSchedulePost,
+  handleSetDraftReviewStatus,
   isGenerating,
+  isGeneratingBatch,
   isGeneratingImagePrompt,
   isGeneratingImage: isGeneratingImageProp,
   isSavingDraft,
+  batchProgress,
   generationError,
   textProviderRuntime,
   createNotice,
@@ -77,6 +81,7 @@ function CreatePage({
     cta: "none",
   });
   const [quickScheduleId, setQuickScheduleId] = useState("");
+  const [batchCount, setBatchCount] = useState(5);
   const [imageForm, setImageForm] = useState({
     aspectRatio: "4:5",
     style: "realistic",
@@ -144,10 +149,15 @@ function CreatePage({
   const pageGuidanceContext = useMemo(
     () => ({
       pageLabel: activeWorkspacePage?.label || "",
+      pagePurpose: usePageGuidance ? activeWorkspacePage?.purpose || "" : "",
+      pageTargetAudience: usePageGuidance ? activeWorkspacePage?.targetAudience || "" : "",
       pageWritingDirection: usePageGuidance ? activeWorkspacePage?.writingDirection || "" : "",
       pageImageDirection: usePageGuidance ? activeWorkspacePage?.imageDirection || "" : "",
       pageReadme: usePageGuidance ? activeWorkspacePage?.readme || "" : "",
       pageTone: usePageGuidance ? activeWorkspacePage?.tone || "" : "",
+      pageContentPillars: usePageGuidance ? activeWorkspacePage?.contentPillars || "" : "",
+      pageAvoidList: usePageGuidance ? activeWorkspacePage?.avoidList || "" : "",
+      pageDefaultCta: usePageGuidance ? activeWorkspacePage?.defaultCta || "" : "",
     }),
     [activeWorkspacePage, usePageGuidance]
   );
@@ -329,12 +339,28 @@ function CreatePage({
         return;
       }
 
+      if (handleSetDraftReviewStatus) {
+        const approved = await handleSetDraftReviewStatus(saveResult.post.id, "approved");
+        if (!approved) return;
+      }
+
       const scheduled = await handleSchedulePost(saveResult.post.id, preset.value);
       if (scheduled) {
         onOpenStatusTab?.();
       }
     } finally {
       setQuickScheduleId("");
+    }
+  }
+
+  async function handleBatchCreate() {
+    if (!handleGenerateBatchDrafts) return;
+    const result = await handleGenerateBatchDrafts({
+      count: batchCount,
+      overrides: pageGuidanceContext,
+    });
+    if (result?.ok) {
+      onOpenStatusTab?.();
     }
   }
 
@@ -392,6 +418,42 @@ function CreatePage({
               </button>
             ))}
           </div>
+        </div>
+        <div className="mt-3 border-t border-white/5 pt-3">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">Batch Create</p>
+              <p className="mt-1 text-xs text-slate-500">Generate multiple Facebook drafts at once and save them straight into the review queue.</p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              {[5, 10, 20].map((count) => (
+                <button
+                  key={count}
+                  type="button"
+                  onClick={() => setBatchCount(count)}
+                  className={`rounded-full px-3 py-1.5 text-[11px] font-semibold transition ${
+                    batchCount === count
+                      ? "bg-cyan-400 text-slate-950"
+                      : "border border-white/10 bg-white/5 text-slate-300 hover:bg-white/10"
+                  }`}
+                >
+                  {count}
+                </button>
+              ))}
+              <ActionButton
+                label={isGeneratingBatch ? "Generating Batch..." : `Generate ${batchCount} Drafts`}
+                icon={Sparkles}
+                isLoading={isGeneratingBatch}
+                onClick={() => void handleBatchCreate()}
+                className="px-4 py-2 text-sm"
+              />
+            </div>
+          </div>
+          {batchProgress ? (
+            <p className="mt-3 text-xs text-slate-500">
+              Progress: {batchProgress.current}/{batchProgress.total} drafts processed, {batchProgress.saved} saved.
+            </p>
+          ) : null}
         </div>
       </div>
 

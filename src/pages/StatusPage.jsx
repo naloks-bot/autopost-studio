@@ -14,6 +14,14 @@ import {
   X,
 } from "lucide-react";
 import ActionButton from "../components/ActionButton.jsx";
+import {
+  buildStockSummary,
+  canPublishPost,
+  canSchedulePost,
+  getChecklistCompletion,
+  LOW_STOCK_THRESHOLD,
+  REVIEW_CHECKLIST_FIELDS,
+} from "../services/content-stock.js";
 import { getPagePublishReadiness, resolveEffectivePublishConfig, runPerPagePublishDryRun } from "../services/page-context.js";
 import { getFastReschedulePresets, getQuickSchedulePresets, toLocalDateTimeValue } from "../services/schedule-presets.js";
 
@@ -142,17 +150,77 @@ function ScheduleModal({ post, value, onChange, presets, onSave, onCancel, isSav
   );
 }
 
+function ChecklistPill({ checked, label, onToggle }) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      className={`rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider transition ${
+        checked
+          ? "border-emerald-400/20 bg-emerald-500/10 text-emerald-200"
+          : "border-white/10 bg-white/5 text-slate-400 hover:bg-white/10"
+      }`}
+    >
+      {checked ? "Passed" : "Check"} {label}
+    </button>
+  );
+}
+
+function StockTable({ summary }) {
+  return (
+    <div className="overflow-x-auto rounded-2xl border border-white/5 bg-slate-900/40">
+      <table className="min-w-full text-left text-sm">
+        <thead className="border-b border-white/5 text-[10px] uppercase tracking-widest text-slate-500">
+          <tr>
+            <th className="px-4 py-3">Page</th>
+            <th className="px-4 py-3">Draft</th>
+            <th className="px-4 py-3">Review</th>
+            <th className="px-4 py-3">Approved</th>
+            <th className="px-4 py-3">Scheduled</th>
+            <th className="px-4 py-3">Posted</th>
+            <th className="px-4 py-3">Failed</th>
+            <th className="px-4 py-3">Available</th>
+          </tr>
+        </thead>
+        <tbody>
+          {summary.byPage.map((page) => (
+            <tr key={page.pageId} className="border-b border-white/5 last:border-0">
+              <td className="px-4 py-3">
+                <div className="flex items-center gap-2">
+                  <span className="font-semibold text-white">{page.pageLabel}</span>
+                  {page.isLowStock ? (
+                    <span className="rounded-full border border-amber-400/20 bg-amber-500/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-amber-300">
+                      Low
+                    </span>
+                  ) : null}
+                </div>
+              </td>
+              <td className="px-4 py-3 text-slate-300">{page.counts.draft}</td>
+              <td className="px-4 py-3 text-slate-300">{page.counts.review}</td>
+              <td className="px-4 py-3 text-slate-300">{page.counts.approved}</td>
+              <td className="px-4 py-3 text-slate-300">{page.counts.scheduled}</td>
+              <td className="px-4 py-3 text-slate-300">{page.counts.posted}</td>
+              <td className="px-4 py-3 text-slate-300">{page.counts.failed}</td>
+              <td className={`px-4 py-3 font-semibold ${page.isLowStock ? "text-amber-300" : "text-emerald-300"}`}>{page.available}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 function StatusPage({
   allPendingPosts,
   remotePosts,
-  localDrafts,
   formatDate,
-  handleDeleteLocalDraft,
   handleDeletePost,
   handleDuplicatePost,
   handleLoadDraftToEditor,
   handlePublishPost,
   handleSchedulePost,
+  handleSetDraftReviewStatus,
+  handleUpdateQualityChecklist,
   handleUnschedulePost,
   isSchedulingPostId,
   isUnschedulingPostId,
@@ -164,64 +232,59 @@ function StatusPage({
   const activePageId = settings.activePageId || "default";
   const [scheduleModalPost, setScheduleModalPost] = useState(null);
   const [scheduleValue, setScheduleValue] = useState("");
-  const [selectedFilter, setSelectedFilter] = useState("all");
+  const [selectedFilter, setSelectedFilter] = useState("scheduled");
 
-  const pageAware = useMemo(() => {
-    const pendingForPage = allPendingPosts.filter((post) => (post.page_id || "default") === activePageId);
-    const draftPosts = sortQueuePosts(pendingForPage.filter((post) => (post.status || "draft") === "draft"));
-    const scheduledPosts = sortQueuePosts(pendingForPage.filter((post) => post.status === "scheduled"));
-    const failedPosts = sortQueuePosts(pendingForPage.filter((post) => post.status === "failed"));
-    const postedPosts = sortQueuePosts(
-      remotePosts.filter((post) => post.status === "posted" && (post.page_id || "default") === activePageId)
-    );
-    const activePosts = sortQueuePosts([...draftPosts, ...scheduledPosts, ...failedPosts]);
+  const stockSummary = useMemo(() => buildStockSummary(remotePosts, workspacePages, LOW_STOCK_THRESHOLD), [remotePosts, workspacePages]);
+  const activePageStock = stockSummary.byPage.find((page) => page.pageId === activePageId) || stockSummary.byPage[0];
 
-    const filteredList =
-      selectedFilter === "draft"
-        ? draftPosts
-        : selectedFilter === "scheduled"
-          ? scheduledPosts
-          : selectedFilter === "failed"
-            ? failedPosts
-            : selectedFilter === "posted"
-              ? postedPosts
-              : activePosts;
+  const reviewQueue = useMemo(
+    () =>
+      sortQueuePosts(
+        allPendingPosts.filter((post) => {
+          const status = post.status || "draft";
+          return (post.page_id || "default") === activePageId && ["draft", "review", "approved"].includes(status);
+        })
+      ),
+    [activePageId, allPendingPosts]
+  );
+
+  const operationalView = useMemo(() => {
+    const pageRemotePosts = remotePosts.filter((post) => (post.page_id || "default") === activePageId);
+    const scheduledPosts = sortQueuePosts(pageRemotePosts.filter((post) => post.status === "scheduled"));
+    const failedPosts = sortQueuePosts(pageRemotePosts.filter((post) => post.status === "failed"));
+    const postedPosts = sortQueuePosts(pageRemotePosts.filter((post) => post.status === "posted"));
+    const approvedPosts = sortQueuePosts(pageRemotePosts.filter((post) => post.status === "approved"));
+
+    const filteredPosts =
+      selectedFilter === "failed"
+        ? failedPosts
+        : selectedFilter === "posted"
+          ? postedPosts
+          : selectedFilter === "approved"
+            ? approvedPosts
+            : selectedFilter === "all"
+              ? sortQueuePosts([...approvedPosts, ...scheduledPosts, ...failedPosts])
+              : scheduledPosts;
 
     return {
-      draftPosts,
       scheduledPosts,
       failedPosts,
       postedPosts,
-      filteredList,
+      approvedPosts,
+      filteredPosts,
       postedToday: postedPosts.filter((post) => isSameLocalDay(post.posted_at || post.created_at)).length,
     };
-  }, [activePageId, allPendingPosts, remotePosts, selectedFilter]);
+  }, [activePageId, remotePosts, selectedFilter]);
 
   const quickSchedulePresets = useMemo(
-    () => getQuickSchedulePresets(pageAware.scheduledPosts),
-    [pageAware.scheduledPosts]
+    () => getQuickSchedulePresets(operationalView.scheduledPosts),
+    [operationalView.scheduledPosts]
   );
 
   const fastReschedulePresets = useMemo(
-    () => getFastReschedulePresets(pageAware.scheduledPosts),
-    [pageAware.scheduledPosts]
+    () => getFastReschedulePresets(operationalView.scheduledPosts),
+    [operationalView.scheduledPosts]
   );
-
-  const queueTitle =
-    selectedFilter === "draft"
-      ? "Draft Queue"
-      : selectedFilter === "scheduled"
-        ? "Scheduled Queue"
-        : selectedFilter === "failed"
-          ? "Failed Queue"
-          : selectedFilter === "posted"
-            ? "Posted Items"
-            : "Active Queue";
-
-  const queueHint =
-    selectedFilter === "posted"
-      ? "Posted items are visible in this filter only."
-      : "Posted items stay collapsed by default so active work stays on top.";
 
   const handleOpenSchedule = (post) => {
     setScheduleModalPost(post);
@@ -237,11 +300,6 @@ function StatusPage({
     if (!scheduleModalPost) return;
     const success = await handleSchedulePost(scheduleModalPost.id, scheduleValue);
     if (success) handleCloseSchedule();
-  };
-
-  const handleApplyQuickSchedule = async (postId, nextValue) => {
-    if (!nextValue) return;
-    await handleSchedulePost(postId, nextValue);
   };
 
   const handleDeleteRequest = async (post) => {
@@ -282,21 +340,42 @@ function StatusPage({
               <Facebook className="h-4 w-4" />
             </div>
             <div>
-              <p className="font-semibold text-cyan-100">Operator Queue</p>
+              <p className="font-semibold text-cyan-100">Content Stock OS</p>
               <p className="mt-0.5 text-xs text-cyan-100/80">
                 Publish mode: {settings.facebookPublishMode === "live" ? "Live" : "Mock"}.
-                This view keeps queue scanning, scheduling, and cleanup visible while you scroll.
+                Review comes first, then approval, then stable scheduling.
               </p>
             </div>
           </div>
         </div>
 
-        <div className="grid gap-3 sm:grid-cols-4">
-          <SummaryCard label="Drafts" value={pageAware.draftPosts.length} />
-          <SummaryCard label="Scheduled" value={pageAware.scheduledPosts.length} tone="warning" />
-          <SummaryCard label="Posted Today" value={pageAware.postedToday} tone="success" />
-          <SummaryCard label="Failed" value={pageAware.failedPosts.length} tone="danger" />
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
+          <SummaryCard label="Draft" value={activePageStock?.counts.draft || 0} />
+          <SummaryCard label="Review" value={activePageStock?.counts.review || 0} tone="warning" />
+          <SummaryCard label="Approved" value={activePageStock?.counts.approved || 0} tone="success" />
+          <SummaryCard label="Scheduled" value={activePageStock?.counts.scheduled || 0} tone="warning" />
+          <SummaryCard label="Posted" value={activePageStock?.counts.posted || 0} tone="success" />
+          <SummaryCard label="Failed" value={activePageStock?.counts.failed || 0} tone="danger" />
         </div>
+
+        {stockSummary.lowStockPages.length > 0 ? (
+          <div className="rounded-2xl border border-amber-500/20 bg-amber-500/10 p-4 text-sm text-amber-100">
+            <p className="font-semibold">Low stock warning</p>
+            <p className="mt-1 text-xs text-amber-100/80">
+              Available stock means `approved + scheduled`. Threshold is {LOW_STOCK_THRESHOLD}.
+            </p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {stockSummary.lowStockPages.map((page) => (
+                <span
+                  key={page.pageId}
+                  className="rounded-full border border-amber-400/20 bg-black/10 px-3 py-1 text-[11px] font-semibold text-amber-100"
+                >
+                  {page.pageLabel}: {page.available}
+                </span>
+              ))}
+            </div>
+          </div>
+        ) : null}
 
         {schedulerStatus ? (
           <div className="flex items-center gap-3 rounded-2xl border border-cyan-500/20 bg-cyan-500/10 p-3 text-xs text-cyan-300 shadow-sm">
@@ -311,48 +390,178 @@ function StatusPage({
             </div>
           </div>
         ) : null}
-
-        <div className="rounded-2xl border border-white/5 bg-slate-900/50 p-3 shadow-sm">
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400">Queue Filters</p>
-              <p className="mt-1 text-xs text-slate-500">Focus on one content state at a time without changing the queue model.</p>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <FilterButton active={selectedFilter === "all"} onClick={() => setSelectedFilter("all")}>
-                All
-              </FilterButton>
-              <FilterButton active={selectedFilter === "draft"} onClick={() => setSelectedFilter("draft")}>
-                Draft
-              </FilterButton>
-              <FilterButton active={selectedFilter === "scheduled"} onClick={() => setSelectedFilter("scheduled")}>
-                Scheduled
-              </FilterButton>
-              <FilterButton active={selectedFilter === "posted"} onClick={() => setSelectedFilter("posted")}>
-                Posted
-              </FilterButton>
-              <FilterButton active={selectedFilter === "failed"} onClick={() => setSelectedFilter("failed")}>
-                Failed
-              </FilterButton>
-            </div>
-          </div>
-        </div>
       </div>
 
-      <div className="space-y-3">
-        <div className="flex items-center justify-between pl-1">
-          <h3 className="text-sm font-semibold uppercase tracking-widest text-slate-300">{queueTitle}</h3>
-          <span className="text-[11px] text-slate-500">{queueHint}</span>
+      <section className="space-y-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-sm font-semibold uppercase tracking-widest text-slate-300">Stock Dashboard</h3>
+            <p className="mt-1 text-xs text-slate-500">Counts stay grouped by active page plus a workspace-wide stock table.</p>
+          </div>
+          <CompactMetaPill tone={activePageStock?.isLowStock ? "warning" : "success"}>
+            Available Stock: {activePageStock?.available || 0}
+          </CompactMetaPill>
+        </div>
+        <StockTable summary={stockSummary} />
+      </section>
+
+      <section className="space-y-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-sm font-semibold uppercase tracking-widest text-slate-300">Review Queue</h3>
+            <p className="mt-1 text-xs text-slate-500">Drafts stay unscheduled until you approve them.</p>
+          </div>
+          <span className="text-[11px] text-slate-500">{reviewQueue.length} items</span>
         </div>
 
-        {pageAware.filteredList.length === 0 ? (
-          <div className="flex flex-col items-center justify-center rounded-[2rem] border border-dashed border-white/10 p-12 text-center">
-            <Info className="mb-3 h-10 w-10 text-slate-700" />
-            <p className="text-lg font-medium text-slate-500">No items in this view</p>
-            <p className="mt-1 text-sm text-slate-600">Switch filters or save new content from the Create page.</p>
+        {reviewQueue.length === 0 ? (
+          <div className="flex flex-col items-center justify-center rounded-[2rem] border border-dashed border-white/10 p-10 text-center">
+            <CheckCircle2 className="mb-3 h-10 w-10 text-slate-700" />
+            <p className="text-lg font-medium text-slate-500">No drafts waiting for review</p>
+            <p className="mt-1 text-sm text-slate-600">Generate a batch from the Create page or save a new draft to start stocking content.</p>
           </div>
         ) : (
-          pageAware.filteredList.map((post) => {
+          reviewQueue.map((post) => {
+            const completion = getChecklistCompletion(post.quality_checklist);
+            const isApproved = post.status === "approved";
+            const isRemote = post.source !== "local";
+            const canSendToSchedule = canSchedulePost(post);
+
+            return (
+              <article
+                key={post.id}
+                className="rounded-[1.5rem] border border-white/5 bg-slate-900/60 p-4 transition-all hover:bg-slate-900/80"
+              >
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h4 className="text-base font-bold text-white">{post.topic || "Untitled post"}</h4>
+                      <CompactMetaPill tone={post.source === "local" ? "warning" : "accent"}>
+                        {post.source === "local" ? "Local" : "Supabase"}
+                      </CompactMetaPill>
+                      <CompactMetaPill tone={isApproved ? "success" : post.status === "review" ? "warning" : "neutral"}>
+                        {post.status || "draft"}
+                      </CompactMetaPill>
+                      {post.content_pillar ? <CompactMetaPill tone="accent">Pillar: {post.content_pillar}</CompactMetaPill> : null}
+                    </div>
+
+                    {post.hook ? <p className="mt-2 text-sm font-semibold text-cyan-200">Hook: {post.hook}</p> : null}
+                    <p className="mt-2 line-clamp-3 text-sm leading-relaxed text-slate-400">{post.content}</p>
+
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {REVIEW_CHECKLIST_FIELDS.map((field) => (
+                        <ChecklistPill
+                          key={`${post.id}-${field.id}`}
+                          checked={Boolean(post.quality_checklist?.[field.id])}
+                          label={field.label}
+                          onToggle={() =>
+                            void handleUpdateQualityChecklist(post.id, {
+                              ...post.quality_checklist,
+                              [field.id]: !post.quality_checklist?.[field.id],
+                            })
+                          }
+                        />
+                      ))}
+                    </div>
+
+                    <div className="mt-3 flex flex-wrap items-center gap-3 text-[11px] text-slate-500">
+                      <span>Checklist: {completion.completed}/{completion.total}</span>
+                      <span>Created {formatDate(post.created_at)}</span>
+                      {post.image_prompt ? <span>Image prompt ready</span> : <span>No image prompt yet</span>}
+                    </div>
+                  </div>
+
+                  <div className="flex w-full shrink-0 flex-col gap-2 lg:w-52">
+                    <ActionButton
+                      label="Edit"
+                      icon={Pencil}
+                      onClick={() => handleLoadDraftToEditor(post)}
+                      variant="outline"
+                      className="px-3 py-2 text-xs"
+                      fullWidth
+                    />
+                    <ActionButton
+                      label={isApproved ? "Approved" : "Approve"}
+                      icon={CheckCircle2}
+                      onClick={() => void handleSetDraftReviewStatus(post.id, "approved")}
+                      variant={isApproved ? "secondary" : "emerald"}
+                      disabled={!isRemote || isApproved}
+                      className="px-3 py-2 text-xs"
+                      fullWidth
+                    />
+                    <ActionButton
+                      label="Keep Draft"
+                      icon={RotateCcw}
+                      onClick={() => void handleSetDraftReviewStatus(post.id, "draft")}
+                      variant="outline"
+                      className="px-3 py-2 text-xs"
+                      fullWidth
+                    />
+                    <ActionButton
+                      label="Send to Schedule"
+                      icon={Calendar}
+                      onClick={() => handleOpenSchedule(post)}
+                      variant="amber"
+                      disabled={!canSendToSchedule}
+                      className="px-3 py-2 text-xs"
+                      fullWidth
+                    />
+                    <ActionButton
+                      label="Delete"
+                      icon={Trash2}
+                      onClick={() => void handleDeleteRequest(post)}
+                      variant="danger"
+                      className="px-3 py-2 text-xs"
+                      fullWidth
+                    />
+                  </div>
+                </div>
+              </article>
+            );
+          })
+        )}
+      </section>
+
+      <section className="space-y-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-sm font-semibold uppercase tracking-widest text-slate-300">Publishing Queue</h3>
+            <p className="mt-1 text-xs text-slate-500">Approved content moves here once scheduled or once a publish attempt has happened.</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <FilterButton active={selectedFilter === "scheduled"} onClick={() => setSelectedFilter("scheduled")}>
+              Scheduled
+            </FilterButton>
+            <FilterButton active={selectedFilter === "approved"} onClick={() => setSelectedFilter("approved")}>
+              Approved
+            </FilterButton>
+            <FilterButton active={selectedFilter === "failed"} onClick={() => setSelectedFilter("failed")}>
+              Failed
+            </FilterButton>
+            <FilterButton active={selectedFilter === "posted"} onClick={() => setSelectedFilter("posted")}>
+              Posted
+            </FilterButton>
+            <FilterButton active={selectedFilter === "all"} onClick={() => setSelectedFilter("all")}>
+              All
+            </FilterButton>
+          </div>
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-4">
+          <SummaryCard label="Approved" value={operationalView.approvedPosts.length} tone="success" />
+          <SummaryCard label="Scheduled" value={operationalView.scheduledPosts.length} tone="warning" />
+          <SummaryCard label="Posted Today" value={operationalView.postedToday} tone="success" />
+          <SummaryCard label="Failed" value={operationalView.failedPosts.length} tone="danger" />
+        </div>
+
+        {operationalView.filteredPosts.length === 0 ? (
+          <div className="flex flex-col items-center justify-center rounded-[2rem] border border-dashed border-white/10 p-10 text-center">
+            <Info className="mb-3 h-10 w-10 text-slate-700" />
+            <p className="text-lg font-medium text-slate-500">No items in this view</p>
+            <p className="mt-1 text-sm text-slate-600">Approve something in the review queue or switch to another filter.</p>
+          </div>
+        ) : (
+          operationalView.filteredPosts.map((post) => {
             const pageReadiness = getPagePublishReadiness({
               pageId: post.page_id,
               settings,
@@ -368,7 +577,6 @@ function StatusPage({
               settings,
               pages: workspacePages,
             });
-            const isRemotePost = post.source !== "local";
             const isScheduled = post.status === "scheduled";
             const isPosted = post.status === "posted";
 
@@ -387,22 +595,15 @@ function StatusPage({
                   <div>
                     <div className="flex flex-wrap items-center gap-2">
                       <h3 className="text-base font-bold text-white">{post.topic || "Untitled post"}</h3>
-                      <CompactMetaPill tone={post.source === "local" ? "warning" : "accent"}>
-                        {post.source === "local" ? "Local" : "Supabase"}
-                      </CompactMetaPill>
-                    </div>
-                    <p className="mt-1 line-clamp-2 text-sm leading-relaxed text-slate-400">{post.content}</p>
-
-                    <div className="mt-2 flex flex-wrap gap-2">
                       <CompactMetaPill>Page: {pageReadiness.label}</CompactMetaPill>
-                      <CompactMetaPill tone={pageReadiness.pageConfigReady ? "success" : "warning"}>
-                        {pageReadiness.pageConfigReady ? "Page Config Ready" : "Using Fallback Config"}
-                      </CompactMetaPill>
-                      <CompactMetaPill tone="accent">Route: {effectivePublish.effectivePublishLabel}</CompactMetaPill>
+                      {post.content_pillar ? <CompactMetaPill tone="accent">Pillar: {post.content_pillar}</CompactMetaPill> : null}
                       <CompactMetaPill tone={post.status === "failed" ? "danger" : isScheduled ? "warning" : isPosted ? "success" : "neutral"}>
                         Status: {post.status || "draft"}
                       </CompactMetaPill>
                     </div>
+
+                    {post.hook ? <p className="mt-2 text-sm font-semibold text-cyan-200">Hook: {post.hook}</p> : null}
+                    <p className="mt-1 line-clamp-2 text-sm leading-relaxed text-slate-400">{post.content}</p>
                   </div>
 
                   <div className="mt-3 flex flex-wrap items-center gap-3 border-t border-white/5 pt-3">
@@ -469,92 +670,58 @@ function StatusPage({
                     />
                   ) : null}
 
-                  {isRemotePost && !isPosted ? (
-                    <>
-                      <ActionButton
-                        label={isScheduled ? "Change Time" : "Schedule"}
-                        icon={Calendar}
-                        onClick={() => handleOpenSchedule(post)}
-                        variant="amber"
-                        className="px-3 py-2 text-xs"
-                        fullWidth
-                      />
-
-                      {isScheduled ? (
-                        <div className="grid grid-cols-3 gap-1">
-                          {fastReschedulePresets.map((preset) => (
-                            <button
-                              key={`${post.id}-${preset.id}`}
-                              type="button"
-                              onClick={() => void handleApplyQuickSchedule(post.id, preset.value)}
-                              className="rounded-full border border-amber-400/20 bg-amber-500/10 px-2 py-1 text-[10px] font-bold text-amber-200 transition hover:bg-amber-500/15"
-                            >
-                              {preset.label}
-                            </button>
-                          ))}
-                        </div>
-                      ) : null}
-
-                      {isScheduled ? (
-                        <ActionButton
-                          label="Unschedule"
-                          icon={RotateCcw}
-                          onClick={() => void handleUnschedulePost(post.id)}
-                          variant="outline"
-                          isLoading={isUnschedulingPostId === post.id}
-                          className="px-3 py-2 text-xs"
-                          fullWidth
-                        />
-                      ) : null}
-
-                      <ActionButton
-                        label={settings.facebookPublishMode === "live" ? "Post Now" : "Mock Publish"}
-                        icon={Send}
-                        onClick={() => handlePublishPost(post.id)}
-                        variant={settings.facebookPublishMode === "live" ? "emerald" : "secondary"}
-                        disabled={!effectivePublish.canAttemptPublish}
-                        className="px-3 py-2 text-xs"
-                        fullWidth
-                      />
-
-                      {!effectivePublish.canAttemptPublish ? (
-                        <div className="flex items-center justify-center gap-1 text-center text-[9px] font-bold uppercase text-rose-400">
-                          <AlertCircle className="h-3 w-3" />
-                          {effectivePublish.livePerPagePublishStatus === "Blocked" ? "Publish Blocked" : "Missing Config"}
-                        </div>
-                      ) : null}
-                    </>
+                  {!isPosted ? (
+                    <ActionButton
+                      label={isScheduled ? "Change Time" : "Schedule"}
+                      icon={Calendar}
+                      onClick={() => handleOpenSchedule(post)}
+                      variant="amber"
+                      disabled={!canSchedulePost(post)}
+                      className="px-3 py-2 text-xs"
+                      fullWidth
+                    />
                   ) : null}
-                </div>
-              </article>
-            );
-          })
-        )}
-      </div>
 
-      {selectedFilter !== "posted" ? (
-        <details className="rounded-2xl border border-white/5 bg-slate-900/40 p-5 shadow-sm">
-          <summary className="flex cursor-pointer list-none items-center justify-between gap-3">
-            <div className="flex items-center gap-2">
-              <CheckCircle2 className="h-4 w-4 text-emerald-400" />
-              <h3 className="text-sm font-semibold uppercase tracking-wider text-white">Recent Posted</h3>
-            </div>
-            <div className="flex items-center gap-3 text-[11px] text-slate-500">
-              <span>{pageAware.postedPosts.slice(0, 5).length} items</span>
-              <ChevronDown className="h-4 w-4" />
-            </div>
-          </summary>
-          <div className="mt-4">
-            {pageAware.postedPosts.length === 0 ? (
-              <p className="text-sm text-slate-500">No recently posted items for this page yet.</p>
-            ) : (
-              <div className="space-y-2">
-                {pageAware.postedPosts.slice(0, 5).map((post) => (
-                  <div key={post.id} className="flex items-center justify-between gap-4 rounded-xl border border-white/5 bg-slate-950/40 px-4 py-3">
-                    <div>
-                      <p className="text-sm font-semibold text-white">{post.topic || "Untitled post"}</p>
-                      <p className="mt-1 text-[11px] text-slate-500">Posted {formatDate(post.posted_at || post.created_at)}</p>
+                  {isScheduled ? (
+                    <div className="grid grid-cols-3 gap-1">
+                      {fastReschedulePresets.map((preset) => (
+                        <button
+                          key={`${post.id}-${preset.id}`}
+                          type="button"
+                          onClick={() => void handleSchedulePost(post.id, preset.value)}
+                          className="rounded-full border border-amber-400/20 bg-amber-500/10 px-2 py-1 text-[10px] font-bold text-amber-200 transition hover:bg-amber-500/15"
+                        >
+                          {preset.label}
+                        </button>
+                      ))}
                     </div>
+                  ) : null}
+
+                  {isScheduled ? (
+                    <ActionButton
+                      label="Unschedule"
+                      icon={RotateCcw}
+                      onClick={() => void handleUnschedulePost(post.id)}
+                      variant="outline"
+                      isLoading={isUnschedulingPostId === post.id}
+                      className="px-3 py-2 text-xs"
+                      fullWidth
+                    />
+                  ) : null}
+
+                  {!isPosted ? (
+                    <ActionButton
+                      label={settings.facebookPublishMode === "live" ? "Post Now" : "Mock Publish"}
+                      icon={Send}
+                      onClick={() => handlePublishPost(post.id)}
+                      variant={settings.facebookPublishMode === "live" ? "emerald" : "secondary"}
+                      disabled={!effectivePublish.canAttemptPublish || !canPublishPost(post)}
+                      className="px-3 py-2 text-xs"
+                      fullWidth
+                    />
+                  ) : null}
+
+                  {isPosted ? (
                     <button
                       type="button"
                       onClick={() => void handleDuplicatePost(post)}
@@ -562,13 +729,20 @@ function StatusPage({
                     >
                       Duplicate
                     </button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </details>
-      ) : null}
+                  ) : null}
+
+                  {!effectivePublish.canAttemptPublish && !isPosted ? (
+                    <div className="flex items-center justify-center gap-1 text-center text-[9px] font-bold uppercase text-rose-400">
+                      <AlertCircle className="h-3 w-3" />
+                      {effectivePublish.livePerPagePublishStatus === "Blocked" ? "Publish Blocked" : "Missing Config"}
+                    </div>
+                  ) : null}
+                </div>
+              </article>
+            );
+          })
+        )}
+      </section>
 
       <ScheduleModal
         post={scheduleModalPost}
