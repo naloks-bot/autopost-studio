@@ -348,7 +348,7 @@ function App() {
         clearPendingSystemOverrides([key]);
         setSettingsSyncMode(remote.mode || "connected");
         setSettingsMessage("บันทึกค่าความปลอดภัยขึ้น Supabase แล้ว");
-        return;
+        return { ok: true, storage: "remote", post: remote.data };
       }
 
       setSettingsSyncMode(remote.mode || "error");
@@ -512,6 +512,8 @@ function App() {
       const message = toUserSafeMessage(error, "ยังสร้างข้อความไม่สำเร็จ");
       setGenerationError(message);
       setCreateNotice({ tone: "danger", message });
+      return { ok: false, storage: remote.mode || null, post: null };
+      return { ok: false, storage: remote.mode || null, post: null };
     } finally {
       setIsGenerating(false);
     }
@@ -561,7 +563,7 @@ function App() {
   async function handleSaveDraft(extraData = {}) {
     if (!form.topic.trim() || !form.content.trim()) {
       setCreateNotice({ tone: "warning", message: "กรุณาใส่หัวข้อและข้อความก่อนบันทึกร่าง" });
-      return;
+      return { ok: false, storage: null, post: null };
     }
 
     setIsSavingDraft(true);
@@ -611,7 +613,7 @@ function App() {
         if (pageWasAdjusted) {
           setCreateNotice({ tone: "success", message: "บันทึกร่างแล้ว โดยใช้เพจหลักเพื่อความปลอดภัย" });
         }
-        return;
+        return { ok: true, storage: "remote", post: remote.data };
       }
 
       if (["read-only", "offline", "missing-table"].includes(remote.mode)) {
@@ -637,7 +639,7 @@ function App() {
         if (pageWasAdjusted) {
           setCreateNotice({ tone: "warning", message: "บันทึกร่างไว้ในเครื่องแล้ว โดยใช้เพจหลักแทนเพจที่ยังไม่พร้อม" });
         }
-        return;
+        return { ok: true, storage: "local", post: localEntry || null };
       }
 
       const message = toUserSafeMessage(remote.error, "บันทึกร่างไม่สำเร็จ");
@@ -1193,6 +1195,63 @@ function App() {
     setLocalDrafts((current) => current.filter((draft) => draft.id !== id));
   }, []);
 
+  const handleDuplicatePost = useCallback(
+    async (post) => {
+      if (!post) return null;
+
+      const workspacePages = getWorkspacePages(stateRef.current.settings);
+      const safePageId = resolveSafeDraftPageId(post.page_id || stateRef.current.settings.activePageId, workspacePages);
+      const duplicateDraft = {
+        page_id: safePageId,
+        topic: String(post.topic || "").trim(),
+        content: sanitizeGeneratedCaption(String(post.content || "").trim()),
+        image_prompt: String(post.image_prompt || "").trim(),
+        image_url: String(post.image_url || "").trim(),
+        image_provider: post.image_provider || null,
+        image_revised_prompt: post.image_revised_prompt || null,
+        image_storage_path: post.image_storage_path || null,
+        image_storage_mode: post.image_storage_mode || null,
+        status: "draft",
+        created_at: new Date().toISOString(),
+      };
+
+      try {
+        const remote = await insertRemoteDraft(duplicateDraft, { workspacePages });
+        if (remote.data) {
+          setRemotePosts((current) =>
+            [remote.data, ...current].sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime())
+          );
+          setStatusNotice({ tone: "success", message: "Created a reusable draft copy." });
+          handleLoadDraftToEditor(remote.data);
+          return remote.data;
+        }
+
+        if (["read-only", "offline", "missing-table"].includes(remote.mode)) {
+          const localEntry = saveLocalDraft(duplicateDraft);
+          if (localEntry) {
+            setLocalDrafts((current) => [localEntry, ...current]);
+            setStatusNotice({ tone: "warning", message: "Created a local draft copy because cloud save is unavailable." });
+            handleLoadDraftToEditor(localEntry);
+            return localEntry;
+          }
+        }
+
+        setStatusNotice({
+          tone: "danger",
+          message: `Duplicate draft failed: ${toUserSafeMessage(remote.error, "Unable to create a reusable copy")}`,
+        });
+        return null;
+      } catch (error) {
+        setStatusNotice({
+          tone: "danger",
+          message: `Duplicate draft failed: ${toUserSafeMessage(error, "Unable to create a reusable copy")}`,
+        });
+        return null;
+      }
+    },
+    [handleLoadDraftToEditor]
+  );
+
   const currentSettingsStatus = statusCopy[settingsSyncMode] ?? statusCopy.error;
   const SettingsStatusIcon = currentSettingsStatus.icon;
   const textProviderRuntime = getTextProviderRuntime(settings, lastTextGeneration);
@@ -1241,10 +1300,14 @@ function App() {
                   form={form}
                   settings={settings}
                   activeWorkspacePage={activeWorkspacePage}
+                  scheduledPostsForPage={remotePosts.filter(
+                    (post) => post.status === "scheduled" && (post.page_id || "default") === (settings.activePageId || "default")
+                  )}
                   updateForm={updateForm}
                   handleGenerateContent={handleGenerateContent}
                   handleGenerateImagePrompt={handleGenerateImagePrompt}
                   handleSaveDraft={handleSaveDraft}
+                  handleSchedulePost={handleSchedulePost}
                   isGenerating={isGenerating}
                   isGeneratingImagePrompt={isGeneratingImagePrompt}
                   isSavingDraft={isSavingDraft}
@@ -1307,6 +1370,7 @@ function App() {
                   localDrafts={localDrafts}
                   formatDate={formatDate}
                   handleDeleteLocalDraft={handleDeleteLocalDraft}
+                  handleDuplicatePost={handleDuplicatePost}
                   handleLoadDraftToEditor={handleLoadDraftToEditor}
                   handlePublishPost={handlePublishPost}
                   handleSchedulePost={handleSchedulePost}

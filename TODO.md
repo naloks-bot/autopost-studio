@@ -130,6 +130,13 @@ Phase 2A checkpoint:
 * logs styling softened to operational cyan/neutral tone
 * advanced diagnostics moved behind collapsible sections
 
+Phase 2B checkpoint:
+
+* quick schedule presets added to speed up save + schedule workflow
+* duplicate/reuse flow added for draft and posted content
+* Status page now supports compact queue filters and summary counts
+* scheduled items now have fast reschedule actions using the existing schedule handler only
+
 Important:
 Focus on operator efficiency and low token usage. Avoid unnecessary UI redesign.
 

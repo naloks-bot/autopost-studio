@@ -45,6 +45,7 @@ Recent stable checkpoints:
 * GitHub Actions `workflow_dispatch` remains available as a manual scheduler fallback/debug tool
 * production cron triggering is now locked to an external cron provider instead of GitHub `event=schedule`
 * Phase 2A operator UI simplification is now in progress with sticky actions, denser queue scanning, calmer logs styling, and collapsed advanced diagnostics
+* Phase 2B content factory workflow upgrade is now in progress with quick schedule presets, draft duplication/reuse, queue filters, queue summary counts, and fast reschedule actions
 
 Permanent operating rules:
 
@@ -168,6 +169,14 @@ Current Phase 2A checkpoint:
 * posted items are collapsed by default to keep active queue items visible first
 * logs page now uses neutral/cyan operational styling, with red reserved for actual failures
 * advanced diagnostics are moving behind collapsible sections instead of staying always visible
+
+Current Phase 2B checkpoint:
+
+* Create flow now exposes one-click schedule presets that reuse the existing save + schedule handlers
+* Status now supports compact filters for `All`, `Draft`, `Scheduled`, `Posted`, and `Failed`
+* operators now get lightweight queue summary counts for drafts, scheduled items, posted today, and failed items
+* draft and posted content can be duplicated into a new reusable draft without overwriting the original
+* scheduled items now have fast reschedule actions for `+1 Hour`, `+1 Day`, and `Next Prime Time`
 
 ## Phase 3 — Prompt Intelligence Layer
 

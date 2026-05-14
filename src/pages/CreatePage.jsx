@@ -4,6 +4,7 @@ import { CONTENT_CTAS, CONTENT_LENGTHS, CONTENT_TONES, CONTENT_TYPES } from "../
 import { generateImage } from "../services/ai-image-generation.js";
 import { uploadImageBlob, uploadImageFromUrl } from "../services/storage.js";
 import { getProviderLabel, sanitizeGeneratedCaption } from "../services/ai-generation.js";
+import { getQuickSchedulePresets } from "../services/schedule-presets.js";
 import ActionButton from "../components/ActionButton.jsx";
 import PromptAssistCard from "../components/PromptAssistCard.jsx";
 import ImageStudioCard from "../components/ImageStudioCard.jsx";
@@ -49,10 +50,12 @@ function CreatePage({
   form,
   settings,
   activeWorkspacePage,
+  scheduledPostsForPage,
   updateForm,
   handleGenerateContent,
   handleGenerateImagePrompt,
   handleSaveDraft,
+  handleSchedulePost,
   isGenerating,
   isGeneratingImagePrompt,
   isGeneratingImage: isGeneratingImageProp,
@@ -73,6 +76,7 @@ function CreatePage({
     length: "medium",
     cta: "none",
   });
+  const [quickScheduleId, setQuickScheduleId] = useState("");
   const [imageForm, setImageForm] = useState({
     aspectRatio: "4:5",
     style: "realistic",
@@ -149,6 +153,10 @@ function CreatePage({
   );
   const previewCaption = useMemo(() => sanitizeGeneratedCaption(form.content || ""), [form.content]);
   const previewImageUrl = imageAsset?.previewUrl || form.imageUrl || "";
+  const quickSchedulePresets = useMemo(
+    () => getQuickSchedulePresets(scheduledPostsForPage || []),
+    [scheduledPostsForPage]
+  );
 
   async function handleGenerateImage() {
     if (isGeneratingImage) return;
@@ -288,7 +296,7 @@ function CreatePage({
     }
   }
 
-  function handleInternalSave() {
+  function buildDraftExtraData() {
     const resolvedImageUrl = imageAsset?.imageUrl || form.imageUrl;
     const safePersistedImageUrl = isUnsafeDraftImageUrl(resolvedImageUrl) ? "" : resolvedImageUrl;
     const extraData = {
@@ -304,7 +312,30 @@ function CreatePage({
       setImageGenerationError("ยังไม่มี URL รูปภาพสาธารณะ จึงบันทึกร่างแบบไม่แนบรูปสำหรับโพสต์จริง");
     }
 
-    handleSaveDraft(extraData);
+    return extraData;
+  }
+
+  function handleInternalSave() {
+    handleSaveDraft(buildDraftExtraData());
+  }
+
+  async function handleQuickSchedule(preset) {
+    if (!preset?.value || !handleSchedulePost) return;
+
+    setQuickScheduleId(preset.id);
+    try {
+      const saveResult = await handleSaveDraft(buildDraftExtraData());
+      if (!saveResult?.ok || saveResult.storage !== "remote" || !saveResult.post?.id) {
+        return;
+      }
+
+      const scheduled = await handleSchedulePost(saveResult.post.id, preset.value);
+      if (scheduled) {
+        onOpenStatusTab?.();
+      }
+    } finally {
+      setQuickScheduleId("");
+    }
   }
 
   return (
@@ -341,6 +372,27 @@ function CreatePage({
               className="px-4 py-2.5 text-sm"
               fullWidth
             />
+          </div>
+        </div>
+        <div className="mt-3 border-t border-white/5 pt-3">
+          <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">Quick Schedule</p>
+              <p className="mt-1 text-xs text-slate-500">Save the current post as a new draft and schedule it with one click.</p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {quickSchedulePresets.map((preset) => (
+                <button
+                  key={preset.id}
+                  type="button"
+                  onClick={() => void handleQuickSchedule(preset)}
+                  disabled={isSavingDraft || quickScheduleId === preset.id}
+                  className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-[11px] font-semibold text-slate-300 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {quickScheduleId === preset.id ? "Scheduling..." : preset.label}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       </div>
