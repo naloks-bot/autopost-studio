@@ -5,18 +5,21 @@ env:
 
 on:
   schedule:
-    # Run every 5 minutes to keep scheduled publishing near the requested time.
-    - cron: '*/5 * * * *'
+    # Run every 5 minutes on an offset cadence to avoid the busiest minute buckets,
+    # which GitHub notes are more likely to be delayed or dropped under load.
+    - cron: '2,7,12,17,22,27,32,37,42,47,52,57 * * * *'
   workflow_dispatch:
     # Allow manual trigger from GitHub UI
 
 jobs:
   trigger-scheduler:
     runs-on: ubuntu-latest
+    env:
+      CRON_SECRET: ${{ secrets.CRON_SECRET }}
     steps:
       - name: Trigger Supabase Edge Function
         run: |
-          if [ -z "${{ secrets.CRON_SECRET }}" ]; then
+          if [ -z "${CRON_SECRET}" ]; then
             echo "::error::Missing GitHub Actions secret CRON_SECRET."
             exit 1
           fi
@@ -27,7 +30,7 @@ jobs:
             --write-out "%{http_code}" \
             -X POST "${SCHEDULER_FUNCTION_URL}" \
             -H "Content-Type: application/json" \
-            -H "x-cron-secret: ${{ secrets.CRON_SECRET }}")
+            -H "x-cron-secret: ${CRON_SECRET}")
 
           echo "HTTP ${http_code}"
           cat response.json
