@@ -337,7 +337,7 @@ function StatusPage({
         </div>
       ) : null}
 
-      <div className="sticky top-3 z-20 space-y-3 rounded-[1.75rem] border border-cyan-500/15 bg-slate-950/92 p-4 shadow-lg shadow-slate-950/40 backdrop-blur">
+      <div className="space-y-3 rounded-[1.75rem] border border-cyan-500/15 bg-slate-950/92 p-4 shadow-lg shadow-slate-950/40 backdrop-blur">
         <div className="rounded-2xl border border-cyan-500/20 bg-cyan-500/10 p-4 text-sm text-cyan-100 shadow-sm">
           <div className="flex items-center gap-3">
             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-black/10">

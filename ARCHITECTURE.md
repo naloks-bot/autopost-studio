@@ -78,7 +78,7 @@ Preserve the current stable Create flow and optimize operator efficiency without
 
 Current operator UX boundary inside this layer:
 
-* sticky operator actions are allowed if they do not change Create flow behavior
+* operator action sections should scroll naturally unless a future QA pass proves pinning is needed
 * desktop queue density can be improved without changing queue architecture
 * posted/completed visibility can be collapsed by default to prioritize active work
 * advanced runtime diagnostics should be hidden behind explicit operator intent when possible
@@ -216,7 +216,7 @@ Phase 2B workflow direction:
 
 Phase 2B.1 operator fix direction:
 
-* keep Create and Status controls compact, sticky, and desktop-friendly
+* keep Create and Status controls compact and desktop-friendly without sticky pinning
 * image prompt generation should derive from the current post context before falling back
 * non-functional UI surfaces should be hidden until they have real persistence behind them
 

@@ -46,9 +46,9 @@ Recent stable checkpoints:
 * Facebook image publish path now targets attached photo publishing instead of visible link-card fallback when `image_url` exists
 * GitHub Actions `workflow_dispatch` remains available as a manual scheduler fallback/debug tool
 * production cron triggering is now locked to an external cron provider instead of GitHub `event=schedule`
-* Phase 2A operator UI simplification shipped with sticky actions, denser queue scanning, calmer logs styling, and collapsed advanced diagnostics
+* Phase 2A operator UI simplification shipped with denser queue scanning, calmer logs styling, and collapsed advanced diagnostics
 * Phase 2B content factory workflow upgrade shipped with quick schedule presets, draft duplication/reuse, queue filters, queue summary counts, and fast reschedule actions
-* Phase 2B.1 targeted operator UI fixes shipped with a cleaned quick-schedule layout, content-derived image prompt generation, sticky Status controls, delete-with-confirm queue cleanup, and modal scheduling
+* Phase 2B.1 targeted operator UI fixes shipped with a cleaned quick-schedule layout, content-derived image prompt generation, compact Status controls, delete-with-confirm queue cleanup, and modal scheduling
 * Phase 1A additive Facebook Content Stock OS is now implemented with stock dashboard counts, batch review draft generation, approval-gated scheduling, and page memory foundation fields
 * current active work is Phase 1A stabilization, QA, and small production-safe fixes only
 * Clip OS remains future planning only and is not active implementation work
@@ -195,7 +195,7 @@ Current Phase 2B.1 checkpoint:
 
 * Create quick-schedule presets are now laid out in a cleaner two-row operator block
 * image prompt generation now derives from the current topic/caption context instead of returning canned template text
-* Status keeps operator summary and filters sticky while scrolling the queue
+* Status keeps operator summary and filters compact without pinning them while scrolling the queue
 * active queue cards now use delete-with-confirm instead of duplicate, without changing publish or scheduler behavior
 * schedule editing now opens in a modal instead of expanding inline
 * AI Library navigation is hidden until a functional persistence-backed version exists

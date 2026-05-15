@@ -134,7 +134,7 @@ TODO:
 
 Phase 2A checkpoint:
 
-* sticky Create actions implemented for faster operator access
+* Create actions are compact and scroll naturally without sticky pinning
 * queue density improved for faster desktop scanning
 * posted items collapsed by default
 * logs styling softened to operational cyan/neutral tone
@@ -151,7 +151,7 @@ Phase 2B.1 checkpoint:
 
 * quick schedule layout cleaned up for better Create-page scanning
 * image prompt generation now uses current post context instead of canned placeholder output
-* Status header and queue filters stay visible while scrolling
+* Status header and queue filters stay compact and scroll naturally
 * active queue cards now support delete-with-confirm and modal schedule editing
 * AI Library navigation is hidden until a functional version is ready
 

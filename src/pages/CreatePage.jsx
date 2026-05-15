@@ -366,7 +366,7 @@ function CreatePage({
 
   return (
     <div className="space-y-4">
-      <div className="sticky top-3 z-20 rounded-2xl border border-cyan-500/20 bg-slate-950/90 p-3 shadow-lg shadow-slate-950/40 backdrop-blur">
+      <div className="rounded-2xl border border-cyan-500/20 bg-slate-950/90 p-3 shadow-lg shadow-slate-950/40 backdrop-blur">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-cyan-300">Operator Actions</p>

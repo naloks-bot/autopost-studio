@@ -602,13 +602,13 @@ function App() {
   async function handleGenerateBatchDrafts({ count = 5, overrides = {} } = {}) {
     const baseTopic = String(form.topic || form.content || "").trim();
     if (!baseTopic) {
-      setCreateNotice({ tone: "warning", message: "à¸à¸£à¸¸à¸“à¸²à¹ƒà¸ªà¹ˆà¸«à¸±à¸§à¸‚à¹‰à¸­à¸à¹ˆà¸­à¸™à¸ªà¸£à¹‰à¸²à¸‡ batch draft" });
+      setCreateNotice({ tone: "warning", message: "กรุณาใส่หัวข้อก่อนสร้าง batch draft" });
       return { ok: false, count: 0 };
     }
 
     setIsGeneratingBatch(true);
     setBatchProgress({ current: 0, total: count, saved: 0 });
-    setCreateNotice({ tone: "info", message: `à¸à¸³à¸¥à¸±à¸‡à¸ªà¸£à¹‰à¸²à¸‡ batch draft ${count} à¸£à¸²à¸¢à¸à¸²à¸£...` });
+    setCreateNotice({ tone: "info", message: `กำลังสร้าง batch draft ${count} รายการ...` });
 
     const workspacePages = getWorkspacePages(settings);
     const safePageId = resolveSafeDraftPageId(settings.activePageId, workspacePages);
@@ -713,12 +713,12 @@ function App() {
         tone: fallbackCount > 0 ? "warning" : "success",
         message:
           fallbackCount > 0
-            ? `à¸ªà¸£à¹‰à¸²à¸‡ batch draft ${savedCount}/${count} à¸£à¸²à¸¢à¸à¸²à¸£ à¹‚à¸”à¸¢à¸¡à¸µ ${fallbackCount} à¸£à¸²à¸¢à¸à¸²à¸£à¸—à¸µà¹ˆà¹€à¸à¹‡à¸šà¹„à¸§à¹‰à¹ƒà¸™à¹€à¸„à¸£à¸·à¹ˆà¸­à¸‡`
-            : `à¸ªà¸£à¹‰à¸²à¸‡ batch draft ${savedCount}/${count} à¸£à¸²à¸¢à¸à¸²à¸£à¹€à¸£à¸µà¸¢à¸šà¸£à¹‰à¸­à¸¢à¹à¸¥à¹‰à¸§`,
+            ? `สร้าง batch draft ${savedCount}/${count} รายการ โดยมี ${fallbackCount} รายการที่เก็บไว้ในเครื่อง`
+            : `สร้าง batch draft ${savedCount}/${count} รายการเรียบร้อยแล้ว`,
       });
       return { ok: savedCount > 0, count: savedCount };
     } catch (error) {
-      setCreateNotice({ tone: "danger", message: toUserSafeMessage(error, "à¸ªà¸£à¹‰à¸²à¸‡ batch draft à¹„à¸¡à¹ˆà¸ªà¸³à¹€à¸£à¹‡à¸ˆ") });
+      setCreateNotice({ tone: "danger", message: toUserSafeMessage(error, "สร้าง batch draft ไม่สำเร็จ") });
       return { ok: false, count: 0 };
     } finally {
       setIsGeneratingBatch(false);
