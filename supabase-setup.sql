@@ -283,22 +283,20 @@ grant select, insert, update, delete on public.pages to anon, authenticated;
 grant select, insert, update, delete on public.operation_logs to anon, authenticated;
 
 drop policy if exists "anon can read posts" on public.posts;
-drop policy if exists "anon can insert posts" on public.posts;
-drop policy if exists "anon can update posts" on public.posts;
-drop policy if exists "anon can delete posts" on public.posts;
-
 create policy "anon can read posts"
 on public.posts
 for select
 to anon
 using (true);
 
+drop policy if exists "anon can insert posts" on public.posts;
 create policy "anon can insert posts"
 on public.posts
 for insert
 to anon
 with check (true);
 
+drop policy if exists "anon can update posts" on public.posts;
 create policy "anon can update posts"
 on public.posts
 for update
@@ -306,6 +304,7 @@ to anon
 using (true)
 with check (true);
 
+drop policy if exists "anon can delete posts" on public.posts;
 create policy "anon can delete posts"
 on public.posts
 for delete
@@ -314,6 +313,7 @@ using (true);
 
 drop policy if exists "anon can read app settings" on public.app_settings;
 drop policy if exists "anon can upsert app settings" on public.app_settings;
+drop policy if exists "anon can insert app settings" on public.app_settings;
 drop policy if exists "anon can delete app settings" on public.app_settings;
 drop policy if exists "anon can read pages" on public.pages;
 drop policy if exists "anon can insert pages" on public.pages;
@@ -331,18 +331,21 @@ drop policy if exists "anon can read generated images" on storage.objects;
 drop policy if exists "anon can upload generated images" on storage.objects;
 drop policy if exists "anon can update generated images" on storage.objects;
 
+drop policy if exists "anon can read app settings" on public.app_settings;
 create policy "anon can read app settings"
 on public.app_settings
 for select
 to anon
 using (true);
 
+drop policy if exists "anon can insert app settings" on public.app_settings;
 create policy "anon can insert app settings"
 on public.app_settings
 for insert
 to anon
 with check (id = 'default');
 
+drop policy if exists "anon can update app settings" on public.app_settings;
 create policy "anon can update app settings"
 on public.app_settings
 for update
@@ -350,24 +353,28 @@ to anon
 using (id = 'default')
 with check (id = 'default');
 
+drop policy if exists "anon can delete app settings" on public.app_settings;
 create policy "anon can delete app settings"
 on public.app_settings
 for delete
 to anon
 using (id = 'default');
 
+drop policy if exists "anon can read pages" on public.pages;
 create policy "anon can read pages"
 on public.pages
 for select
 to anon
 using (true);
 
+drop policy if exists "anon can insert pages" on public.pages;
 create policy "anon can insert pages"
 on public.pages
 for insert
 to anon
 with check (true);
 
+drop policy if exists "anon can update pages" on public.pages;
 create policy "anon can update pages"
 on public.pages
 for update
@@ -375,24 +382,28 @@ to anon
 using (true)
 with check (true);
 
+drop policy if exists "anon can delete pages" on public.pages;
 create policy "anon can delete pages"
 on public.pages
 for delete
 to anon
 using (true);
 
+drop policy if exists "anon can read operation logs" on public.operation_logs;
 create policy "anon can read operation logs"
 on public.operation_logs
 for select
 to anon
 using (true);
 
+drop policy if exists "anon can insert operation logs" on public.operation_logs;
 create policy "anon can insert operation logs"
 on public.operation_logs
 for insert
 to anon
 with check (true);
 
+drop policy if exists "anon can update operation logs" on public.operation_logs;
 create policy "anon can update operation logs"
 on public.operation_logs
 for update
@@ -400,24 +411,28 @@ to anon
 using (true)
 with check (true);
 
+drop policy if exists "anon can delete operation logs" on public.operation_logs;
 create policy "anon can delete operation logs"
 on public.operation_logs
 for delete
 to anon
 using (true);
 
+drop policy if exists "authenticated can read operation logs" on public.operation_logs;
 create policy "authenticated can read operation logs"
 on public.operation_logs
 for select
 to authenticated
 using (true);
 
+drop policy if exists "authenticated can insert operation logs" on public.operation_logs;
 create policy "authenticated can insert operation logs"
 on public.operation_logs
 for insert
 to authenticated
 with check (true);
 
+drop policy if exists "authenticated can update operation logs" on public.operation_logs;
 create policy "authenticated can update operation logs"
 on public.operation_logs
 for update
@@ -425,24 +440,28 @@ to authenticated
 using (true)
 with check (true);
 
+drop policy if exists "authenticated can delete operation logs" on public.operation_logs;
 create policy "authenticated can delete operation logs"
 on public.operation_logs
 for delete
 to authenticated
 using (true);
 
+drop policy if exists "anon can read generated images" on storage.objects;
 create policy "anon can read generated images"
 on storage.objects
 for select
 to anon
 using (bucket_id = 'generated-images');
 
+drop policy if exists "anon can upload generated images" on storage.objects;
 create policy "anon can upload generated images"
 on storage.objects
 for insert
 to anon
 with check (bucket_id = 'generated-images');
 
+drop policy if exists "anon can update generated images" on storage.objects;
 create policy "anon can update generated images"
 on storage.objects
 for update
