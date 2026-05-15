@@ -346,8 +346,10 @@ function StatusPage({
             <div>
               <p className="font-semibold text-cyan-100">Content Stock OS</p>
               <p className="mt-0.5 text-xs text-cyan-100/80">
-                Publish mode: {settings.facebookPublishMode === "live" ? "Live" : "Mock"}.
-                Review comes first, then approval, then stable scheduling.
+                Publish mode: {settings.facebookPublishMode === "live" ? "Live" : "Mock Safe"}.
+                {settings.facebookPublishMode === "live"
+                  ? " Review first, approve next, then schedule carefully for the real page."
+                  : " No real Facebook publish happens until you switch out of Mock."}
               </p>
             </div>
           </div>
@@ -400,7 +402,7 @@ function StatusPage({
         <div className="flex items-center justify-between">
           <div>
             <h3 className="text-sm font-semibold uppercase tracking-widest text-slate-300">Stock Dashboard</h3>
-            <p className="mt-1 text-xs text-slate-500">Counts stay grouped by active page plus a workspace-wide stock table.</p>
+            <p className="mt-1 text-xs text-slate-500">Track active-page counts first, then use the workspace table to spot where approved stock is running low.</p>
           </div>
           <CompactMetaPill tone={activePageStock?.isLowStock ? "warning" : "success"}>
             Available Stock: {activePageStock?.available || 0}
@@ -413,7 +415,7 @@ function StatusPage({
         <div className="flex items-center justify-between">
           <div>
             <h3 className="text-sm font-semibold uppercase tracking-widest text-slate-300">Review Queue</h3>
-            <p className="mt-1 text-xs text-slate-500">Drafts stay unscheduled until you approve them.</p>
+            <p className="mt-1 text-xs text-slate-500">Drafts stay unscheduled here until approval. Approve first, then pick a future time.</p>
           </div>
           <span className="text-[11px] text-slate-500">{reviewQueue.length} items</span>
         </div>
@@ -500,7 +502,7 @@ function StatusPage({
                       fullWidth
                     />
                     <ActionButton
-                      label="Send to Schedule"
+                      label={canSendToSchedule ? "Pick Schedule Time" : "Approve First"}
                       icon={Calendar}
                       onClick={() => handleOpenSchedule(post)}
                       variant="amber"

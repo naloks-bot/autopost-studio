@@ -49,16 +49,19 @@ Production schema state:
 
 Operational workflow lock:
 
+* reduce phase count as much as safely possible
+* choose exactly one model per task based on risk
 * production-affecting tasks do not stop at local verification only
 * required path: implement locally -> run `npm run build` -> verify no critical errors -> commit meaningful checkpoint -> push to GitHub -> verify Vercel production deployment -> verify live production behavior when possible
-* connect every production-affecting change to the real deployed website and production path, not local-only behavior
+* production-affecting verification must include the real deployed website and production path, not local-only behavior
 * complete safe deployment/configuration steps automatically whenever possible
 * if a manual/auth-required step blocks progress, provide exact manual instructions with where to go, what to click/run, expected success result, and the result/error to report back
 * preserve stable systems: scheduler V1, publish flow, storage flow, Supabase architecture, Create flow, and provider routing
+* Codex task reports must include changed files, exact change points, build result, commit/push result, production deploy result, production QA result, cleanup result, and final git status
 
 Locked Model Selection Rules:
 
-* Production reliability, scheduler logic, Edge Function work, and Supabase state work use `GPT-5.4 High` or `GPT-5.5 High`
+* Production reliability, scheduler logic, Edge Function work, Supabase state work, and approval workflow safety work use `GPT-5.5 High`
 * UI, layout, and operator UX work use `GPT-5.4 Medium`
 * docs and cleanup use `GPT-5.4 Low` or `GPT-5.4 Medium`
 * `Extra High` is used only if High fails after 2 serious attempts or production data risk is high

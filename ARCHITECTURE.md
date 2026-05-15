@@ -148,22 +148,25 @@ Permanent workflow rules:
 
 Operational workflow rules:
 
-1. Production reliability, backend safety, scheduler logic, and state synchronization default to High reasoning.
-2. Architecture planning and large safe refactors use High reasoning.
-3. UI polish, small components, and styling default to Medium.
-4. Docs and cleanup default to Low or Medium.
-5. Prompt intelligence and cinematic content quality default to High.
-6. Production-affecting work must continue through local implementation, `npm run build`, meaningful checkpoint commit, GitHub push, Vercel production deployment verification, and live production behavior verification when possible.
-7. Codex must connect changes to the real deployed website and production path, not local-only behavior.
-8. Safe deployment/configuration steps should be completed automatically whenever possible.
-9. If a manual platform step is required, provide exact navigation, actions, expected success result, and failure details to report back.
+1. Choose exactly one model per task based on risk.
+2. Production reliability, backend safety, scheduler logic, Supabase state, and approval-gated scheduling/publish workflow use `GPT-5.5 High`.
+3. Architecture planning and large safe refactors use High reasoning only when the task risk justifies it.
+4. UI polish, small components, and operator UX use `GPT-5.4 Medium`.
+5. Docs and cleanup use `GPT-5.4 Low` or `GPT-5.4 Medium`.
+6. Prompt intelligence and cinematic content quality use High only when the task is genuinely quality-critical.
+7. Production-affecting work must continue through local implementation, `npm run build`, meaningful checkpoint commit, GitHub push, Vercel production deployment verification, and live production behavior verification when possible.
+8. Production-affecting verification must include the real deployed website and production path, not local-only behavior.
+9. Safe deployment/configuration steps should be completed automatically whenever possible.
+10. If a manual platform step is required, provide exact navigation, actions, expected success result, and failure details to report back.
+11. Codex task reports must include changed files, exact change points, build result, commit/push result, production deploy result, production QA result, cleanup result, and final git status.
 
 Locked model selection rules:
 
-1. Production reliability, scheduler logic, Edge Function work, and Supabase state work use `GPT-5.4 High` or `GPT-5.5 High`.
-2. UI, layout, and operator UX work use `GPT-5.4 Medium`.
-3. Docs and cleanup use `GPT-5.4 Low` or `GPT-5.4 Medium`.
-4. Use `Extra High` only when High has already failed after 2 serious attempts or production data risk is high.
+1. Choose exactly one model per task based on risk.
+2. Production reliability, scheduler logic, Edge Function work, Supabase state work, and approval workflow safety work use `GPT-5.5 High`.
+3. UI, layout, and operator UX work use `GPT-5.4 Medium`.
+4. Docs and cleanup use `GPT-5.4 Low` or `GPT-5.4 Medium`.
+5. Use `Extra High` only when High has already failed after 2 serious attempts or production data risk is high.
 
 ---
 

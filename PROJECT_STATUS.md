@@ -71,20 +71,24 @@ Permanent operating rules:
 
 Operational lock:
 
-* production reliability, backend safety, scheduler logic, and state synchronization use High reasoning by default
-* architecture planning and large safe refactors use High reasoning
-* UI polish, small components, and styling use Medium
-* docs and cleanup use Low or Medium
-* prompt intelligence, content quality, and cinematic generation use High
+* reduce phase count as much as safely possible
+* each Codex task must choose exactly one model based on risk, not a mixed default
+* production reliability, backend safety, scheduler logic, Supabase state, and approval-gated scheduling/publish workflow use `GPT-5.5 High`
+* architecture planning and large safe refactors use High reasoning only when the task risk justifies it
+* UI polish, small components, and operator UX use `GPT-5.4 Medium`
+* docs and cleanup use `GPT-5.4 Low` or `GPT-5.4 Medium`
+* prompt intelligence, content quality, and cinematic generation use High when the task is genuinely quality-critical
 * production-affecting work must continue past local verification through local implementation, `npm run build`, meaningful commit, GitHub push, Vercel production deployment verification, and live production behavior verification when possible
-* Codex must connect changes to the real deployed website and production path, not local-only behavior
+* production-affecting verification must include the real deployed website and production path, not local-only behavior
 * safe deployment and configuration steps should be completed automatically whenever possible
 * if a manual platform/auth step is required, document where to go, what to click/run, what success looks like, and what failure output to report back
 * preserve stable systems: scheduler V1, publish flow, storage flow, Supabase architecture, Create flow, and provider routing
+* Codex task reports must include changed files, exact change points, build result, commit/push result, production deploy result, production QA result, cleanup result, and final git status
 
 Locked Model Selection Rules:
 
-* Production reliability, scheduler logic, Edge Function work, and Supabase state work use `GPT-5.4 High` or `GPT-5.5 High`
+* choose exactly one model per task based on risk
+* Production reliability, scheduler logic, Edge Function work, Supabase state work, and approval workflow safety work use `GPT-5.5 High`
 * UI, layout, and operator UX work use `GPT-5.4 Medium`
 * docs and cleanup use `GPT-5.4 Low` or `GPT-5.4 Medium`
 * `Extra High` is reserved for cases where High has already failed after 2 serious attempts or production data risk is high
