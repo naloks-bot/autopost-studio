@@ -213,6 +213,7 @@ function StockTable({ summary }) {
 function StatusPage({
   allPendingPosts,
   remotePosts,
+  localDrafts,
   formatDate,
   handleDeletePost,
   handleDuplicatePost,
@@ -234,7 +235,10 @@ function StatusPage({
   const [scheduleValue, setScheduleValue] = useState("");
   const [selectedFilter, setSelectedFilter] = useState("scheduled");
 
-  const stockSummary = useMemo(() => buildStockSummary(remotePosts, workspacePages, LOW_STOCK_THRESHOLD), [remotePosts, workspacePages]);
+  const stockSummary = useMemo(
+    () => buildStockSummary([...remotePosts, ...(localDrafts || [])], workspacePages, LOW_STOCK_THRESHOLD),
+    [localDrafts, remotePosts, workspacePages]
+  );
   const activePageStock = stockSummary.byPage.find((page) => page.pageId === activePageId) || stockSummary.byPage[0];
 
   const reviewQueue = useMemo(
@@ -424,7 +428,6 @@ function StatusPage({
           reviewQueue.map((post) => {
             const completion = getChecklistCompletion(post.quality_checklist);
             const isApproved = post.status === "approved";
-            const isRemote = post.source !== "local";
             const canSendToSchedule = canSchedulePost(post);
 
             return (
@@ -485,7 +488,7 @@ function StatusPage({
                       icon={CheckCircle2}
                       onClick={() => void handleSetDraftReviewStatus(post.id, "approved")}
                       variant={isApproved ? "secondary" : "emerald"}
-                      disabled={!isRemote || isApproved}
+                      disabled={isApproved}
                       className="px-3 py-2 text-xs"
                       fullWidth
                     />

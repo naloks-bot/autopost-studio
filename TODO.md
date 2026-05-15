@@ -22,6 +22,13 @@ Current development direction:
 * invisible systems narrative direction
 * global aesthetic + Thai emotional storytelling
 * operational reliability and content workflow over architecture expansion
+* current active work is Facebook Content Stock OS stabilization after the successful Phase 1A SQL apply
+* Clip OS remains future planning only
+
+Production schema state:
+
+* Phase 1A Supabase SQL has been applied successfully in Supabase SQL Editor
+* `supabase-setup.sql` is rerun-safe with `DROP POLICY IF EXISTS` before every `CREATE POLICY`
 
 ---
 
@@ -60,7 +67,7 @@ Locked Model Selection Rules:
 
 # Locked Roadmap
 
-## Phase 1 — Automation Reliability Lock
+## Phase 1 - Automation Reliability Lock
 
 Goal:
 Production-safe scheduling reliability.
@@ -109,7 +116,7 @@ Recommended visibility:
 * keep cron-job.org execution history enabled
 * spot-check Supabase post rows for `scheduled -> posted` transitions and cleared `scheduled_at`
 
-## Phase 2 — Content Factory Workflow
+## Phase 2 - Content Factory Workflow
 
 Goal:
 Efficient batch content creation and scheduling.
@@ -154,20 +161,28 @@ Phase 1A checkpoint:
 * page memory foundation now exposes page purpose, target audience, writing tone, content pillars, avoid list, and default CTA
 * scheduler and publish flow remain additive and approval-gated without changing the stable processor architecture
 
+Current stabilization TODO:
+
+* QA batch generation for 5 / 10 / 20 drafts
+* QA review queue actions across Supabase and local fallback drafts
+* verify approval-gated scheduling/publish behavior remains intact
+* verify stock counts and low-stock warnings stay accurate and quiet
+* keep fixes minimal, additive, and production-safe
+
 Important:
 Focus on operator efficiency and low token usage. Avoid unnecessary UI redesign.
 
 Success condition:
-Can stockpile and schedule 30–100 posts consistently.
+Can stockpile and schedule 30-100 posts consistently.
 
-## Phase 3 — Prompt Intelligence Layer
+## Phase 3 - Prompt Intelligence Layer
 
 Goal:
 Improve cinematic image consistency and reduce abstract prompt failures.
 
 TODO:
 
-* topic → cinematic image prompt translation
+* topic -> cinematic image prompt translation
 * visual metaphor mapping
 * narrative-aware image prompt generation
 * cinematic image consistency refinement
@@ -179,7 +194,7 @@ Extend existing systems only. Do not rewrite provider architecture.
 Success condition:
 Short topics reliably generate cinematic editorial visuals.
 
-## Phase 4 — Brand Memory + Lightweight Analytics
+## Phase 4 - Brand Memory + Lightweight Analytics
 
 Goal:
 Long-term optimization and AI-assisted content refinement.

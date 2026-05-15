@@ -85,6 +85,7 @@ Current operator UX boundary inside this layer:
 * quick schedule presets, duplicate/reuse actions, queue filters, and fast reschedule controls are allowed when they only orchestrate the existing draft/save/schedule handlers
 * targeted operator UI cleanup may replace queue-card actions, schedule presentation, and non-functional navigation when backend behavior stays unchanged
 * additive approval workflow, review checklist UI, stock counts, and batch draft generation are allowed when they reuse the stable draft/save/schedule/publish path
+* current UI work should stay in Phase 1A stabilization mode and avoid expanding into Clip OS
 
 ## 3. Publishing + Automation Layer
 
@@ -121,6 +122,11 @@ Responsible for:
 
 Rule:
 Preserve the current stable Supabase/storage architecture.
+
+Current storage safety rule:
+
+* `supabase-setup.sql` must remain rerun-safe in Supabase SQL Editor with `DROP POLICY IF EXISTS` immediately before each `CREATE POLICY`
+* additive Phase 1A post metadata (`hook`, `content_pillar`, `approved_at`, `quality_checklist`) remains part of the safe schema contract
 
 ---
 
@@ -163,7 +169,7 @@ Locked model selection rules:
 
 # Locked Roadmap
 
-## Phase 1 — Automation Reliability Lock
+## Phase 1 - Automation Reliability Lock
 
 Focus:
 
@@ -177,7 +183,7 @@ Focus:
 Architecture rule:
 No scheduler redesign, queue redesign, or backend rewrite.
 
-## Phase 2 — Content Factory Workflow
+## Phase 2 - Content Factory Workflow
 
 Focus:
 
@@ -219,11 +225,11 @@ Phase 1A content stock direction:
 * keep review metadata additive to the current post model
 * prefer local-first page memory expansion over risky architecture changes
 
-## Phase 3 — Prompt Intelligence Layer
+## Phase 3 - Prompt Intelligence Layer
 
 Focus:
 
-* topic → cinematic image prompt translation
+* topic -> cinematic image prompt translation
 * visual metaphor mapping
 * narrative-aware prompt generation
 * cinematic image consistency refinement
@@ -232,7 +238,7 @@ Focus:
 Architecture rule:
 Refine prompt intelligence inside the existing AI layer. No provider rewrite.
 
-## Phase 4 — Brand Memory + Lightweight Analytics
+## Phase 4 - Brand Memory + Lightweight Analytics
 
 Focus:
 

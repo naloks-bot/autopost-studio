@@ -908,7 +908,7 @@ function App() {
 
       setStatusNotice({
         tone: "danger",
-        message: `à¸­à¸±à¸›à¹€à¸”à¸• quality checklist à¹„à¸¡à¹ˆà¸ªà¸³à¹€à¸£à¹‡à¸ˆ: ${toUserSafeMessage(updated.error, "à¸¢à¸±à¸‡à¸šà¸±à¸™à¸—à¸¶à¸à¸„à¸¸à¸“à¸ à¸²à¸žà¹„à¸¡à¹ˆà¹„à¸”à¹‰")}`,
+        message: `Checklist update failed: ${toUserSafeMessage(updated.error, "Unable to save checklist changes.")}`,
       });
       return false;
     },
@@ -919,13 +919,13 @@ function App() {
     async (postId, nextStatus) => {
       const post = [...remotePosts, ...localDrafts].find((item) => item.id === postId);
       if (!post) {
-        setStatusNotice({ tone: "danger", message: "à¹„à¸¡à¹ˆà¸žà¸šà¹‚à¸žà¸ªà¸•à¹Œà¸—à¸µà¹ˆà¸•à¹‰à¸­à¸‡à¸à¸²à¸£à¸­à¸±à¸›à¹€à¸”à¸•" });
+        setStatusNotice({ tone: "danger", message: "Draft not found." });
         return false;
       }
 
       const completion = getChecklistCompletion(post.quality_checklist);
       if (nextStatus === "approved" && !completion.isComplete) {
-        setStatusNotice({ tone: "warning", message: "à¸à¸£à¸¸à¸“à¸²à¸•à¸´à¹Šà¸ quality checklist à¹ƒà¸«à¹‰à¸„à¸£à¸šà¸à¹ˆà¸­à¸™ approve" });
+        setStatusNotice({ tone: "warning", message: "Complete the quality checklist before approving this draft." });
         return false;
       }
 
@@ -938,6 +938,10 @@ function App() {
         });
         if (updated) {
           setLocalDrafts((current) => current.map((item) => (item.id === postId ? updated : item)));
+          setStatusNotice({
+            tone: nextStatus === "approved" ? "success" : "warning",
+            message: nextStatus === "approved" ? "Draft approved and ready for scheduling." : "Draft moved back to draft status.",
+          });
           return true;
         }
         return false;
@@ -952,14 +956,14 @@ function App() {
         mergeRemotePostTruth(updated.data);
         setStatusNotice({
           tone: nextStatus === "approved" ? "success" : "warning",
-          message: nextStatus === "approved" ? "à¸­à¸™à¸¸à¸¡à¸±à¸•à¸´ draft à¹€à¸£à¸µà¸¢à¸šà¸£à¹‰à¸­à¸¢à¹à¸¥à¹‰à¸§" : "à¸¢à¹‰à¸²à¸¢à¸à¸¥à¸±à¸šà¹€à¸›à¹‡à¸™ draft à¹à¸¥à¹‰à¸§",
+          message: nextStatus === "approved" ? "Draft approved and ready for scheduling." : "Draft moved back to draft status.",
         });
         return true;
       }
 
       setStatusNotice({
         tone: "danger",
-        message: `à¸­à¸±à¸›à¹€à¸”à¸•à¸ªà¸–à¸²à¸™à¸°à¹„à¸¡à¹ˆà¸ªà¸³à¹€à¸£à¹‡à¸ˆ: ${toUserSafeMessage(updated.error, "à¸¢à¸±à¸‡à¸šà¸±à¸™à¸—à¸¶à¸à¸ªà¸–à¸²à¸™à¸°à¹„à¸¡à¹ˆà¹„à¸”à¹‰")}`,
+        message: `Unable to update draft status: ${toUserSafeMessage(updated.error, "Status change failed.")}`,
       });
       return false;
     },
@@ -1305,12 +1309,8 @@ function App() {
         setStatusNotice({ tone: "warning", message: "Approve this draft before scheduling." });
         return false;
       }
-      if (post && post.status !== "approved" && post.status !== "failed" && post.status !== "scheduled") {
-        setStatusNotice({ tone: "warning", message: "à¸à¹‰à¸­à¸‡ approve draft à¹ƒà¸«à¹‰à¹€à¸£à¸µà¸¢à¸šà¸£à¹‰à¸­à¸¢à¸à¹ˆà¸­à¸™à¸ˆà¸¶à¸‡à¸ˆà¸° schedule à¹„à¸”à¹‰" });
-        return false;
-      }
       if (!post) {
-        setStatusNotice({ tone: "danger", message: "ไม่พบโพสต์ที่ต้องการตั้งเวลา" });
+        setStatusNotice({ tone: "danger", message: "Post not found for scheduling." });
         return false;
       }
 

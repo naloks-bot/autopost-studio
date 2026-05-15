@@ -1,6 +1,6 @@
 # Project Status
 
-## Current State: Locked Stable Production Baseline
+## Current State: Locked Stable Production Baseline + Phase 1A Implemented
 
 AutoPost Studio is now locked as an AI Editorial Operating System focused on cinematic editorial AI content workflow, AI-assisted narrative generation, scalable content stock operations, automated publishing, and brand-consistent AI media generation.
 
@@ -38,16 +38,20 @@ Recent stable checkpoints:
 * execution logs now reflect actual publish completion/failure states
 * production scheduler cadence is now aligned for near-time posting every 5 minutes
 * Supabase setup script now aligns the full current `posts` schema contract for production recovery
+* production Supabase SQL apply for the Phase 1A schema update completed successfully
+* `supabase-setup.sql` is now rerun-safe with `DROP POLICY IF EXISTS` before every `CREATE POLICY`
 * Phase 1B Edge Function deploy completed after commit `c3a7ecd`
 * server automation recovery verified with browser closed via production GitHub Actions -> Supabase Edge Function publish
 * production due-post query now has live diagnostics and production-safe timestamp evaluation
 * Facebook image publish path now targets attached photo publishing instead of visible link-card fallback when `image_url` exists
 * GitHub Actions `workflow_dispatch` remains available as a manual scheduler fallback/debug tool
 * production cron triggering is now locked to an external cron provider instead of GitHub `event=schedule`
-* Phase 2A operator UI simplification is now in progress with sticky actions, denser queue scanning, calmer logs styling, and collapsed advanced diagnostics
-* Phase 2B content factory workflow upgrade is now in progress with quick schedule presets, draft duplication/reuse, queue filters, queue summary counts, and fast reschedule actions
-* Phase 2B.1 targeted operator UI fixes are now in progress with a cleaned quick-schedule layout, content-derived image prompt generation, sticky Status controls, delete-with-confirm queue cleanup, and modal scheduling
-* Phase 1A additive Facebook Content Stock OS is now in progress with stock dashboard counts, batch review draft generation, approval-gated scheduling, and page memory foundation fields
+* Phase 2A operator UI simplification shipped with sticky actions, denser queue scanning, calmer logs styling, and collapsed advanced diagnostics
+* Phase 2B content factory workflow upgrade shipped with quick schedule presets, draft duplication/reuse, queue filters, queue summary counts, and fast reschedule actions
+* Phase 2B.1 targeted operator UI fixes shipped with a cleaned quick-schedule layout, content-derived image prompt generation, sticky Status controls, delete-with-confirm queue cleanup, and modal scheduling
+* Phase 1A additive Facebook Content Stock OS is now implemented with stock dashboard counts, batch review draft generation, approval-gated scheduling, and page memory foundation fields
+* current active work is Phase 1A stabilization, QA, and small production-safe fixes only
+* Clip OS remains future planning only and is not active implementation work
 
 Permanent operating rules:
 
@@ -99,30 +103,33 @@ Removed or deferred:
 
 # Current Focus
 
-The current direction has shifted from architecture expansion to operational reliability and content workflow efficiency.
+The current direction is Phase 1A Facebook Content Stock OS stabilization after the successful production Supabase SQL apply.
 
-## Phase 1 — Automation Reliability Lock
+## Phase 1A Stabilization
 
 Goal:
-Production-safe scheduling reliability.
+Keep the additive Facebook Content Stock OS stable without changing the locked scheduler, publish processor, Facebook service, or Supabase core flow.
 
 In scope:
 
-* scheduler QA
-* overnight scheduling tests
-* scheduled image publish QA
-* duplicate prevention QA
-* failed publish handling QA
-* cron + Edge Function reliability verification
+* batch draft generation QA for 5 / 10 / 20 drafts
+* review queue approval/edit/keep-draft/send-to-schedule QA
+* approval-gated scheduling and publish safety verification
+* stock dashboard count verification by status and page
+* low-stock warning tuning
+* local fallback behavior checks when Supabase data is incomplete
+* small production-safe fixes only
 
 Not allowed:
 
 * scheduler redesign
-* queue redesign
-* backend rewrite
+* publish processor rewrite
+* Facebook service rewrite
+* Supabase core flow rewrite
+* Clip OS implementation work
 
 Success condition:
-System can reliably auto-post with the app/browser/computer closed.
+The additive Facebook Content Stock OS remains stable while the existing single create/save/schedule/status flow and publish lifecycle keep working.
 
 Current Phase 1 checkpoint:
 
@@ -148,7 +155,7 @@ Production external cron setup:
 * Expected success response: HTTP `200` with either `{"message":"No due posts","count":0,...}` or `{"message":"Processing complete","count":<n>,...}`
 * Recommended health check: enable cron-job.org run notifications/history and periodically confirm recent HTTP `200` responses plus matching Supabase post state transitions
 
-## Phase 2 — Content Factory Workflow
+## Phase 2 - Content Factory Workflow
 
 Goal:
 Efficient batch content creation and scheduling.
@@ -162,7 +169,7 @@ In scope:
 * cinematic consistency workflow
 
 Success condition:
-Can stockpile and schedule 30–100 posts consistently.
+Can stockpile and schedule 30-100 posts consistently.
 
 Current Phase 2A checkpoint:
 
@@ -199,14 +206,14 @@ Current Phase 1A checkpoint:
 * scheduling and manual publish now require approval-gated drafts, while explicit Create quick-schedule still works by approving before scheduling
 * page memory foundation now includes page purpose, target audience, writing tone, content pillars, avoid list, and default CTA in the existing page settings structure
 
-## Phase 3 — Prompt Intelligence Layer
+## Phase 3 - Prompt Intelligence Layer
 
 Goal:
 Improve cinematic image consistency and reduce abstract prompt failures.
 
 In scope:
 
-* topic → cinematic image prompt translation
+* topic -> cinematic image prompt translation
 * visual metaphor mapping
 * narrative-aware image prompt generation
 * cinematic image consistency refinement
@@ -215,7 +222,7 @@ In scope:
 Success condition:
 Short topics reliably generate cinematic editorial visuals.
 
-## Phase 4 — Brand Memory + Lightweight Analytics
+## Phase 4 - Brand Memory + Lightweight Analytics
 
 Goal:
 Long-term optimization and AI-assisted content refinement.
