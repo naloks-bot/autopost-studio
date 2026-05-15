@@ -42,8 +42,10 @@ import { createOperationLog, fetchOperationLogs } from "../services/operation-lo
 import { getFacebookPublishDiagnostics, publishFacebookPost, validateFacebookConfig } from "../services/facebook.js";
 import {
   generateImagePrompt,
+  improvePostContent,
   generatePostContent,
   getTextProviderRuntime,
+  reviewPostQuality,
   sanitizeGeneratedCaption,
   splitGeneratedPostContent,
 } from "../services/ai-generation.js";
@@ -51,7 +53,6 @@ import {
   buildBatchTopic,
   canPublishPost,
   deriveHookFromContent,
-  getChecklistCompletion,
   normalizeQualityChecklist,
   parseContentPillars,
 } from "../services/content-stock.js";
@@ -196,6 +197,9 @@ function App() {
   const [logsMode, setLogsMode] = useState(hasSupabaseConfig ? "connected" : "offline");
   const [editingDraft, setEditingDraft] = useState(null);
   const [batchProgress, setBatchProgress] = useState(null);
+  const [aiReviewByPostId, setAiReviewByPostId] = useState({});
+  const [aiReviewLoadingPostId, setAiReviewLoadingPostId] = useState(null);
+  const [aiImproveLoadingPostId, setAiImproveLoadingPostId] = useState(null);
 
   const schedulerLock = useRef(false);
   const dataLock = useRef(false);
@@ -480,6 +484,23 @@ function App() {
     });
     setCreateNotice({ tone: "info", message: "โหลดร่างกลับมาแก้ไขแล้ว" });
     setActiveTab("create");
+  }, []);
+
+  const getPageContextForPost = useCallback((post) => {
+    const workspacePages = getWorkspacePages(stateRef.current.settings);
+    const page = workspacePages.find((item) => item.id === (post?.page_id || "default")) || workspacePages[0] || {};
+    return {
+      pageLabel: page.label || "",
+      pagePurpose: page.purpose || "",
+      pageTargetAudience: page.targetAudience || "",
+      pageWritingDirection: page.writingDirection || "",
+      pageImageDirection: page.imageDirection || "",
+      pageReadme: page.readme || "",
+      pageTone: page.tone || "",
+      pageContentPillars: page.contentPillars || "",
+      pageAvoidList: page.avoidList || "",
+      pageDefaultCta: page.defaultCta || "",
+    };
   }, []);
 
   async function handleGenerateContent(overrides = {}) {
@@ -937,13 +958,7 @@ function App() {
     async (postId, nextStatus) => {
       const post = [...remotePosts, ...localDrafts].find((item) => item.id === postId);
       if (!post) {
-        setStatusNotice({ tone: "danger", message: "Draft not found." });
-        return false;
-      }
-
-      const completion = getChecklistCompletion(post.quality_checklist);
-      if (nextStatus === "approved" && !completion.isComplete) {
-        setStatusNotice({ tone: "warning", message: "Complete the quality checklist before approving this draft." });
+        setStatusNotice({ tone: "danger", message: "ไม่พบ draft ที่ต้องการ" });
         return false;
       }
 
@@ -958,7 +973,7 @@ function App() {
           setLocalDrafts((current) => current.map((item) => (item.id === postId ? updated : item)));
           setStatusNotice({
             tone: nextStatus === "approved" ? "success" : "warning",
-            message: nextStatus === "approved" ? "Draft approved and ready for scheduling." : "Draft moved back to draft status.",
+            message: nextStatus === "approved" ? "อนุมัติ draft แล้ว พร้อมเลือกเวลาโพสต์" : "ย้าย draft กลับไปรอตรวจใหม่แล้ว",
           });
           return true;
         }
@@ -974,18 +989,154 @@ function App() {
         mergeRemotePostTruth(updated.data);
         setStatusNotice({
           tone: nextStatus === "approved" ? "success" : "warning",
-          message: nextStatus === "approved" ? "Draft approved and ready for scheduling." : "Draft moved back to draft status.",
+          message: nextStatus === "approved" ? "อนุมัติ draft แล้ว พร้อมเลือกเวลาโพสต์" : "ย้าย draft กลับไปรอตรวจใหม่แล้ว",
         });
         return true;
       }
 
       setStatusNotice({
         tone: "danger",
-        message: `Unable to update draft status: ${toUserSafeMessage(updated.error, "Status change failed.")}`,
+        message: `อัปเดตสถานะ draft ไม่สำเร็จ: ${toUserSafeMessage(updated.error, "กรุณาลองใหม่อีกครั้ง")}`,
       });
       return false;
     },
     [localDrafts, mergeRemotePostTruth, remotePosts]
+  );
+
+  const handleRunAIQualityCheck = useCallback(
+    async (postId) => {
+      const post = [...stateRef.current.remotePosts, ...stateRef.current.localDrafts].find((item) => item.id === postId);
+      if (!post) {
+        setStatusNotice({ tone: "danger", message: "ไม่พบโพสต์ที่ต้องการตรวจคุณภาพ" });
+        return false;
+      }
+
+      setAiReviewLoadingPostId(postId);
+      try {
+        const result = await reviewPostQuality({
+          post,
+          settings: stateRef.current.settings,
+          pageContext: getPageContextForPost(post),
+        });
+
+        if (result.data) {
+          setAiReviewByPostId((current) => ({
+            ...current,
+            [postId]: {
+              type: "success",
+              ...result.data,
+              updatedAt: new Date().toISOString(),
+            },
+          }));
+          setStatusNotice({ tone: "success", message: result.noticeMessage || "AI ตรวจคุณภาพโพสต์แล้ว" });
+          return true;
+        }
+
+        setAiReviewByPostId((current) => ({
+          ...current,
+          [postId]: {
+            type: "warning",
+            message: result.noticeMessage || result.error || "AI ตรวจคุณภาพยังไม่พร้อมใช้งาน",
+            updatedAt: new Date().toISOString(),
+          },
+        }));
+        setStatusNotice({ tone: "warning", message: result.noticeMessage || result.error || "AI ตรวจคุณภาพยังไม่พร้อมใช้งาน" });
+        return false;
+      } finally {
+        setAiReviewLoadingPostId(null);
+      }
+    },
+    [getPageContextForPost]
+  );
+
+  const handleImproveReviewPost = useCallback(
+    async (postId) => {
+      const post = [...stateRef.current.remotePosts, ...stateRef.current.localDrafts].find((item) => item.id === postId);
+      if (!post) {
+        setStatusNotice({ tone: "danger", message: "ไม่พบโพสต์ที่ต้องการปรับปรุง" });
+        return false;
+      }
+
+      setAiImproveLoadingPostId(postId);
+      try {
+        const currentReview = aiReviewByPostId[postId] || null;
+        const result = await improvePostContent({
+          post,
+          settings: stateRef.current.settings,
+          pageContext: getPageContextForPost(post),
+          improvementDirection: currentReview?.improvementDirection || "",
+        });
+
+        if (!result.data?.caption) {
+          const message = result.noticeMessage || result.error || "AI ปรับปรุงโพสต์ยังไม่พร้อมใช้งาน";
+          setAiReviewByPostId((current) => ({
+            ...current,
+            [postId]: {
+              type: "warning",
+              message,
+              updatedAt: new Date().toISOString(),
+            },
+          }));
+          setStatusNotice({ tone: "warning", message });
+          return false;
+        }
+
+        const nextStatus = post.status === "approved" ? "review" : post.status || "draft";
+        const nextHook = result.data.hook || deriveHookFromContent(result.data.caption, post.topic);
+        const nextDraft = {
+          ...post,
+          content: result.data.caption,
+          hook: nextHook,
+          status: nextStatus,
+          approved_at: nextStatus === "approved" ? post.approved_at || null : null,
+          scheduled_at: nextStatus === "scheduled" ? post.scheduled_at || null : null,
+          created_at: post.created_at || new Date().toISOString(),
+        };
+
+        if (post.source === "local") {
+          const updated = updateLocalDraft(postId, nextDraft);
+          if (!updated) {
+            setStatusNotice({ tone: "danger", message: "AI ปรับปรุงโพสต์แล้ว แต่บันทึกลง draft ในเครื่องไม่สำเร็จ" });
+            return false;
+          }
+          setLocalDrafts((current) => current.map((item) => (item.id === postId ? updated : item)));
+        } else {
+          const workspacePages = getWorkspacePages(stateRef.current.settings);
+          const updated = await updateRemoteDraft(postId, nextDraft, { workspacePages });
+          if (!updated.data) {
+            setStatusNotice({
+              tone: "danger",
+              message: `AI ปรับปรุงโพสต์แล้ว แต่บันทึกกลับระบบไม่สำเร็จ: ${toUserSafeMessage(updated.error, "กรุณาลองอีกครั้ง")}`,
+            });
+            return false;
+          }
+          mergeRemotePostTruth(updated.data);
+        }
+
+        setAiReviewByPostId((current) => ({
+          ...current,
+          [postId]: {
+            type: "info",
+            message:
+              post.status === "approved"
+                ? "AI ปรับโพสต์แล้ว กรุณาอ่านอีกครั้งและกดอนุมัติใหม่ก่อนเลือกเวลาโพสต์"
+                : "AI ปรับโพสต์แล้ว กรุณาอ่านอีกครั้งก่อนกดอนุมัติ",
+            updatedAt: new Date().toISOString(),
+          },
+        }));
+        setStatusNotice({
+          tone: "success",
+          message:
+            post.status === "approved"
+              ? "AI ปรับโพสต์แล้ว และคืนสถานะเป็นรอตรวจเพื่อให้อนุมัติใหม่"
+              : "AI ปรับโพสต์แล้ว กรุณาตรวจอีกครั้งก่อนอนุมัติ",
+        });
+        return true;
+      } finally {
+        setAiImproveLoadingPostId(null);
+      }
+    },
+    [aiReviewByPostId, getPageContextForPost, mergeRemotePostTruth]
   );
 
   const handlePublishPost = useCallback(
@@ -993,7 +1144,7 @@ function App() {
       try {
         const post = remotePosts.find((item) => item.id === postId);
         if (post && !canPublishPost(post)) {
-          setStatusNotice({ tone: "warning", message: "Approve this draft before publishing." });
+          setStatusNotice({ tone: "warning", message: "กรุณาอนุมัติ draft นี้ก่อนโพสต์" });
           return;
         }
         if (!post) {
@@ -1324,11 +1475,11 @@ function App() {
       const post = remotePosts.find((item) => item.id === postId);
       const requiresApproval = post && post.status !== "approved" && post.status !== "failed" && post.status !== "scheduled";
       if (requiresApproval) {
-        setStatusNotice({ tone: "warning", message: "Approve this draft before scheduling." });
+        setStatusNotice({ tone: "warning", message: "กรุณาอนุมัติ draft นี้ก่อนเลือกเวลาโพสต์" });
         return false;
       }
       if (!post) {
-        setStatusNotice({ tone: "danger", message: "Post not found for scheduling." });
+        setStatusNotice({ tone: "danger", message: "ไม่พบโพสต์ที่ต้องการเลือกเวลา" });
         return false;
       }
 
@@ -1698,7 +1849,12 @@ function App() {
                   handlePublishPost={handlePublishPost}
                   handleSchedulePost={handleSchedulePost}
                   handleSetDraftReviewStatus={handleSetDraftReviewStatus}
+                  handleRunAIQualityCheck={handleRunAIQualityCheck}
+                  handleImproveReviewPost={handleImproveReviewPost}
                   handleUpdateQualityChecklist={handleUpdateQualityChecklist}
+                  aiReviewByPostId={aiReviewByPostId}
+                  aiReviewLoadingPostId={aiReviewLoadingPostId}
+                  aiImproveLoadingPostId={aiImproveLoadingPostId}
                   handleUnschedulePost={handleUnschedulePost}
                   isSchedulingPostId={isSchedulingPostId}
                   isUnschedulingPostId={isUnschedulingPostId}

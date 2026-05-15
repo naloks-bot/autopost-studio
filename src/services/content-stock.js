@@ -1,11 +1,11 @@
 export const LOW_STOCK_THRESHOLD = 3;
 
 export const REVIEW_CHECKLIST_FIELDS = [
-  { id: "hookClarity", label: "Hook clarity" },
-  { id: "usefulness", label: "Usefulness" },
-  { id: "brandFit", label: "Brand fit" },
-  { id: "cta", label: "CTA" },
-  { id: "antiSlop", label: "Low AI-slop risk" },
+  { id: "hookClarity", label: "ฮุกชัดไหม" },
+  { id: "usefulness", label: "มีประโยชน์ไหม" },
+  { id: "brandFit", label: "ตรงแนวเพจไหม" },
+  { id: "cta", label: "ชวนให้มีส่วนร่วมไหม" },
+  { id: "antiSlop", label: "ดูไม่เป็น AI จ๋าไหม" },
 ];
 
 export const REVIEWABLE_STATUSES = ["draft", "review", "approved"];

@@ -84,7 +84,7 @@ Current operator UX boundary inside this layer:
 * advanced runtime diagnostics should be hidden behind explicit operator intent when possible
 * quick schedule presets, duplicate/reuse actions, queue filters, and fast reschedule controls are allowed when they only orchestrate the existing draft/save/schedule handlers
 * targeted operator UI cleanup may replace queue-card actions, schedule presentation, and non-functional navigation when backend behavior stays unchanged
-* additive approval workflow, review checklist UI, stock counts, and batch draft generation are allowed when they reuse the stable draft/save/schedule/publish path
+* additive approval workflow, AI-assisted review scoring, optional checklist guidance, stock counts, and batch draft generation are allowed when they reuse the stable draft/save/schedule/publish path
 * current UI work should stay in Phase 1A stabilization mode and avoid expanding into Clip OS
 
 ## 3. Publishing + Automation Layer
@@ -225,6 +225,7 @@ Phase 1A content stock direction:
 * add stock visibility before adding new automation
 * treat `approved` as the safe state between draft review and scheduling
 * keep scheduler ownership on `scheduled` only
+* keep human approval required before scheduling or publishing, even when AI review assistance is present
 * keep review metadata additive to the current post model
 * prefer local-first page memory expansion over risky architecture changes
 

@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from "react";
 import {
   AlertCircle,
+  Bot,
   Calendar,
   CheckCircle2,
   ChevronDown,
@@ -161,9 +162,20 @@ function ChecklistPill({ checked, label, onToggle }) {
           : "border-white/10 bg-white/5 text-slate-400 hover:bg-white/10"
       }`}
     >
-      {checked ? "Passed" : "Check"} {label}
+      {checked ? "ผ่าน" : "เช็ก"} {label}
     </button>
   );
+}
+
+function getReviewCardTone(review) {
+  if (!review) return "border-white/5 bg-slate-950/35 text-slate-300";
+  if (review.type === "success") {
+    return review.score >= 7
+      ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-100"
+      : "border-amber-500/20 bg-amber-500/10 text-amber-100";
+  }
+  if (review.type === "warning") return "border-amber-500/20 bg-amber-500/10 text-amber-100";
+  return "border-cyan-500/20 bg-cyan-500/10 text-cyan-100";
 }
 
 function StockTable({ summary }) {
@@ -221,8 +233,13 @@ function StatusPage({
   handlePublishPost,
   handleSchedulePost,
   handleSetDraftReviewStatus,
+  handleRunAIQualityCheck,
+  handleImproveReviewPost,
   handleUpdateQualityChecklist,
   handleUnschedulePost,
+  aiReviewByPostId,
+  aiReviewLoadingPostId,
+  aiImproveLoadingPostId,
   isSchedulingPostId,
   isUnschedulingPostId,
   settings,
@@ -415,9 +432,9 @@ function StatusPage({
         <div className="flex items-center justify-between">
           <div>
             <h3 className="text-sm font-semibold uppercase tracking-widest text-slate-300">Review Queue</h3>
-            <p className="mt-1 text-xs text-slate-500">Drafts stay unscheduled here until approval. Approve first, then pick a future time.</p>
+            <p className="mt-1 text-xs text-slate-500">AI ช่วยตรวจคุณภาพได้ แต่การอนุมัติยังต้องกดเองก่อนเลือกเวลาโพสต์</p>
           </div>
-          <span className="text-[11px] text-slate-500">{reviewQueue.length} items</span>
+          <span className="text-[11px] text-slate-500">{reviewQueue.length} รายการ</span>
         </div>
 
         {reviewQueue.length === 0 ? (
@@ -431,6 +448,7 @@ function StatusPage({
             const completion = getChecklistCompletion(post.quality_checklist);
             const isApproved = post.status === "approved";
             const canSendToSchedule = canSchedulePost(post);
+            const aiReview = aiReviewByPostId?.[post.id] || null;
 
             return (
               <article
@@ -468,16 +486,58 @@ function StatusPage({
                       ))}
                     </div>
 
+                    <div className="mt-3 rounded-xl border border-dashed border-white/10 bg-slate-950/30 px-3 py-2 text-[11px] text-slate-400">
+                      เช็กลิสต์นี้เป็นตัวช่วยดูเร็ว ๆ จะติ๊กหรือไม่ก็ยังอนุมัติได้
+                    </div>
+
+                    {aiReview ? (
+                      <div className={`mt-3 rounded-xl border px-3 py-3 text-sm ${getReviewCardTone(aiReview)}`}>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="text-[10px] font-bold uppercase tracking-wider">AI Review</span>
+                          {typeof aiReview.score === "number" ? (
+                            <span className="rounded-full border border-black/10 bg-black/10 px-2 py-1 text-[10px] font-bold">
+                              คะแนน {aiReview.score.toFixed(1)}/10
+                            </span>
+                          ) : null}
+                        </div>
+
+                        {aiReview.verdict ? <p className="mt-2 font-semibold">{aiReview.verdict}</p> : null}
+                        {aiReview.feedback ? <p className="mt-1 leading-relaxed">{aiReview.feedback}</p> : null}
+                        {aiReview.improvementDirection ? (
+                          <p className="mt-2 text-xs opacity-90">แนวปรับ: {aiReview.improvementDirection}</p>
+                        ) : null}
+                        {aiReview.message ? <p className="mt-2 text-xs opacity-90">{aiReview.message}</p> : null}
+                      </div>
+                    ) : null}
+
                     <div className="mt-3 flex flex-wrap items-center gap-3 text-[11px] text-slate-500">
-                      <span>Checklist: {completion.completed}/{completion.total}</span>
-                      <span>Created {formatDate(post.created_at)}</span>
-                      {post.image_prompt ? <span>Image prompt ready</span> : <span>No image prompt yet</span>}
+                      <span>เช็กลิสต์เสริม: {completion.completed}/{completion.total}</span>
+                      <span>สร้างเมื่อ {formatDate(post.created_at)}</span>
+                      {post.image_prompt ? <span>มี image prompt แล้ว</span> : <span>ยังไม่มี image prompt</span>}
                     </div>
                   </div>
 
                   <div className="flex w-full shrink-0 flex-col gap-2 lg:w-52">
                     <ActionButton
-                      label="Edit"
+                      label="ให้ AI ตรวจคุณภาพ"
+                      icon={Bot}
+                      onClick={() => void handleRunAIQualityCheck(post.id)}
+                      variant="secondary"
+                      isLoading={aiReviewLoadingPostId === post.id}
+                      className="px-3 py-2 text-xs"
+                      fullWidth
+                    />
+                    <ActionButton
+                      label="ให้ AI ปรับปรุงโพสต์"
+                      icon={Pencil}
+                      onClick={() => void handleImproveReviewPost(post.id)}
+                      variant="outline"
+                      isLoading={aiImproveLoadingPostId === post.id}
+                      className="px-3 py-2 text-xs"
+                      fullWidth
+                    />
+                    <ActionButton
+                      label="แก้ไข"
                       icon={Pencil}
                       onClick={() => handleLoadDraftToEditor(post)}
                       variant="outline"
@@ -485,7 +545,7 @@ function StatusPage({
                       fullWidth
                     />
                     <ActionButton
-                      label={isApproved ? "Approved" : "Approve"}
+                      label={isApproved ? "อนุมัติแล้ว" : "อนุมัติ"}
                       icon={CheckCircle2}
                       onClick={() => void handleSetDraftReviewStatus(post.id, "approved")}
                       variant={isApproved ? "secondary" : "emerald"}
@@ -494,7 +554,7 @@ function StatusPage({
                       fullWidth
                     />
                     <ActionButton
-                      label="Keep Draft"
+                      label="เก็บเป็น Draft"
                       icon={RotateCcw}
                       onClick={() => void handleSetDraftReviewStatus(post.id, "draft")}
                       variant="outline"
@@ -502,7 +562,7 @@ function StatusPage({
                       fullWidth
                     />
                     <ActionButton
-                      label={canSendToSchedule ? "Pick Schedule Time" : "Approve First"}
+                      label={canSendToSchedule ? "เลือกเวลาโพสต์" : "อนุมัติก่อน"}
                       icon={Calendar}
                       onClick={() => handleOpenSchedule(post)}
                       variant="amber"
@@ -511,7 +571,7 @@ function StatusPage({
                       fullWidth
                     />
                     <ActionButton
-                      label="Delete"
+                      label="ลบ"
                       icon={Trash2}
                       onClick={() => void handleDeleteRequest(post)}
                       variant="danger"

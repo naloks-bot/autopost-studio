@@ -424,6 +424,158 @@ Rules:
 - Do not include explanations or labels.`;
 }
 
+function extractJsonObjectResponse(raw = "") {
+  const normalized = String(raw || "").trim();
+  if (!normalized) return null;
+
+  const candidates = [
+    normalized,
+    normalized.replace(/^```json\s*/i, "").replace(/^```\s*/i, "").replace(/\s*```$/i, "").trim(),
+  ];
+
+  const firstBrace = normalized.indexOf("{");
+  const lastBrace = normalized.lastIndexOf("}");
+  if (firstBrace >= 0 && lastBrace > firstBrace) {
+    candidates.push(normalized.slice(firstBrace, lastBrace + 1));
+  }
+
+  for (const candidate of candidates) {
+    if (!candidate) continue;
+    try {
+      return JSON.parse(candidate);
+    } catch {
+      continue;
+    }
+  }
+
+  return null;
+}
+
+function normalizeReviewScore(value) {
+  const numeric = Number.parseFloat(value);
+  if (Number.isNaN(numeric)) return null;
+  return Math.max(0, Math.min(10, Math.round(numeric * 10) / 10));
+}
+
+function buildQualityReviewPrompt(post = {}, settings = {}, pageContext = {}) {
+  const business = settings.businessName || pageContext.pageLabel || "แบรนด์นี้";
+  const pageLabel = pageContext.pageLabel ? `Page: ${pageContext.pageLabel}` : "";
+  const pagePurpose = pageContext.pagePurpose ? `Page purpose: ${pageContext.pagePurpose}` : "";
+  const pageTargetAudience = pageContext.pageTargetAudience ? `Target audience: ${pageContext.pageTargetAudience}` : "";
+  const pageTone = pageContext.pageTone ? `Page tone: ${pageContext.pageTone}` : "";
+  const pageWritingDirection = pageContext.pageWritingDirection ? `Writing direction: ${pageContext.pageWritingDirection}` : "";
+  const pageContentPillars = pageContext.pageContentPillars ? `Content pillars: ${pageContext.pageContentPillars}` : "";
+  const pageAvoidList = pageContext.pageAvoidList ? `Avoid list: ${pageContext.pageAvoidList}` : "";
+  const pageDefaultCta = pageContext.pageDefaultCta ? `Default CTA: ${pageContext.pageDefaultCta}` : "";
+  const pageReadme = pageContext.pageReadme ? `Page memory: ${pageContext.pageReadme}` : "";
+
+  return `You are reviewing a Thai social media draft for ${business}.
+${pageLabel}
+${pagePurpose}
+${pageTargetAudience}
+${pageTone}
+${pageWritingDirection}
+${pageContentPillars}
+${pageAvoidList}
+${pageDefaultCta}
+${pageReadme}
+
+Topic: ${post.topic || ""}
+Hook: ${post.hook || ""}
+Caption:
+${post.content || ""}
+
+Evaluate this draft on:
+1. hook clarity
+2. usefulness
+3. fit with the page direction
+4. engagement / call to participation
+5. whether it feels natural and not overly AI-generated
+
+Return valid JSON only with this exact shape:
+{
+  "score": 0-10 number,
+  "feedback": "concise Thai feedback, maximum 2 short sentences",
+  "improvementDirection": "one concise Thai sentence with the best next improvement"
+}
+
+Rules:
+- Use Thai for feedback and improvementDirection.
+- Score must be a number between 0 and 10.
+- Be practical and concise.
+- Do not include markdown, code fences, or extra commentary.`;
+}
+
+function buildImprovePostPrompt(post = {}, settings = {}, pageContext = {}, improvementDirection = "") {
+  const business = settings.businessName || pageContext.pageLabel || "แบรนด์นี้";
+  const pageLabel = pageContext.pageLabel ? `Page: ${pageContext.pageLabel}` : "";
+  const pagePurpose = pageContext.pagePurpose ? `Page purpose: ${pageContext.pagePurpose}` : "";
+  const pageTargetAudience = pageContext.pageTargetAudience ? `Target audience: ${pageContext.pageTargetAudience}` : "";
+  const pageTone = pageContext.pageTone ? `Page tone: ${pageContext.pageTone}` : "";
+  const pageWritingDirection = pageContext.pageWritingDirection ? `Writing direction: ${pageContext.pageWritingDirection}` : "";
+  const pageContentPillars = pageContext.pageContentPillars ? `Content pillars: ${pageContext.pageContentPillars}` : "";
+  const pageAvoidList = pageContext.pageAvoidList ? `Avoid list: ${pageContext.pageAvoidList}` : "";
+  const pageDefaultCta = pageContext.pageDefaultCta ? `Default CTA: ${pageContext.pageDefaultCta}` : "";
+  const pageReadme = pageContext.pageReadme ? `Page memory: ${pageContext.pageReadme}` : "";
+  const extraDirection = improvementDirection ? `Improvement direction from review: ${improvementDirection}` : "";
+
+  return `Rewrite this Thai social media draft for ${business}.
+${pageLabel}
+${pagePurpose}
+${pageTargetAudience}
+${pageTone}
+${pageWritingDirection}
+${pageContentPillars}
+${pageAvoidList}
+${pageDefaultCta}
+${pageReadme}
+${extraDirection}
+
+Current topic: ${post.topic || ""}
+Current hook: ${post.hook || ""}
+Current caption:
+${post.content || ""}
+
+Goal:
+- keep the original topic and intent
+- make the hook clearer
+- make the caption feel more natural, useful, and engaging
+- keep it publish-ready in Thai
+- avoid sounding generic or obviously AI-generated
+
+Return valid JSON only with this exact shape:
+{
+  "hook": "improved Thai hook",
+  "caption": "improved Thai caption"
+}
+
+Rules:
+- Use Thai only.
+- Keep both values concise and publish-ready.
+- Do not include markdown, code fences, or extra commentary.`;
+}
+
+async function runTextTaskWithProvider(prompt, runtime, settings) {
+  if (runtime.activeProvider === "openai") {
+    return generateWithOpenAI(prompt, settings.openaiApiKey, settings.openaiModel);
+  }
+
+  return generateWithGemini(prompt, getGeminiApiKey(settings), getGeminiModel(settings));
+}
+
+function buildUnavailableTaskResult(runtime, message) {
+  return createGenerationResult({
+    data: null,
+    error: message,
+    mode: "mock",
+    status: "blocked",
+    requestedProvider: runtime.selectedProvider,
+    fallbackReason: runtime.detail,
+    noticeTone: "warning",
+    noticeMessage: message,
+  });
+}
+
 async function generateMockText(formData, settings, meta = {}) {
   await new Promise((resolve) => setTimeout(resolve, 1000));
 
@@ -690,6 +842,95 @@ export async function generatePostContent({ formData, settings }) {
       noticeTone: "warning",
       noticeMessage: "The provider failed unexpectedly. Mock content was generated to keep the flow safe.",
     });
+  }
+}
+
+export async function reviewPostQuality({ post, settings, pageContext = {} }) {
+  const runtime = getTextProviderRuntime(settings);
+  if (runtime.activeProvider === "mock") {
+    return buildUnavailableTaskResult(
+      runtime,
+      runtime.selectedProvider === "mock"
+        ? "AI Quality Check ใช้ได้เมื่อเปิด OpenAI หรือ Gemini"
+        : `${runtime.detail} จึงยังตรวจคุณภาพด้วย AI ไม่ได้`
+    );
+  }
+
+  try {
+    const prompt = buildQualityReviewPrompt(post, settings, pageContext);
+    const result = await runTextTaskWithProvider(prompt, runtime, settings);
+    if (!result.data) {
+      return buildUnavailableTaskResult(
+        runtime,
+        `AI ตรวจคุณภาพไม่สำเร็จ: ${compactProviderError(result.error, "กรุณาลองใหม่อีกครั้ง")}`
+      );
+    }
+
+    const payload = extractJsonObjectResponse(result.data);
+    const score = normalizeReviewScore(payload?.score);
+    if (!payload || score === null) {
+      return buildUnavailableTaskResult(runtime, "AI ส่งผลตรวจกลับมาในรูปแบบที่อ่านไม่สำเร็จ กรุณาลองใหม่");
+    }
+
+    return createGenerationResult({
+      data: {
+        score,
+        verdict: score >= 7 ? "ผ่าน แนะนำให้โพสต์" : "ควรปรับก่อนโพสต์",
+        feedback: String(payload.feedback || "").trim(),
+        improvementDirection: String(payload.improvementDirection || "").trim(),
+      },
+      mode: result.mode,
+      status: "success",
+      requestedProvider: runtime.selectedProvider,
+      noticeTone: "success",
+      noticeMessage: `AI ตรวจคุณภาพด้วย ${getProviderLabel(result.mode)} แล้ว`,
+    });
+  } catch (error) {
+    return buildUnavailableTaskResult(runtime, `AI ตรวจคุณภาพไม่สำเร็จ: ${compactProviderError(error.message, "กรุณาลองใหม่อีกครั้ง")}`);
+  }
+}
+
+export async function improvePostContent({ post, settings, pageContext = {}, improvementDirection = "" }) {
+  const runtime = getTextProviderRuntime(settings);
+  if (runtime.activeProvider === "mock") {
+    return buildUnavailableTaskResult(
+      runtime,
+      runtime.selectedProvider === "mock"
+        ? "การปรับปรุงโพสต์ด้วย AI ใช้ได้เมื่อเปิด OpenAI หรือ Gemini"
+        : `${runtime.detail} จึงยังปรับปรุงโพสต์ด้วย AI ไม่ได้`
+    );
+  }
+
+  try {
+    const prompt = buildImprovePostPrompt(post, settings, pageContext, improvementDirection);
+    const result = await runTextTaskWithProvider(prompt, runtime, settings);
+    if (!result.data) {
+      return buildUnavailableTaskResult(
+        runtime,
+        `AI ปรับปรุงโพสต์ไม่สำเร็จ: ${compactProviderError(result.error, "กรุณาลองใหม่อีกครั้ง")}`
+      );
+    }
+
+    const payload = extractJsonObjectResponse(result.data);
+    const caption = sanitizeGeneratedCaption(payload?.caption || "");
+    const hook = String(payload?.hook || "").trim();
+    if (!payload || !caption) {
+      return buildUnavailableTaskResult(runtime, "AI ส่งโพสต์กลับมาในรูปแบบที่อ่านไม่สำเร็จ กรุณาลองใหม่");
+    }
+
+    return createGenerationResult({
+      data: {
+        hook,
+        caption,
+      },
+      mode: result.mode,
+      status: "success",
+      requestedProvider: runtime.selectedProvider,
+      noticeTone: "success",
+      noticeMessage: `AI ปรับปรุงโพสต์ด้วย ${getProviderLabel(result.mode)} แล้ว`,
+    });
+  } catch (error) {
+    return buildUnavailableTaskResult(runtime, `AI ปรับปรุงโพสต์ไม่สำเร็จ: ${compactProviderError(error.message, "กรุณาลองใหม่อีกครั้ง")}`);
   }
 }
 

@@ -206,7 +206,7 @@ Current Phase 1A checkpoint:
 * low-stock warnings now highlight pages where available stock (`approved + scheduled`) falls below a small threshold
 * Create now supports additive batch draft generation for 5, 10, or 20 Facebook drafts at once
 * batch-generated content is saved as separate review items without changing the stable publish processor or scheduler engine
-* Review Queue now supports manual checklist review, approve, keep-as-draft, edit, and send-to-schedule actions
+* Review Queue now supports AI-assisted quality scoring, optional manual checklist guidance, approve, keep-as-draft, edit, and send-to-schedule actions
 * scheduling and manual publish now require approval-gated drafts, while explicit Create quick-schedule still works by approving before scheduling
 * page memory foundation now includes page purpose, target audience, writing tone, content pillars, avoid list, and default CTA in the existing page settings structure
 

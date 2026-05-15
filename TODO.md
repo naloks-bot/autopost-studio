@@ -160,7 +160,7 @@ Phase 1A checkpoint:
 * stock dashboard now shows counts for `draft`, `review`, `approved`, `scheduled`, `posted`, and `failed`
 * low-stock warnings now call out pages that are short on available content stock
 * batch Facebook draft generation now creates separate review items in 5/10/20 batches
-* review queue now supports manual checklist review, approve, keep-as-draft, edit, and send-to-schedule
+* review queue now supports AI-assisted quality review, optional manual checklist guidance, approve, keep-as-draft, edit, and send-to-schedule
 * page memory foundation now exposes page purpose, target audience, writing tone, content pillars, avoid list, and default CTA
 * scheduler and publish flow remain additive and approval-gated without changing the stable processor architecture
 
