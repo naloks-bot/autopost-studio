@@ -459,7 +459,6 @@ function StatusPage({
                           label={field.label}
                           onToggle={() =>
                             void handleUpdateQualityChecklist(post.id, {
-                              ...post.quality_checklist,
                               [field.id]: !post.quality_checklist?.[field.id],
                             })
                           }

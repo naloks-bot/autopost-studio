@@ -199,11 +199,13 @@ function App() {
 
   const schedulerLock = useRef(false);
   const dataLock = useRef(false);
-  const stateRef = useRef({ remotePosts: [], settings: defaultSettings });
+  const qualityChecklistRef = useRef(new Map());
+  const qualityChecklistSaveQueueRef = useRef(new Map());
+  const stateRef = useRef({ remotePosts: [], localDrafts: [], settings: defaultSettings });
 
   useEffect(() => {
-    stateRef.current = { remotePosts, settings };
-  }, [remotePosts, settings]);
+    stateRef.current = { remotePosts, localDrafts, settings };
+  }, [localDrafts, remotePosts, settings]);
 
   useEffect(() => {
     document.documentElement.style.colorScheme = theme === "light" ? "light" : "dark";
@@ -876,9 +878,11 @@ function App() {
 
   const handleUpdateQualityChecklist = useCallback(
     async (postId, checklist) => {
-      const normalizedChecklist = normalizeQualityChecklist(checklist);
-      const post = [...remotePosts, ...localDrafts].find((item) => item.id === postId);
+      const post = [...stateRef.current.remotePosts, ...stateRef.current.localDrafts].find((item) => item.id === postId);
       if (!post) return false;
+      const baseChecklist = qualityChecklistRef.current.get(postId) || post.quality_checklist;
+      const normalizedChecklist = normalizeQualityChecklist({ ...baseChecklist, ...checklist });
+      qualityChecklistRef.current.set(postId, normalizedChecklist);
 
       if (post.source === "local") {
         const updated = updateLocalDraft(postId, { ...post, quality_checklist: normalizedChecklist });
@@ -889,30 +893,44 @@ function App() {
         return false;
       }
 
-      const workspacePages = getWorkspacePages(stateRef.current.settings);
-      const updated = await updateRemoteDraft(
-        postId,
-        {
-          ...post,
-          hook: post.hook || deriveHookFromContent(post.content, post.topic),
-          quality_checklist: normalizedChecklist,
-          created_at: post.created_at || new Date().toISOString(),
-        },
-        { workspacePages }
-      );
+      const previousSave = qualityChecklistSaveQueueRef.current.get(postId) || Promise.resolve();
+      const saveTask = previousSave
+        .catch(() => false)
+        .then(async () => {
+          const latestPost = stateRef.current.remotePosts.find((item) => item.id === postId) || post;
+          const latestChecklist = qualityChecklistRef.current.get(postId) || normalizedChecklist;
+          const workspacePages = getWorkspacePages(stateRef.current.settings);
+          const updated = await updateRemoteDraft(
+            postId,
+            {
+              ...latestPost,
+              hook: latestPost.hook || deriveHookFromContent(latestPost.content, latestPost.topic),
+              quality_checklist: latestChecklist,
+              created_at: latestPost.created_at || new Date().toISOString(),
+            },
+            { workspacePages }
+          );
 
-      if (updated.data) {
-        mergeRemotePostTruth(updated.data);
-        return true;
+          if (updated.data) {
+            mergeRemotePostTruth({ ...updated.data, quality_checklist: latestChecklist });
+            return true;
+          }
+
+          setStatusNotice({
+            tone: "danger",
+            message: `Checklist update failed: ${toUserSafeMessage(updated.error, "Unable to save checklist changes.")}`,
+          });
+          return false;
+        });
+
+      qualityChecklistSaveQueueRef.current.set(postId, saveTask);
+      const saved = await saveTask;
+      if (qualityChecklistSaveQueueRef.current.get(postId) === saveTask) {
+        qualityChecklistSaveQueueRef.current.delete(postId);
       }
-
-      setStatusNotice({
-        tone: "danger",
-        message: `Checklist update failed: ${toUserSafeMessage(updated.error, "Unable to save checklist changes.")}`,
-      });
-      return false;
+      return saved;
     },
-    [localDrafts, mergeRemotePostTruth, remotePosts]
+    [mergeRemotePostTruth]
   );
 
   const handleSetDraftReviewStatus = useCallback(
