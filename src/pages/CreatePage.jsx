@@ -646,6 +646,30 @@ function CreatePage({
             </div>
           </details>
 
+          <div className="rounded-2xl border border-white/5 bg-slate-900/40 p-5 shadow-sm">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h3 className="text-sm font-semibold uppercase tracking-wider text-white">เขียนข้อความเอง / Manual Draft</h3>
+                <p className="mt-2 text-xs text-slate-400">พิมพ์ข้อความโพสต์เอง แล้วบันทึกเป็นร่างได้โดยไม่เรียกใช้ Gemini/API</p>
+              </div>
+              <span className="rounded-full border border-emerald-400/20 bg-emerald-500/10 px-2 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-emerald-300">
+                Manual mode: ไม่ใช้ API
+              </span>
+            </div>
+
+            <label className="mt-4 block">
+              <span className="mb-2 block text-[10px] font-bold uppercase tracking-wider text-slate-500">ข้อความโพสต์</span>
+              <textarea
+                value={form.content}
+                onChange={(event) => updateForm("content", event.target.value)}
+                placeholder="พิมพ์ข้อความโพสต์ที่ต้องการบันทึกเป็นร่างได้ที่นี่"
+                className="h-40 w-full resize-y rounded-xl border border-white/10 bg-slate-950/50 px-4 py-3 text-sm text-slate-100 outline-none transition focus:border-cyan-400"
+              />
+            </label>
+
+            <p className="mt-3 text-[11px] text-slate-500">ข้อความด้านบนจะแสดงในตัวอย่างโพสต์ทันที และใช้เป็นเนื้อหาหลักตอนบันทึกร่าง</p>
+          </div>
+
           <PreviewStudioCard
             caption={previewCaption}
             imageUrl={previewImageUrl}

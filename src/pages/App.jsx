@@ -74,6 +74,19 @@ const DEFAULT_BATCH_ANGLES = [
   "CTA / engagement question",
 ];
 
+function deriveDraftTopicFromContent(topic = "", content = "") {
+  const explicitTopic = String(topic || "").trim();
+  if (explicitTopic) return explicitTopic;
+
+  const firstLine = String(content || "")
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .find(Boolean);
+
+  if (!firstLine) return "";
+  return firstLine.length <= 50 ? firstLine : `${firstLine.slice(0, 47)}...`;
+}
+
 function normalizeForSimilarity(value = "") {
   return String(value || "")
     .toLowerCase()
@@ -807,8 +820,11 @@ function App() {
   }
 
   async function handleSaveDraft(extraData = {}) {
-    if (!form.topic.trim() || !form.content.trim()) {
-      setCreateNotice({ tone: "warning", message: "กรุณาใส่หัวข้อและข้อความก่อนบันทึกร่าง" });
+    const cleanContent = sanitizeGeneratedCaption(String(form.content || "").trim());
+    const resolvedTopic = deriveDraftTopicFromContent(form.topic, cleanContent);
+
+    if (!cleanContent) {
+      setCreateNotice({ tone: "warning", message: "กรุณาใส่ข้อความโพสต์ก่อนบันทึกร่าง" });
       return { ok: false, storage: null, post: null };
     }
 
@@ -821,15 +837,15 @@ function App() {
       const pageWasAdjusted = safePageId !== (settings.activePageId || "default");
       const draft = {
         page_id: safePageId,
-        topic: String(form.topic || "").trim(),
-        content: sanitizeGeneratedCaption(String(form.content || "").trim()),
+        topic: resolvedTopic,
+        content: cleanContent,
         image_prompt: typeof extraData.image_prompt === "string" ? extraData.image_prompt : String(form.imagePrompt || "").trim(),
         image_url: typeof extraData.image_url === "string" ? extraData.image_url : String(form.imageUrl || "").trim(),
         image_provider: extraData.image_provider || editingDraft?.image_provider || null,
         image_revised_prompt: extraData.image_revised_prompt || editingDraft?.image_revised_prompt || null,
         image_storage_path: extraData.image_storage_path || editingDraft?.image_storage_path || null,
         image_storage_mode: extraData.image_storage_mode || editingDraft?.image_storage_mode || null,
-        hook: deriveHookFromContent(String(form.content || "").trim(), String(form.topic || "").trim()),
+        hook: deriveHookFromContent(cleanContent, resolvedTopic),
         content_pillar: typeof extraData.content_pillar === "string" ? extraData.content_pillar : "",
         approved_at: null,
         quality_checklist: normalizeQualityChecklist(extraData.quality_checklist),
