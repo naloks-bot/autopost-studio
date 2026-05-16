@@ -29,6 +29,9 @@ Recent completed checkpoints:
 * Review Detail Modal now uses a desktop two-column layout
 * Review Detail Modal now supports inline hook/caption editing, clearer full-image preview, and in-modal image replacement
 * image prompt is visible and copyable from Review Detail Modal
+* Manage Pages UX cleanup shipped with Core Brief + Advanced Brief layout
+* page brief fields now use visible labels/helper text, plus post length and example-style guidance
+* Logs now show compact one-line summary rows with expandable details
 * AI/manual checklist confusion was removed from Review Queue and modal emphasis
 * post-now action was restored for approved posts
 * approval undo was added for safe approved posts that are not yet scheduled/publishing/posted
@@ -45,6 +48,7 @@ Recent completed checkpoints:
 * app state now refreshes from Supabase truth instead of waiting for manual browser refresh
 * repeated `post_due` / `publish_skipped` noise for already-posted items was fixed
 * Mock / Live safety remains preserved
+* stable publish/scheduler/Supabase systems remain preserved during operator UX cleanup
 
 Production connection path:
 

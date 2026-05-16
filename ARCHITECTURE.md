@@ -92,6 +92,9 @@ Current operator UX boundary inside this layer:
 * Review Detail Modal uses a desktop two-column layout and stacked mobile layout
 * Review Detail Modal now supports inline hook/caption editing, clearer full-image preview, and in-modal image replacement while reusing existing draft save and storage flows
 * image prompt is visible and copyable from the modal
+* Manage Pages now separates page brief editing into Core Brief and Advanced Brief sections without changing storage architecture
+* page brief fields now use explicit labels/helper text, with post length and example-style guidance stored in the existing page settings structure
+* Logs now render compact one-line summary rows with expandable detail while preserving the existing logging pipeline
 * AI/manual checklist confusion should remain removed from the primary review workflow
 * post-now action is available only through the existing safe publish path
 * approval undo is allowed only for safe approved posts that are not yet scheduled, publishing, or posted
@@ -237,5 +240,6 @@ The stable production boundary now includes:
 * app-state refresh from Supabase truth without requiring manual browser refresh for normal publish/schedule sync
 * attached-photo publish behavior for posts with `image_url`
 * additive content stock workflow metadata for `hook`, `content_pillar`, `approved_at`, and `quality_checklist`
+* stable publish flow, scheduler V1, Supabase/storage architecture, and provider routing remain unchanged by Manage Pages and Logs UX cleanup
 
 Future work should build on this boundary, not reopen it without a proven blocker.

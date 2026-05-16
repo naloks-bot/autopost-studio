@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { Terminal, Download, Copy, Info, History, ShieldAlert, Cpu, Share2 } from "lucide-react";
+import { ChevronDown, Copy, Cpu, Download, History, Info, ShieldAlert, Share2, Terminal } from "lucide-react";
 
 function formatLogTime(value) {
   if (!value) return "--:--:--";
@@ -33,40 +33,91 @@ function getCounts(logs) {
   };
 }
 
+function getResultValue(log = {}, details = {}) {
+  return details.result || (log.level === "error" ? "failed" : "info");
+}
+
 function getResultTone(result = "", level = "info") {
-  if (result === "success") return "text-emerald-300";
-  if (result === "mock" || result === "mock_attempt") return "text-cyan-300";
-  if (result === "skipped" || result === "fallback" || result === "cancelled" || result === "scheduled") return "text-amber-300";
-  if (result === "claimed") return "text-violet-300";
-  if (result === "failed") return "text-rose-300";
-  if (result === "started" || result === "due" || result === "live_attempt") return "text-slate-200";
-  if (level === "error") return "text-rose-300";
-  return "text-slate-300";
+  if (result === "success") return "border-emerald-500/20 bg-emerald-500/10 text-emerald-300";
+  if (result === "mock" || result === "mock_attempt") return "border-cyan-500/20 bg-cyan-500/10 text-cyan-300";
+  if (result === "skipped" || result === "fallback" || result === "cancelled" || result === "scheduled") {
+    return "border-amber-500/20 bg-amber-500/10 text-amber-300";
+  }
+  if (result === "claimed") return "border-violet-500/20 bg-violet-500/10 text-violet-300";
+  if (result === "failed" || level === "error") return "border-rose-500/20 bg-rose-500/10 text-rose-300";
+  return "border-white/10 bg-white/5 text-slate-300";
 }
 
 function getSourceTone(log) {
-  if (log.level === "error") return "text-rose-400";
-  if (log.source === "scheduler" || log.source === "scheduler_edge") return "text-cyan-400";
-  if (log.source === "manual_publish") return "text-emerald-400";
-  return "text-slate-400";
+  if (log.level === "error") return "text-rose-300";
+  if (log.source === "scheduler" || log.source === "scheduler_edge") return "text-cyan-300";
+  if (log.source === "manual_publish") return "text-emerald-300";
+  if (log.source === "ai") return "text-violet-300";
+  return "text-slate-300";
 }
 
 function formatResultLabel(result = "") {
   const labels = {
-    success: "success",
-    failed: "failed",
-    mock: "mock",
-    skipped: "skipped",
-    fallback: "fallback",
-    cancelled: "cancelled",
-    scheduled: "scheduled",
-    claimed: "claimed",
-    started: "started",
-    due: "due",
-    live_attempt: "live attempt",
-    mock_attempt: "mock attempt",
+    success: "SUCCESS",
+    failed: "FAILED",
+    mock: "MOCK",
+    skipped: "SKIPPED",
+    fallback: "FALLBACK",
+    cancelled: "CANCELLED",
+    scheduled: "SCHEDULED",
+    claimed: "CLAIMED",
+    started: "STARTED",
+    due: "DUE",
+    live_attempt: "LIVE ATTEMPT",
+    mock_attempt: "MOCK ATTEMPT",
+    info: "INFO",
   };
-  return labels[result] || result || "-";
+  return labels[result] || String(result || "INFO").replace(/_/g, " ").toUpperCase();
+}
+
+function formatSourceLabel(source = "") {
+  return String(source || "system").replace(/\s+/g, "_").toUpperCase();
+}
+
+function truncateText(value = "", max = 110) {
+  const normalized = String(value || "").replace(/\s+/g, " ").trim();
+  if (!normalized) return "-";
+  if (normalized.length <= max) return normalized;
+  return `${normalized.slice(0, max - 1).trim()}…`;
+}
+
+function maskSecretsInText(value = "") {
+  return String(value || "")
+    .replace(/Bearer\s+[A-Za-z0-9._-]+/gi, "Bearer [masked]")
+    .replace(/(EAAG[A-Za-z0-9]+)/g, "[masked_token]")
+    .replace(/((?:access[_-]?token|page[_-]?access[_-]?token|token|secret|api[_-]?key|authorization)\s*[:=]\s*)([^\s,]+)/gi, "$1[masked]");
+}
+
+function sanitizeLogData(value, parentKey = "") {
+  const key = String(parentKey || "").toLowerCase();
+  const isSensitiveKey = /token|secret|api.?key|authorization|access.?token/.test(key);
+
+  if (value == null) return value;
+  if (isSensitiveKey) return "[masked]";
+  if (typeof value === "string") return maskSecretsInText(value);
+  if (Array.isArray(value)) return value.map((item) => sanitizeLogData(item, parentKey));
+  if (typeof value === "object") {
+    return Object.fromEntries(Object.entries(value).map(([childKey, childValue]) => [childKey, sanitizeLogData(childValue, childKey)]));
+  }
+  return value;
+}
+
+function buildShortMessage(log = {}, details = {}) {
+  return truncateText(details.short_message || details.error_message || details.message || log.message || "-", 120);
+}
+
+function buildMetaItems(log = {}, details = {}) {
+  return [
+    { label: "โพสต์", value: details.topic || details.post_title || log.post_title || "-" },
+    { label: "Scheduled", value: formatLogDateTime(details.scheduled_at || log.scheduled_at || null) },
+    { label: "Attempt", value: details.attempt || details.attempt_number || "-" },
+    { label: "Mode", value: details.publish_mode || details.mode || "-" },
+  ];
 }
 
 export default function LogsPage({ logs = [], logsMode = "offline" }) {
@@ -104,7 +155,7 @@ export default function LogsPage({ logs = [], logsMode = "offline" }) {
             </div>
             <div>
               <h2 className="text-xl font-bold tracking-tight text-white">ประวัติระบบ</h2>
-              <p className="text-xs text-slate-400">ลำดับเหตุการณ์ของ scheduler, publish และสถานะระบบแบบอ่านง่าย</p>
+              <p className="text-xs text-slate-400">ดู phase สำคัญแบบสรุปหนึ่งบรรทัดก่อน แล้วค่อยกางรายละเอียดเมื่อจำเป็น</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
@@ -120,9 +171,7 @@ export default function LogsPage({ logs = [], logsMode = "offline" }) {
         <div className="mt-5 flex items-start gap-3 rounded-xl border border-cyan-500/10 bg-cyan-500/5 p-3">
           <Info className="mt-0.5 h-5 w-5 text-cyan-300" />
           <div>
-            <p className="text-xs font-semibold text-cyan-200">
-              {hasPersistentLogs ? "บันทึกถาวรพร้อมใช้งาน" : "โหมดพื้นฐาน"}
-            </p>
+            <p className="text-xs font-semibold text-cyan-200">{hasPersistentLogs ? "บันทึกถาวรพร้อมใช้งาน" : "โหมดพื้นฐาน"}</p>
             <p className="text-[10px] leading-relaxed text-cyan-100/75">{infoMessage}</p>
           </div>
         </div>
@@ -154,72 +203,104 @@ export default function LogsPage({ logs = [], logsMode = "offline" }) {
           </div>
         </div>
 
-        <div>
-          <div className="overflow-hidden rounded-2xl border border-white/5 bg-slate-950/80 shadow-inner">
-            <div className="flex items-center justify-between border-b border-white/5 bg-white/5 px-4 py-2">
-              <div className="flex items-center gap-2">
-                <div className="h-2 w-2 rounded-full bg-cyan-400"></div>
-                <span className="text-[9px] font-bold uppercase tracking-widest text-slate-500">รายการล่าสุด</span>
-              </div>
-              <span className="text-[9px] text-slate-600">ใหม่สุดก่อน</span>
+        <div className="overflow-hidden rounded-2xl border border-white/5 bg-slate-950/80 shadow-inner">
+          <div className="flex items-center justify-between border-b border-white/5 bg-white/5 px-4 py-2">
+            <div className="flex items-center gap-2">
+              <div className="h-2 w-2 rounded-full bg-cyan-400" />
+              <span className="text-[9px] font-bold uppercase tracking-widest text-slate-500">รายการล่าสุด</span>
             </div>
-            <div className="h-[420px] space-y-2 overflow-y-auto p-4">
-              {filteredLogs.length === 0 ? (
-                <div className="rounded-xl border border-white/5 bg-white/5 p-4 text-slate-400">
-                  {logs.length === 0
-                    ? logsMode === "connected"
-                      ? "No operation logs have been recorded yet. Publish, scheduler, and routing events will appear here as the system runs."
-                      : logsMode === "missing-table"
-                        ? "Persistent log storage is not installed yet. Apply the latest Supabase SQL to start recording logs."
-                        : "Log storage is unavailable right now, but publish and scheduler flows continue safely."
-                    : "ไม่มี log ในหมวดนี้จากข้อมูลที่โหลดอยู่ตอนนี้"}
-                </div>
-              ) : (
-                filteredLogs.map((log) => {
-                  const details = log.metadata || log.details || {};
-                  const topic = details.topic || "-";
-                  const result = details.result || "-";
-                  const scheduledAt = details.scheduled_at || null;
-                  const attemptedAt = details.attempted_at || log.created_at || null;
-                  const errorMessage = details.error_message || (log.level === "error" ? log.message : "");
-                  const publishMode = details.publish_mode || "-";
+            <span className="text-[9px] text-slate-600">ใหม่สุดก่อน</span>
+          </div>
 
-                  return (
-                    <div
-                      key={log.id}
-                      className={`rounded-xl border p-3 text-[11px] ${
-                        log.level === "error" ? "border-rose-500/20 bg-rose-500/8" : "border-white/5 bg-white/5"
-                      }`}
-                    >
-                      <div className="flex flex-wrap items-center gap-3">
-                        <span className="shrink-0 text-slate-600">[{formatLogTime(log.created_at)}]</span>
-                        <span className={`shrink-0 font-bold uppercase ${getSourceTone(log)}`}>[{log.source}]</span>
-                        <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${getResultTone(result, log.level)}`}>
-                          {formatResultLabel(result)}
-                        </span>
-                        <span className="text-slate-300">{log.event}</span>
-                      </div>
-                      <p className="mt-2 text-sm text-white">{log.message}</p>
-                      <div className="mt-3 grid gap-2 text-[10px] text-slate-400 md:grid-cols-2">
-                        <p>โพสต์: <span className="text-slate-200">{topic}</span></p>
-                        <p>Scheduled: <span className="text-slate-200">{formatLogDateTime(scheduledAt)}</span></p>
-                        <p>Attempted: <span className="text-slate-200">{formatLogDateTime(attemptedAt)}</span></p>
-                        <p>Result: <span className={getResultTone(result, log.level)}>{formatResultLabel(result)}</span></p>
-                        <p>Mode: <span className="text-slate-200">{publishMode}</span></p>
-                      </div>
-                      {errorMessage ? (
-                        <div className="mt-3 rounded-lg border border-rose-500/10 bg-rose-500/5 px-3 py-2 text-[10px] text-rose-200">
-                          Error: {errorMessage}
-                        </div>
-                      ) : null}
-                    </div>
-                  );
-                })
-              )}
-              <div className="flex gap-4">
-                <span className="animate-pulse text-cyan-400">_</span>
+          <div className="h-[520px] space-y-3 overflow-y-auto p-4">
+            {filteredLogs.length === 0 ? (
+              <div className="rounded-xl border border-white/5 bg-white/5 p-4 text-slate-400">
+                {logs.length === 0
+                  ? logsMode === "connected"
+                    ? "No operation logs have been recorded yet. Publish, scheduler, and routing events will appear here as the system runs."
+                    : logsMode === "missing-table"
+                      ? "Persistent log storage is not installed yet. Apply the latest Supabase SQL to start recording logs."
+                      : "Log storage is unavailable right now, but publish and scheduler flows continue safely."
+                  : "ไม่มี log ในหมวดนี้จากข้อมูลที่โหลดอยู่ตอนนี้"}
               </div>
-            </div>
+            ) : (
+              filteredLogs.map((log) => {
+                const details = sanitizeLogData(log.metadata || log.details || {});
+                const result = getResultValue(log, details);
+                const shortMessage = buildShortMessage(log, details);
+                const metaItems = buildMetaItems(log, details);
+                const fullMessage = maskSecretsInText(log.message || "-");
+                const errorMessage = maskSecretsInText(details.error_message || "");
+
+                return (
+                  <details
+                    key={log.id}
+                    className={`rounded-2xl border ${
+                      log.level === "error" ? "border-rose-500/20 bg-rose-500/8" : "border-white/5 bg-white/5"
+                    }`}
+                  >
+                    <summary className="list-none cursor-pointer px-4 py-3">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-2 text-[11px]">
+                            <span className="text-slate-500">[{formatLogTime(log.created_at)}]</span>
+                            <span className={`font-semibold ${getSourceTone(log)}`}>{formatSourceLabel(log.source)}</span>
+                            <span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold tracking-wider ${getResultTone(result, log.level)}`}>
+                              {formatResultLabel(result)}
+                            </span>
+                            <span className="text-slate-200">{log.event || "-"}</span>
+                            <span className="min-w-0 truncate text-slate-400">— {shortMessage}</span>
+                          </div>
+
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            {metaItems.map((item) => (
+                              <span key={`${log.id}-${item.label}`} className="rounded-full border border-white/5 bg-slate-950/60 px-2.5 py-1 text-[10px] text-slate-400">
+                                {item.label}: <span className="text-slate-200">{truncateText(item.value, 48)}</span>
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+
+                        <ChevronDown className="mt-1 h-4 w-4 shrink-0 text-slate-500" />
+                      </div>
+                    </summary>
+
+                    <div className="space-y-4 border-t border-white/5 px-4 py-4 text-xs text-slate-300">
+                      <div className="space-y-2">
+                        <div>
+                          <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Summary</p>
+                          <p className="mt-1 leading-relaxed text-white">{fullMessage}</p>
+                        </div>
+                        {errorMessage ? (
+                          <div className="rounded-xl border border-rose-500/15 bg-rose-500/5 px-3 py-3">
+                            <p className="text-[10px] font-bold uppercase tracking-widest text-rose-300">Error Detail</p>
+                            <p className="mt-1 whitespace-pre-wrap leading-relaxed text-rose-100">{errorMessage}</p>
+                          </div>
+                        ) : null}
+                      </div>
+
+                      <div className="grid gap-3 md:grid-cols-2">
+                        <div className="rounded-xl border border-white/5 bg-slate-950/50 px-3 py-3">
+                          <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Attempted</p>
+                          <p className="mt-1 text-slate-200">{formatLogDateTime(details.attempted_at || log.created_at || null)}</p>
+                        </div>
+                        <div className="rounded-xl border border-white/5 bg-slate-950/50 px-3 py-3">
+                          <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Scheduled</p>
+                          <p className="mt-1 text-slate-200">{formatLogDateTime(details.scheduled_at || log.scheduled_at || null)}</p>
+                        </div>
+                      </div>
+
+                      <div className="rounded-xl border border-white/5 bg-slate-950/50 px-3 py-3">
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Metadata</p>
+                        <pre className="mt-2 overflow-x-auto whitespace-pre-wrap break-words text-[11px] leading-relaxed text-slate-300">
+                          {JSON.stringify(details, null, 2)}
+                        </pre>
+                      </div>
+                    </div>
+                  </details>
+                );
+              })
+            )}
           </div>
         </div>
       </div>

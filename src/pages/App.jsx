@@ -468,16 +468,23 @@ function App() {
           facebookPageAccessToken: "",
           category: "",
           status: "draft",
+          brandMemory: "",
           readme: "",
           purpose: "",
           writingDirection: "",
           imageDirection: "",
+          visualDirection: "",
           visualStyle: "",
           targetAudience: "",
           tone: "",
+          postLength: "short",
+          examplePost: "",
           contentPillars: "",
           avoidList: "",
           defaultCta: "",
+          imageNegativePrompt: "",
+          preferredWords: "",
+          dislikedWords: "",
         },
       ];
       return sanitizeSettings({ ...current, activePageId: nextPageId, workspacePages });
@@ -546,17 +553,48 @@ function App() {
     const page = workspacePages.find((item) => item.id === (post?.page_id || "default")) || workspacePages[0] || {};
     return {
       pageLabel: page.label || "",
+      pageBrandMemory: page.brandMemory || "",
       pagePurpose: page.purpose || "",
       pageTargetAudience: page.targetAudience || "",
       pageWritingDirection: page.writingDirection || "",
-      pageImageDirection: page.imageDirection || "",
+      pageImageDirection: page.visualDirection || page.imageDirection || "",
+      pageVisualDirection: page.visualDirection || page.imageDirection || "",
       pageReadme: page.readme || "",
       pageTone: page.tone || "",
+      pagePostLength: page.postLength || "short",
+      pageExamplePost: page.examplePost || "",
       pageContentPillars: page.contentPillars || "",
       pageAvoidList: page.avoidList || "",
       pageDefaultCta: page.defaultCta || "",
+      pageImageNegativePrompt: page.imageNegativePrompt || "",
+      pagePreferredWords: page.preferredWords || "",
+      pageDislikedWords: page.dislikedWords || "",
     };
   }, []);
+
+  function getActivePagePromptContext(overrides = {}) {
+    return {
+      pageLabel: overrides.pageLabel ?? activeWorkspacePage?.label ?? "",
+      pageBrandMemory: overrides.pageBrandMemory ?? activeWorkspacePage?.brandMemory ?? "",
+      pagePurpose: overrides.pagePurpose ?? activeWorkspacePage?.purpose ?? "",
+      pageTargetAudience: overrides.pageTargetAudience ?? activeWorkspacePage?.targetAudience ?? "",
+      pageWritingDirection: overrides.pageWritingDirection ?? activeWorkspacePage?.writingDirection ?? "",
+      pageImageDirection:
+        overrides.pageImageDirection ?? overrides.pageVisualDirection ?? activeWorkspacePage?.visualDirection ?? activeWorkspacePage?.imageDirection ?? "",
+      pageVisualDirection:
+        overrides.pageVisualDirection ?? overrides.pageImageDirection ?? activeWorkspacePage?.visualDirection ?? activeWorkspacePage?.imageDirection ?? "",
+      pageReadme: overrides.pageReadme ?? activeWorkspacePage?.readme ?? "",
+      pageTone: overrides.pageTone ?? activeWorkspacePage?.tone ?? "",
+      pagePostLength: overrides.pagePostLength ?? activeWorkspacePage?.postLength ?? "short",
+      pageExamplePost: overrides.pageExamplePost ?? activeWorkspacePage?.examplePost ?? "",
+      pageContentPillars: overrides.pageContentPillars ?? activeWorkspacePage?.contentPillars ?? "",
+      pageAvoidList: overrides.pageAvoidList ?? activeWorkspacePage?.avoidList ?? "",
+      pageDefaultCta: overrides.pageDefaultCta ?? activeWorkspacePage?.defaultCta ?? "",
+      pageImageNegativePrompt: overrides.pageImageNegativePrompt ?? activeWorkspacePage?.imageNegativePrompt ?? "",
+      pagePreferredWords: overrides.pagePreferredWords ?? activeWorkspacePage?.preferredWords ?? "",
+      pageDislikedWords: overrides.pageDislikedWords ?? activeWorkspacePage?.dislikedWords ?? "",
+    };
+  }
 
   async function handleGenerateContent(overrides = {}) {
     if (!form.topic.trim() && !form.content.trim()) {
@@ -572,16 +610,7 @@ function App() {
       const result = await generatePostContent({
         formData: {
           ...form,
-          pageLabel: overrides.pageLabel ?? activeWorkspacePage?.label ?? "",
-          pagePurpose: overrides.pagePurpose ?? activeWorkspacePage?.purpose ?? "",
-          pageTargetAudience: overrides.pageTargetAudience ?? activeWorkspacePage?.targetAudience ?? "",
-          pageWritingDirection: overrides.pageWritingDirection ?? activeWorkspacePage?.writingDirection ?? "",
-          pageImageDirection: overrides.pageImageDirection ?? activeWorkspacePage?.imageDirection ?? "",
-          pageReadme: overrides.pageReadme ?? activeWorkspacePage?.readme ?? "",
-          pageTone: overrides.pageTone ?? activeWorkspacePage?.tone ?? "",
-          pageContentPillars: overrides.pageContentPillars ?? activeWorkspacePage?.contentPillars ?? "",
-          pageAvoidList: overrides.pageAvoidList ?? activeWorkspacePage?.avoidList ?? "",
-          pageDefaultCta: overrides.pageDefaultCta ?? activeWorkspacePage?.defaultCta ?? "",
+          ...getActivePagePromptContext(overrides),
         },
         settings,
       });
@@ -595,14 +624,7 @@ function App() {
             formData: {
               ...form,
               content: nextCaption,
-              pageLabel: overrides.pageLabel ?? activeWorkspacePage?.label ?? "",
-              pagePurpose: overrides.pagePurpose ?? activeWorkspacePage?.purpose ?? "",
-              pageTargetAudience: overrides.pageTargetAudience ?? activeWorkspacePage?.targetAudience ?? "",
-              pageImageDirection: overrides.pageImageDirection ?? activeWorkspacePage?.imageDirection ?? "",
-              pageWritingDirection: overrides.pageWritingDirection ?? activeWorkspacePage?.writingDirection ?? "",
-              pageReadme: overrides.pageReadme ?? activeWorkspacePage?.readme ?? "",
-              pageContentPillars: overrides.pageContentPillars ?? activeWorkspacePage?.contentPillars ?? "",
-              pageAvoidList: overrides.pageAvoidList ?? activeWorkspacePage?.avoidList ?? "",
+              ...getActivePagePromptContext(overrides),
             },
             settings,
           });
@@ -643,15 +665,7 @@ function App() {
         formData: {
           ...form,
           topic: String(form.topic || form.content || "").trim(),
-          pageLabel: overrides.pageLabel ?? activeWorkspacePage?.label ?? "",
-          pagePurpose: overrides.pagePurpose ?? activeWorkspacePage?.purpose ?? "",
-          pageTargetAudience: overrides.pageTargetAudience ?? activeWorkspacePage?.targetAudience ?? "",
-          pageImageDirection: overrides.pageImageDirection ?? activeWorkspacePage?.imageDirection ?? "",
-          pageWritingDirection: overrides.pageWritingDirection ?? activeWorkspacePage?.writingDirection ?? "",
-          pageReadme: overrides.pageReadme ?? activeWorkspacePage?.readme ?? "",
-          pageTone: overrides.pageTone ?? activeWorkspacePage?.tone ?? "",
-          pageContentPillars: overrides.pageContentPillars ?? activeWorkspacePage?.contentPillars ?? "",
-          pageAvoidList: overrides.pageAvoidList ?? activeWorkspacePage?.avoidList ?? "",
+          ...getActivePagePromptContext(overrides),
         },
         settings,
       });
@@ -703,16 +717,7 @@ function App() {
         formData: {
           ...form,
           topic: baseTopic,
-          pageLabel: overrides.pageLabel ?? activeWorkspacePage?.label ?? "",
-          pagePurpose: overrides.pagePurpose ?? activeWorkspacePage?.purpose ?? "",
-          pageTargetAudience: overrides.pageTargetAudience ?? activeWorkspacePage?.targetAudience ?? "",
-          pageWritingDirection: overrides.pageWritingDirection ?? activeWorkspacePage?.writingDirection ?? "",
-          pageImageDirection: overrides.pageImageDirection ?? activeWorkspacePage?.imageDirection ?? "",
-          pageReadme: overrides.pageReadme ?? activeWorkspacePage?.readme ?? "",
-          pageTone: overrides.pageTone ?? activeWorkspacePage?.tone ?? "",
-          pageContentPillars: overrides.pageContentPillars ?? activeWorkspacePage?.contentPillars ?? "",
-          pageAvoidList: overrides.pageAvoidList ?? activeWorkspacePage?.avoidList ?? "",
-          pageDefaultCta: overrides.pageDefaultCta ?? activeWorkspacePage?.defaultCta ?? "",
+          ...getActivePagePromptContext(overrides),
         },
         settings,
       });

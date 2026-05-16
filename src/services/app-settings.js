@@ -2,6 +2,12 @@ const STORAGE_KEY = "autopost-studio-settings";
 const PENDING_SYSTEM_OVERRIDES_KEY = "autopost-studio-pending-system-overrides";
 const ENV_GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY?.trim() || "";
 const ENV_GEMINI_MODEL = import.meta.env.VITE_GEMINI_MODEL?.trim() || "gemini-2.5-flash";
+const DEFAULT_BRAND_MEMORY =
+  "AI ทำกิน คือเพจที่ลองใช้ AI แบบง่าย ๆ ให้คนไทยดู ว่า AI เอาไปช่วยงานจริง ทำคอนเทนต์จริง และต่อยอดหาเงินจริงได้ยังไง เขียนเหมือนเพื่อนที่ลองมาแล้วเล่าให้ฟัง ไม่ขายฝัน ไม่เทคนิคเกินไป เป้าหมายคือให้คนอ่านรู้สึกว่า 'อ๋อ แบบนี้ฉันก็ลองใช้ AI ได้เลย'";
+const DEFAULT_WRITING_GUIDANCE =
+  "เปิดด้วย Hook สั้น ชัด และหยุดคนอ่าน เนื้อหาอ่านง่าย ย่อยง่าย เว้นบรรทัด ไม่เขียนติดกันเป็นก้อน ใช้คำหลากหลาย ไม่เริ่มโพสต์ซ้ำ ๆ ไม่จบด้วย CTA เดิมทุกครั้ง สลับมุมเล่าเรื่องตามหัวข้อ เช่น checklist, how-to, mistake, quick win, mini story, before-after หรือ example-based หลีกเลี่ยง markdown เช่น *, **, ### และใช้อีโมจิให้น้อย เฉพาะจุดที่ช่วยให้อ่านง่ายจริง ๆ";
+const DEFAULT_VISUAL_GUIDANCE =
+  "modern, friendly, practical, creator economy, สีหลักน้ำเงิน ฟ้า ขาว เหลือง, whitespace เยอะ, มี Hook ภาษาไทยบนภาพแบบสั้นและชัด, มี mascot น้องลองดีเป็นหยดไฟ/ประกายไอเดียสีเหลือง, หลีกเลี่ยง cyberpunk หุ่นยนต์ ภาพมืด ภาพแน่น และข้อความเยอะเกินไป";
 
 export const defaultWorkspacePages = [
   {
@@ -12,16 +18,23 @@ export const defaultWorkspacePages = [
     facebookPageAccessToken: "",
     category: "หลัก",
     status: "active",
+    brandMemory: DEFAULT_BRAND_MEMORY,
     readme: "",
     purpose: "",
-    writingDirection: "",
-    imageDirection: "",
+    writingDirection: DEFAULT_WRITING_GUIDANCE,
+    imageDirection: DEFAULT_VISUAL_GUIDANCE,
+    visualDirection: DEFAULT_VISUAL_GUIDANCE,
     visualStyle: "",
-    targetAudience: "",
-    tone: "",
+    targetAudience: "คนไทยที่อยากเริ่มใช้ AI กับงานจริง คอนเทนต์จริง หรือหารายได้แบบจับต้องได้ โดยไม่อยากอ่านอะไรเทคนิคเกินไป",
+    tone: "เป็นกันเอง, เหมือนเพื่อนเล่าให้ฟัง, ง่าย ไม่เทคนิค, กระชับ, ไม่ขายฝัน, ใช้คำหลากหลาย",
+    postLength: "short",
+    examplePost: "",
     contentPillars: "",
     avoidList: "",
     defaultCta: "",
+    imageNegativePrompt: "",
+    preferredWords: "",
+    dislikedWords: "",
   },
   {
     id: "demo-mock",
@@ -31,16 +44,23 @@ export const defaultWorkspacePages = [
     facebookPageAccessToken: "",
     category: "ทดสอบ",
     status: "mock",
+    brandMemory: "",
     readme: "",
     purpose: "",
     writingDirection: "",
     imageDirection: "",
+    visualDirection: "",
     visualStyle: "",
     targetAudience: "",
     tone: "",
+    postLength: "short",
+    examplePost: "",
     contentPillars: "",
     avoidList: "",
     defaultCta: "",
+    imageNegativePrompt: "",
+    preferredWords: "",
+    dislikedWords: "",
   },
 ];
 
@@ -67,6 +87,12 @@ export const defaultSettings = {
 };
 
 function normalizeWorkspacePage(page = {}) {
+  const legacyBrandMemory = [page.description || "", page.purpose || "", page.readme || ""].filter(Boolean).join("\n\n").trim();
+  const legacyVisualDirection = [page.visualDirection || "", page.imageDirection || "", page.visualStyle || ""]
+    .filter(Boolean)
+    .join("\n\n")
+    .trim();
+
   return {
     id: page.id || `page-${Date.now()}`,
     label: page.label || "เพจใหม่",
@@ -75,16 +101,23 @@ function normalizeWorkspacePage(page = {}) {
     facebookPageAccessToken: page.facebookPageAccessToken || "",
     category: page.category || "",
     status: page.status || "draft",
+    brandMemory: page.brandMemory || legacyBrandMemory || "",
     readme: page.readme || "",
     purpose: page.purpose || "",
     writingDirection: page.writingDirection || "",
     imageDirection: page.imageDirection || "",
+    visualDirection: page.visualDirection || legacyVisualDirection || "",
     visualStyle: page.visualStyle || "",
     targetAudience: page.targetAudience || "",
     tone: page.tone || "",
+    postLength: page.postLength || "short",
+    examplePost: page.examplePost || "",
     contentPillars: page.contentPillars || "",
     avoidList: page.avoidList || "",
     defaultCta: page.defaultCta || "",
+    imageNegativePrompt: page.imageNegativePrompt || "",
+    preferredWords: page.preferredWords || "",
+    dislikedWords: page.dislikedWords || "",
   };
 }
 

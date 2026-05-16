@@ -324,10 +324,24 @@ function getImagePromptProvider(settings) {
   return "mock";
 }
 
+function getPostLengthGuidance(value = "") {
+  const normalized = String(value || "").trim().toLowerCase();
+  if (normalized === "micro") return "Very short: 80-120 words";
+  if (normalized === "short") return "Short: 120-180 words";
+  if (normalized === "medium") return "Medium: 180-280 words";
+  if (normalized === "long") return "Long: 300-450 words";
+  return "";
+}
+
+function getVisualDirection(context = {}) {
+  return String(context.pageVisualDirection || context.pageImageDirection || "").trim();
+}
+
 function buildFallbackImagePromptFromContent(formData = {}) {
   const topic = String(formData.topic || "").trim();
   const caption = sanitizeGeneratedCaption(String(formData.content || "").trim());
-  const pageDirection = String(formData.pageImageDirection || "").trim();
+  const pageDirection = getVisualDirection(formData);
+  const negativePrompt = String(formData.pageImageNegativePrompt || "").trim();
   const vibe = String(formData.pageTone || "").trim();
   const captionSnippet = caption
     .replace(/\s+/g, " ")
@@ -340,6 +354,7 @@ function buildFallbackImagePromptFromContent(formData = {}) {
     "cinematic editorial social media image",
     vibe ? `${vibe} tone` : "clear emotional storytelling",
     pageDirection || "strong subject, realistic lighting, clean composition",
+    negativePrompt ? `avoid: ${negativePrompt}` : "",
     "vertical 4:5 framing",
   ]
     .filter(Boolean)
@@ -353,28 +368,42 @@ export function buildContentPrompt(formData, settings) {
   const business = settings.businessName || "My Brand";
   const topic = formData.topic || "Social Media Update";
   const pageLabel = formData.pageLabel ? `Page: ${formData.pageLabel}` : "";
+  const pageBrandMemory = formData.pageBrandMemory ? `Brand memory: ${formData.pageBrandMemory}` : "";
   const pageWritingDirection = formData.pageWritingDirection ? `Page writing direction: ${formData.pageWritingDirection}` : "";
-  const pageImageDirection = formData.pageImageDirection ? `Page image direction: ${formData.pageImageDirection}` : "";
+  const visualDirection = getVisualDirection(formData);
+  const pageImageDirection = visualDirection ? `Page visual direction: ${visualDirection}` : "";
   const pageReadme = formData.pageReadme ? `Page memory: ${formData.pageReadme}` : "";
   const pageTone = formData.pageTone ? `Page tone: ${formData.pageTone}` : "";
   const pagePurpose = formData.pagePurpose ? `Page purpose: ${formData.pagePurpose}` : "";
   const pageTargetAudience = formData.pageTargetAudience ? `Target audience: ${formData.pageTargetAudience}` : "";
+  const pagePostLength = getPostLengthGuidance(formData.pagePostLength);
+  const pagePostLengthLine = pagePostLength ? `Target post length: ${pagePostLength}` : "";
+  const pageExamplePost = formData.pageExamplePost ? `Reference style example: ${formData.pageExamplePost}` : "";
   const pageContentPillars = formData.pageContentPillars ? `Content pillars: ${formData.pageContentPillars}` : "";
   const pageAvoidList = formData.pageAvoidList ? `Avoid list: ${formData.pageAvoidList}` : "";
   const pageDefaultCta = formData.pageDefaultCta ? `Default CTA: ${formData.pageDefaultCta}` : "";
+  const pagePreferredWords = formData.pagePreferredWords ? `Preferred words or phrases: ${formData.pagePreferredWords}` : "";
+  const pageDislikedWords = formData.pageDislikedWords ? `Words or phrases to avoid: ${formData.pageDislikedWords}` : "";
+  const pageImageNegativePrompt = formData.pageImageNegativePrompt ? `Image negative prompt: ${formData.pageImageNegativePrompt}` : "";
 
   return `Generate a high-engaging social media post for ${business}.
 Tone: ${voice}
 Topic: ${topic}
 ${pageLabel}
+${pageBrandMemory}
 ${pageTone}
 ${pagePurpose}
 ${pageTargetAudience}
+${pagePostLengthLine}
+${pageExamplePost}
 ${pageContentPillars}
 ${pageAvoidList}
 ${pageDefaultCta}
+${pagePreferredWords}
+${pageDislikedWords}
 ${pageWritingDirection}
 ${pageImageDirection}
+${pageImageNegativePrompt}
 ${pageReadme}
 Structure: Grab attention, address pain points, offer solution, and include a clear call to action.
 Platform: Facebook/Instagram
@@ -399,25 +428,39 @@ export function buildImagePrompt(formData, settings) {
   const voice = settings.brandVoice || "Modern";
   const content = formData.content ? `Caption context: ${formData.content}` : "";
   const pageLabel = formData.pageLabel ? `Page: ${formData.pageLabel}` : "";
-  const pageImageDirection = formData.pageImageDirection ? `Page image direction: ${formData.pageImageDirection}` : "";
+  const pageBrandMemory = formData.pageBrandMemory ? `Brand memory: ${formData.pageBrandMemory}` : "";
+  const visualDirection = getVisualDirection(formData);
+  const pageImageDirection = visualDirection ? `Page visual direction: ${visualDirection}` : "";
   const pageWritingDirection = formData.pageWritingDirection ? `Page writing direction: ${formData.pageWritingDirection}` : "";
   const pageReadme = formData.pageReadme ? `Page memory: ${formData.pageReadme}` : "";
   const pagePurpose = formData.pagePurpose ? `Page purpose: ${formData.pagePurpose}` : "";
   const pageTargetAudience = formData.pageTargetAudience ? `Target audience: ${formData.pageTargetAudience}` : "";
+  const pagePostLength = getPostLengthGuidance(formData.pagePostLength);
+  const pagePostLengthLine = pagePostLength ? `Target caption length: ${pagePostLength}` : "";
+  const pageExamplePost = formData.pageExamplePost ? `Reference style example: ${formData.pageExamplePost}` : "";
   const pageContentPillars = formData.pageContentPillars ? `Content pillars: ${formData.pageContentPillars}` : "";
   const pageAvoidList = formData.pageAvoidList ? `Avoid list: ${formData.pageAvoidList}` : "";
+  const pagePreferredWords = formData.pagePreferredWords ? `Preferred words or phrases: ${formData.pagePreferredWords}` : "";
+  const pageDislikedWords = formData.pageDislikedWords ? `Words or phrases to avoid: ${formData.pageDislikedWords}` : "";
+  const pageImageNegativePrompt = formData.pageImageNegativePrompt ? `Image negative prompt: ${formData.pageImageNegativePrompt}` : "";
 
   return `Write one production-ready English image generation prompt for a social media post.
 Topic: ${topic}
 Brand voice: ${voice}
 ${content}
 ${pageLabel}
+${pageBrandMemory}
 ${pagePurpose}
 ${pageTargetAudience}
+${pagePostLengthLine}
+${pageExamplePost}
 ${pageContentPillars}
 ${pageAvoidList}
+${pagePreferredWords}
+${pageDislikedWords}
 ${pageWritingDirection}
 ${pageImageDirection}
+${pageImageNegativePrompt}
 ${pageReadme}
 Rules:
 - Return English only.
@@ -431,15 +474,23 @@ function buildBatchContentPrompt({ formData = {}, settings = {}, count = 5, angl
   const business = settings.businessName || "My Brand";
   const topic = formData.topic || "Social Media Update";
   const pageLabel = formData.pageLabel ? `Page: ${formData.pageLabel}` : "";
+  const pageBrandMemory = formData.pageBrandMemory ? `Brand memory: ${formData.pageBrandMemory}` : "";
   const pageWritingDirection = formData.pageWritingDirection ? `Page writing direction: ${formData.pageWritingDirection}` : "";
-  const pageImageDirection = formData.pageImageDirection ? `Page image direction: ${formData.pageImageDirection}` : "";
+  const visualDirection = getVisualDirection(formData);
+  const pageImageDirection = visualDirection ? `Page visual direction: ${visualDirection}` : "";
   const pageReadme = formData.pageReadme ? `Page memory: ${formData.pageReadme}` : "";
   const pageTone = formData.pageTone ? `Page tone: ${formData.pageTone}` : "";
   const pagePurpose = formData.pagePurpose ? `Page purpose: ${formData.pagePurpose}` : "";
   const pageTargetAudience = formData.pageTargetAudience ? `Target audience: ${formData.pageTargetAudience}` : "";
+  const pagePostLength = getPostLengthGuidance(formData.pagePostLength);
+  const pagePostLengthLine = pagePostLength ? `Target post length: ${pagePostLength}` : "";
+  const pageExamplePost = formData.pageExamplePost ? `Reference style example: ${formData.pageExamplePost}` : "";
   const pageContentPillars = formData.pageContentPillars ? `Content pillars: ${formData.pageContentPillars}` : "";
   const pageAvoidList = formData.pageAvoidList ? `Avoid list: ${formData.pageAvoidList}` : "";
   const pageDefaultCta = formData.pageDefaultCta ? `Default CTA: ${formData.pageDefaultCta}` : "";
+  const pagePreferredWords = formData.pagePreferredWords ? `Preferred words or phrases: ${formData.pagePreferredWords}` : "";
+  const pageDislikedWords = formData.pageDislikedWords ? `Words or phrases to avoid: ${formData.pageDislikedWords}` : "";
+  const pageImageNegativePrompt = formData.pageImageNegativePrompt ? `Image negative prompt: ${formData.pageImageNegativePrompt}` : "";
   const angleList = angles.length
     ? angles.map((angle, index) => `${index + 1}. ${angle}`).join("\n")
     : Array.from({ length: count }, (_, index) => `${index + 1}. Distinct angle ${index + 1}`).join("\n");
@@ -448,14 +499,20 @@ function buildBatchContentPrompt({ formData = {}, settings = {}, count = 5, angl
 Tone: ${voice}
 Topic: ${topic}
 ${pageLabel}
+${pageBrandMemory}
 ${pageTone}
 ${pagePurpose}
 ${pageTargetAudience}
+${pagePostLengthLine}
+${pageExamplePost}
 ${pageContentPillars}
 ${pageAvoidList}
 ${pageDefaultCta}
+${pagePreferredWords}
+${pageDislikedWords}
 ${pageWritingDirection}
 ${pageImageDirection}
+${pageImageNegativePrompt}
 ${pageReadme}
 
 Use these angle hints, one draft per angle:
