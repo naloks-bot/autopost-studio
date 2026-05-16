@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   AlertCircle,
   Bot,
@@ -222,6 +222,28 @@ function canUndoApproval(post) {
   return post.status === "approved" && !["scheduled", "publishing", "posted"].includes(post.status);
 }
 
+function getReviewQueuePublishState(post, settings, workspacePages) {
+  const eligible = canPublishPost(post);
+  const effectivePublish = post
+    ? resolveEffectivePublishConfig({
+        post,
+        settings,
+        pages: workspacePages,
+      })
+    : null;
+  const blockedReason =
+    eligible && effectivePublish && !effectivePublish.canAttemptPublish
+      ? effectivePublish.blockedReason || effectivePublish.fallbackReason || "โพสต์นี้ยังไม่พร้อมสำหรับการโพสต์"
+      : "";
+
+  return {
+    eligible,
+    canAttemptPublish: Boolean(eligible && effectivePublish?.canAttemptPublish),
+    blockedReason,
+    effectivePublish,
+  };
+}
+
 function ReviewQueueActions({
   post,
   aiReviewLoadingPostId,
@@ -236,12 +258,14 @@ function ReviewQueueActions({
   onMoveToDraft,
   onSchedule,
   onPublish,
+  publishActionState,
   onDelete,
 }) {
   const isApproved = post.status === "approved";
   const canSendToSchedule = canSchedulePost(post);
   const canSendToPublish = canPublishPost(post);
   const canUndo = canUndoApproval(post);
+  const publishBlockedReason = publishActionState?.blockedReason || "";
 
   return (
     <div className={className}>
@@ -300,17 +324,20 @@ function ReviewQueueActions({
         fullWidth={fullWidth}
       />
       {canSendToPublish ? (
-        <ActionButton
-          label="โพสต์"
-          icon={Send}
-          onClick={(event) => {
-            event.stopPropagation();
-            void onPublish(post.id);
-          }}
-          variant="secondary"
-          className="px-3 py-2 text-xs"
-          fullWidth={fullWidth}
-        />
+        <div className={fullWidth ? "w-full" : ""}>
+          <ActionButton
+            label="โพสต์"
+            icon={Send}
+            onClick={(event) => {
+              event.stopPropagation();
+              void onPublish(post);
+            }}
+            variant="secondary"
+            className="px-3 py-2 text-xs"
+            fullWidth={fullWidth}
+          />
+          {publishBlockedReason ? <p className="mt-1 text-[10px] text-amber-300">{publishBlockedReason}</p> : null}
+        </div>
       ) : null}
       <ActionButton
         label="ลบ"
@@ -328,6 +355,7 @@ function ReviewDetailModal({
   post,
   aiReview,
   completion,
+  publishActionState,
   aiReviewLoadingPostId,
   aiImproveLoadingPostId,
   onClose,
@@ -463,6 +491,7 @@ function ReviewDetailModal({
                   post={post}
                   aiReviewLoadingPostId={aiReviewLoadingPostId}
                   aiImproveLoadingPostId={aiImproveLoadingPostId}
+                  publishActionState={publishActionState}
                   className="contents"
                   onRunAIQualityCheck={onRunAIQualityCheck}
                   onImproveReviewPost={onImproveReviewPost}
@@ -563,6 +592,7 @@ function StatusPage({
   const [reviewDetailPostId, setReviewDetailPostId] = useState(null);
   const [scheduleValue, setScheduleValue] = useState("");
   const [selectedFilter, setSelectedFilter] = useState("scheduled");
+  const [publishActionNotice, setPublishActionNotice] = useState(null);
 
   const stockSummary = useMemo(
     () => buildStockSummary([...remotePosts, ...(localDrafts || [])], workspacePages, LOW_STOCK_THRESHOLD),
@@ -615,6 +645,16 @@ function StatusPage({
   );
   const reviewDetailAIReview = reviewDetailPost ? aiReviewByPostId?.[reviewDetailPost.id] || null : null;
   const reviewDetailCompletion = getChecklistCompletion(reviewDetailPost?.quality_checklist);
+  const reviewDetailPublishActionState = useMemo(
+    () => getReviewQueuePublishState(reviewDetailPost, settings, workspacePages),
+    [reviewDetailPost, settings, workspacePages]
+  );
+
+  useEffect(() => {
+    if (statusNotice) {
+      setPublishActionNotice(null);
+    }
+  }, [statusNotice]);
 
   const quickSchedulePresets = useMemo(
     () => getQuickSchedulePresets(operationalView.scheduledPosts),
@@ -658,19 +698,61 @@ function StatusPage({
     return true;
   };
 
+  const handleReviewQueuePublish = useCallback(
+    async (post) => {
+      const publishActionState = getReviewQueuePublishState(post, settings, workspacePages);
+      const effectivePublish = publishActionState.effectivePublish;
+
+      if (import.meta.env.DEV) {
+        console.info("[ReviewQueue] publish button clicked", {
+          postId: post?.id || null,
+          postStatus: post?.status || null,
+          canPublishPost: publishActionState.eligible,
+          publishMode: effectivePublish?.effectiveSettings?.facebookPublishMode || null,
+          publishSource: effectivePublish?.effectivePublishSource || null,
+          livePagePublishStatus: effectivePublish?.livePerPagePublishStatus || null,
+          blockedReason: publishActionState.blockedReason || "",
+          willCallHandlePublishPost: publishActionState.canAttemptPublish,
+        });
+      }
+
+      if (!publishActionState.eligible) {
+        setPublishActionNotice({ tone: "warning", message: "กรุณาอนุมัติ draft นี้ก่อนโพสต์" });
+        return;
+      }
+
+      if (publishActionState.blockedReason) {
+        setPublishActionNotice({ tone: "warning", message: publishActionState.blockedReason });
+        return;
+      }
+
+      setPublishActionNotice(null);
+
+      try {
+        await handlePublishPost(post.id);
+      } catch (error) {
+        setPublishActionNotice({
+          tone: "danger",
+          message: `โพสต์ไม่สำเร็จ: ${error?.message || "Unexpected publish error"}`,
+        });
+      }
+    },
+    [handlePublishPost, settings, workspacePages]
+  );
+
   return (
     <div className="space-y-5">
-      {statusNotice ? (
+      {publishActionNotice || statusNotice ? (
         <div
           className={`rounded-2xl border px-4 py-3 text-sm ${
-            statusNotice.tone === "danger"
+            (publishActionNotice || statusNotice).tone === "danger"
               ? "border-rose-500/20 bg-rose-500/10 text-rose-200"
-              : statusNotice.tone === "warning"
+              : (publishActionNotice || statusNotice).tone === "warning"
                 ? "border-amber-500/20 bg-amber-500/10 text-amber-200"
                 : "border-emerald-500/20 bg-emerald-500/10 text-emerald-200"
           }`}
         >
-          {statusNotice.message}
+          {(publishActionNotice || statusNotice).message}
         </div>
       ) : null}
 
@@ -767,6 +849,7 @@ function StatusPage({
           reviewQueue.map((post) => {
             const completion = getChecklistCompletion(post.quality_checklist);
             const aiReview = aiReviewByPostId?.[post.id] || null;
+            const publishActionState = getReviewQueuePublishState(post, settings, workspacePages);
 
             return (
               <article
@@ -835,6 +918,7 @@ function StatusPage({
                     post={post}
                     aiReviewLoadingPostId={aiReviewLoadingPostId}
                     aiImproveLoadingPostId={aiImproveLoadingPostId}
+                    publishActionState={publishActionState}
                     className="grid grid-cols-2 gap-2 sm:grid-cols-4 xl:w-[18rem] xl:grid-cols-2"
                     onRunAIQualityCheck={handleRunAIQualityCheck}
                     onImproveReviewPost={handleImproveReviewPost}
@@ -846,7 +930,7 @@ function StatusPage({
                       setReviewDetailPostId(null);
                       handleOpenSchedule(nextPost);
                     }}
-                    onPublish={handlePublishPost}
+                    onPublish={handleReviewQueuePublish}
                     onDelete={handleDeleteRequest}
                   />
                 </div>
@@ -1215,6 +1299,7 @@ function StatusPage({
         post={reviewDetailPost}
         aiReview={reviewDetailAIReview}
         completion={reviewDetailCompletion}
+        publishActionState={reviewDetailPublishActionState}
         aiReviewLoadingPostId={aiReviewLoadingPostId}
         aiImproveLoadingPostId={aiImproveLoadingPostId}
         onClose={() => setReviewDetailPostId(null)}
@@ -1228,7 +1313,7 @@ function StatusPage({
           setReviewDetailPostId(null);
           handleOpenSchedule(post);
         }}
-        onPublish={handlePublishPost}
+        onPublish={handleReviewQueuePublish}
         onDelete={async (post) => {
           const didDelete = await handleDeleteRequest(post);
           if (didDelete) setReviewDetailPostId(null);
