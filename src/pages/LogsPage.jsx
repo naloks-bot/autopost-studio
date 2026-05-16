@@ -95,7 +95,8 @@ function maskSecretsInText(value = "") {
 
 function sanitizeLogData(value, parentKey = "") {
   const key = String(parentKey || "").toLowerCase();
-  const isSensitiveKey = /token|secret|api.?key|authorization|access.?token/.test(key);
+  const isSafeTokenDiagnostic = /^token_(present|fingerprint|source)$/.test(key);
+  const isSensitiveKey = !isSafeTokenDiagnostic && /token|secret|api.?key|authorization|access.?token/.test(key);
 
   if (value == null) return value;
   if (isSensitiveKey) return "[masked]";

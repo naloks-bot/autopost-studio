@@ -47,6 +47,10 @@ Recent completed checkpoints:
 * scheduled live publish works through `cron-job.org -> Supabase Edge Function`
 * app state now refreshes from Supabase truth instead of waiting for manual browser refresh
 * repeated `post_due` / `publish_skipped` noise for already-posted items was fixed
+* live Facebook publish runtime config trace/fix shipped for manual and scheduled publish paths
+* active page settings are now the source of truth for page-specific `page_id` / page token routing in publish attempts
+* sanitized Facebook publish diagnostics were added before live attempts without exposing raw tokens
+* scheduler/claim/finalize and Mock / Live safety remain preserved
 * Mock / Live safety remains preserved
 * stable publish/scheduler/Supabase systems remain preserved during operator UX cleanup
 

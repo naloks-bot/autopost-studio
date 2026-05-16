@@ -1359,7 +1359,7 @@ function App() {
             post_id: post.id,
             metadata: {
               topic: post.topic,
-              publish_mode: effectivePublish.effectiveSettings.facebookPublishMode || "mock",
+              publish_mode: effectivePublish.effectiveSettings?.facebookPublishMode || currentSettings.facebookPublishMode || "mock",
               publish_source: effectivePublish.effectivePublishSource,
               live_page_publish_status: effectivePublish.livePerPagePublishStatus,
               image_url_type: publishDiagnostics.originalImageUrlType,
@@ -1502,7 +1502,27 @@ function App() {
           publishDiagnostics.resolvedImageUrl && publishDiagnostics.resolvedImageUrl !== post.image_url
             ? { ...post, image_url: publishDiagnostics.resolvedImageUrl }
             : post;
-        const result = await publishFacebookPost(publishPost, effectivePublish.effectiveSettings);
+        const result = await publishFacebookPost(publishPost, effectivePublish.effectiveSettings, {
+          onDiagnostics: async (diagnostics) => {
+            await recordOperationLog({
+              level: "info",
+              source: "manual_publish",
+              event: "publish_diagnostics",
+              message: `Sanitized Facebook publish diagnostics recorded for "${post.topic}".`,
+              page_id: effectivePublish.resolvedPageId,
+              post_id: post.id,
+              metadata: {
+                topic: post.topic,
+                publish_mode: effectivePublish.effectiveSettings.facebookPublishMode || "mock",
+                publish_source: effectivePublish.effectivePublishSource,
+                live_page_publish_status: effectivePublish.livePerPagePublishStatus,
+                effective_page_id: effectivePublish.effectivePageId,
+                result: "diagnostics",
+                ...diagnostics,
+              },
+            });
+          },
+        });
         if (result.error) {
           const failedUpdate = await markRemotePostFailed(post.id);
           if (failedUpdate.data) mergeRemotePostTruth(failedUpdate.data);

@@ -324,7 +324,23 @@ export async function processScheduledPosts({ posts, settings, onPostPublished }
           })
         );
 
-        const publishResult = await publishFacebookPost(post, effectivePublish.effectiveSettings);
+        const publishResult = await publishFacebookPost(post, effectivePublish.effectiveSettings, {
+          onDiagnostics: async (diagnostics) => {
+            await createOperationLog(
+              buildSchedulerLogEntry({
+                event: "publish_diagnostics",
+                message: `Sanitized Facebook publish diagnostics recorded for "${post.topic}".`,
+                post: claimedPost,
+                effectivePublish,
+                publishDiagnostics,
+                extraMetadata: {
+                  result: "diagnostics",
+                  ...diagnostics,
+                },
+              })
+            );
+          },
+        });
 
         if (publishResult.data) {
           const postedAt = new Date().toISOString();

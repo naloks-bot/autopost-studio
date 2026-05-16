@@ -54,6 +54,136 @@ function getImageUrlType(value: string | null | undefined) {
   }
 }
 
+function getTokenFingerprint(token: string | null | undefined) {
+  const value = String(token || "");
+  if (!value) return "";
+
+  let hash = 2166136261;
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+
+  return `${(hash >>> 0).toString(16).padStart(8, "0")}:${value.slice(-4)}`;
+}
+
+function getImageUrlHost(value: string | null | undefined) {
+  const next = String(value || "").trim();
+  if (!next) return "";
+
+  try {
+    return new URL(next).host;
+  } catch {
+    return "";
+  }
+}
+
+function getEndpointType(endpoint: string) {
+  return endpoint === "photos" ? "photo_url" : "feed_text";
+}
+
+function sanitizeFacebookErrorPayload(payload: Record<string, any> | null | undefined) {
+  const error = payload?.error || payload;
+  if (!error || typeof error !== "object") return null;
+
+  return {
+    message: error.message || "",
+    type: error.type || "",
+    code: error.code || null,
+    error_subcode: error.error_subcode || null,
+    fbtrace_id: error.fbtrace_id || "",
+  };
+}
+
+function buildSanitizedPublishDiagnostics(
+  post: Record<string, any>,
+  publishConfig: Record<string, any>,
+  publishRequest: Record<string, any>,
+  pageTarget: Record<string, any>,
+  publishMode: string,
+) {
+  const safeImageUrl = String(post.image_url || "").trim() && !isUnsafeImageUrl(post.image_url)
+    ? String(post.image_url || "").trim()
+    : "";
+
+  return {
+    page_id: pageTarget.pageId || publishConfig.pageId || "",
+    configured_page_id: pageTarget.configuredPageId || publishConfig.pageId || "",
+    token_profile_page_id: pageTarget.source === "token_profile_id" ? pageTarget.pageId || "" : "",
+    page_id_source: pageTarget.source || "configured_page_id",
+    page_id_mismatch: Boolean(pageTarget.mismatch),
+    page_name: pageTarget.pageName || publishConfig.pageLabel || "",
+    token_present: Boolean(publishConfig.accessToken),
+    token_fingerprint: getTokenFingerprint(publishConfig.accessToken),
+    token_source: publishConfig.tokenSource || publishConfig.effectivePublishSource || "unknown",
+    endpoint_type: getEndpointType(publishRequest.endpoint),
+    endpoint_path: `/${pageTarget.pageId || publishConfig.pageId || ""}/${publishRequest.endpoint}`,
+    has_image: Boolean(safeImageUrl),
+    image_url_host: getImageUrlHost(safeImageUrl),
+    mode: publishMode,
+    post_id: post.id || null,
+    title: post.topic || "",
+    scheduled_at: post.scheduled_at || null,
+    page_lookup_error: pageTarget.lookupError || null,
+  };
+}
+
+async function resolveLiveFacebookPageTarget(pageId: string, accessToken: string) {
+  const configuredPageId = normalizePageId(pageId);
+
+  if (!accessToken) {
+    return {
+      pageId: configuredPageId,
+      configuredPageId,
+      pageName: "",
+      source: "configured_page_id",
+      mismatch: false,
+      lookupError: null,
+    };
+  }
+
+  try {
+    const lookupUrl = new URL(`${FB_BASE_URL}/me`);
+    lookupUrl.searchParams.set("fields", "id,name");
+    lookupUrl.searchParams.set("access_token", accessToken);
+
+    const response = await fetch(lookupUrl);
+    const result = await response.json();
+
+    if (!response.ok || !result?.id) {
+      return {
+        pageId: configuredPageId,
+        configuredPageId,
+        pageName: "",
+        source: "configured_page_id",
+        mismatch: false,
+        lookupError: sanitizeFacebookErrorPayload(result) || { status: response.status },
+      };
+    }
+
+    const tokenPageId = normalizePageId(result.id);
+    const mismatch = Boolean(configuredPageId && tokenPageId && configuredPageId !== tokenPageId);
+
+    return {
+      pageId: tokenPageId || configuredPageId,
+      configuredPageId,
+      pageName: result.name || "",
+      source: mismatch || !configuredPageId ? "token_profile_id" : "configured_page_id",
+      mismatch,
+      lookupError: null,
+    };
+  } catch (error) {
+    return {
+      pageId: configuredPageId,
+      configuredPageId,
+      pageName: "",
+      source: "configured_page_id",
+      mismatch: false,
+      lookupError: { message: error instanceof Error ? error.message : "Facebook page token lookup failed" },
+    };
+  }
+}
+
 function resolveEffectivePublishConfig(post: Record<string, any>, settings: Record<string, any>, pages: Array<Record<string, any>>) {
   const requestedPageId = normalizePageId(post.page_id);
   const resolvedPage =
@@ -87,6 +217,7 @@ function resolveEffectivePublishConfig(post: Record<string, any>, settings: Reco
       livePagePublishStatus: "Disabled",
       pageId: pageConfigReady ? resolvedPage.facebook_page_id : settings.facebook_page_id,
       accessToken: pageConfigReady ? resolvedPage.facebook_page_access_token : settings.facebook_page_access_token,
+      tokenSource: pageConfigReady ? "active_page_settings" : "global_settings",
       canAttemptPublish: mockConfigReady,
       reason: mockConfigReady ? "" : "Facebook publish config is incomplete for both page-specific and global settings.",
     };
@@ -102,6 +233,7 @@ function resolveEffectivePublishConfig(post: Record<string, any>, settings: Reco
       livePagePublishStatus: "Active",
       pageId: resolvedPage.facebook_page_id,
       accessToken: resolvedPage.facebook_page_access_token,
+      tokenSource: "active_page_settings",
       canAttemptPublish: true,
       reason: "",
     };
@@ -117,6 +249,7 @@ function resolveEffectivePublishConfig(post: Record<string, any>, settings: Reco
       livePagePublishStatus: "Blocked",
       pageId: "",
       accessToken: "",
+      tokenSource: "none",
       canAttemptPublish: false,
       reason: "Requested page could not be resolved. Live publish was blocked to avoid publishing to the wrong page.",
     };
@@ -132,6 +265,7 @@ function resolveEffectivePublishConfig(post: Record<string, any>, settings: Reco
       livePagePublishStatus: "Blocked",
       pageId: "",
       accessToken: "",
+      tokenSource: "none",
       canAttemptPublish: false,
       reason: "Page-specific publish config is incomplete. Live publish was blocked to avoid publishing to the wrong page.",
     };
@@ -147,6 +281,7 @@ function resolveEffectivePublishConfig(post: Record<string, any>, settings: Reco
       livePagePublishStatus: "Fallback",
       pageId: settings.facebook_page_id,
       accessToken: settings.facebook_page_access_token,
+      tokenSource: "global_settings",
       canAttemptPublish: true,
       reason: "Default page is using the stable global V1 publish config.",
     };
@@ -161,6 +296,7 @@ function resolveEffectivePublishConfig(post: Record<string, any>, settings: Reco
     livePagePublishStatus: "Blocked",
     pageId: "",
     accessToken: "",
+    tokenSource: "none",
     canAttemptPublish: false,
     reason: "Global V1 publish config is incomplete, and no safe page-specific live config is available.",
   };
@@ -181,6 +317,7 @@ function buildLogMetadata(post: Record<string, any>, publishConfig: Record<strin
     fallback_reason: extra.fallback_reason || publishConfig.reason || "",
     facebook_error_payload: extra.facebook_error_payload || null,
     facebook_post_id: extra.facebook_post_id || null,
+    ...extra,
   };
 }
 
@@ -527,9 +664,39 @@ serve(async (req) => {
         });
 
         let facebookPostId = `mock-edge-id-${Date.now()}`;
+        const publishRequest = buildFacebookPublishRequest(post);
         if (publishMode === "live") {
-          const publishRequest = buildFacebookPublishRequest(post);
-          const fbResponse = await fetch(`${FB_BASE_URL}/${publishConfig.pageId}/${publishRequest.endpoint}?access_token=${publishConfig.accessToken}`, {
+          const pageTarget = await resolveLiveFacebookPageTarget(publishConfig.pageId, publishConfig.accessToken);
+          if (!pageTarget.pageId || pageTarget.pageId === "default") {
+            throw new Error("Missing Facebook Page ID after live token validation.");
+          }
+
+          const publishDiagnostics = buildSanitizedPublishDiagnostics(
+            claimedPost,
+            publishConfig,
+            publishRequest,
+            pageTarget,
+            publishMode,
+          );
+
+          await writeOperationLog({
+            category: "scheduler",
+            level: "info",
+            source: "scheduler_edge",
+            event: "publish_diagnostics",
+            message: `Sanitized Facebook publish diagnostics recorded for "${post.topic}".`,
+            page_id: publishConfig.resolvedPageId,
+            post_id: String(post.id),
+            metadata: buildLogMetadata(claimedPost, publishConfig, {
+              publish_mode: publishMode,
+              result: "diagnostics",
+              ...publishDiagnostics,
+            }),
+          });
+
+          console.log("facebook_live_publish_diagnostics", JSON.stringify(publishDiagnostics));
+
+          const fbResponse = await fetch(`${FB_BASE_URL}/${pageTarget.pageId}/${publishRequest.endpoint}?access_token=${publishConfig.accessToken}`, {
             method: "POST",
             body: publishRequest.params,
           });

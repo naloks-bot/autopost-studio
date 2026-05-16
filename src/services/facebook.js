@@ -14,6 +14,107 @@ import { getPublicImageUrl } from "./storage.js";
 const FB_API_VERSION = "v23.0";
 const FB_BASE_URL = `https://graph.facebook.com/${FB_API_VERSION}`;
 
+function normalizePageId(value = "") {
+  return String(value || "").trim();
+}
+
+function getTokenFingerprint(token = "") {
+  const value = String(token || "");
+  if (!value) return "";
+
+  let hash = 2166136261;
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+
+  return `${(hash >>> 0).toString(16).padStart(8, "0")}:${value.slice(-4)}`;
+}
+
+function getImageUrlHost(value = "") {
+  const next = String(value || "").trim();
+  if (!next) return "";
+  try {
+    return new URL(next).host;
+  } catch {
+    return "";
+  }
+}
+
+function getEndpointType(endpoint = "feed") {
+  return endpoint === "photos" ? "photo_url" : "feed_text";
+}
+
+function sanitizeFacebookErrorPayload(payload) {
+  const error = payload?.error || payload;
+  if (!error || typeof error !== "object") return null;
+  return {
+    message: error.message || "",
+    type: error.type || "",
+    code: error.code || null,
+    error_subcode: error.error_subcode || null,
+    fbtrace_id: error.fbtrace_id || "",
+  };
+}
+
+function buildSanitizedLiveDiagnostics({
+  post = {},
+  settings = {},
+  payloadDiagnostics = {},
+  endpoint = "feed",
+  endpointPageId = "",
+  configuredPageId = "",
+  pageTargetSource = "configured_page_id",
+  pageTargetName = "",
+  pageIdMismatch = false,
+  pageLookupError = null,
+} = {}) {
+  const tokenSource = settings.facebookTokenSource || settings.facebookPublishSource || "unknown";
+  const imageUrl = payloadDiagnostics.resolvedImageUrl || "";
+
+  return {
+    page_id: endpointPageId || configuredPageId || "",
+    configured_page_id: configuredPageId || "",
+    token_profile_page_id: pageTargetSource === "token_profile_id" ? endpointPageId || "" : "",
+    page_id_source: pageTargetSource,
+    page_id_mismatch: Boolean(pageIdMismatch),
+    page_name: pageTargetName || settings.facebookPageLabel || "",
+    token_present: Boolean(settings.facebookPageAccessToken),
+    token_fingerprint: getTokenFingerprint(settings.facebookPageAccessToken),
+    token_source: tokenSource,
+    endpoint_type: getEndpointType(endpoint),
+    endpoint_path: `/${endpointPageId || configuredPageId || ""}/${endpoint}`,
+    has_image: Boolean(imageUrl),
+    image_url_host: getImageUrlHost(imageUrl),
+    mode: settings.facebookPublishMode || "mock",
+    post_id: post.id || null,
+    title: post.topic || "",
+    scheduled_at: post.scheduled_at || null,
+    page_lookup_error: pageLookupError,
+  };
+}
+
+export function getSanitizedFacebookPublishDiagnostics(post = {}, settings = {}, options = {}) {
+  const {
+    diagnostics: payloadDiagnostics,
+    endpoint,
+  } = buildFacebookPostPayload(post);
+  const pageId = normalizePageId(options.endpointPageId || settings.facebookPageId);
+
+  return buildSanitizedLiveDiagnostics({
+    post,
+    settings,
+    payloadDiagnostics,
+    endpoint,
+    endpointPageId: pageId,
+    configuredPageId: normalizePageId(options.configuredPageId || settings.facebookPageId),
+    pageTargetSource: options.pageTargetSource || "configured_page_id",
+    pageTargetName: options.pageTargetName || "",
+    pageIdMismatch: options.pageIdMismatch || false,
+    pageLookupError: options.pageLookupError || null,
+  });
+}
+
 /**
  * Validates if the required Facebook configuration is present.
  * @param {Object} settings - Application settings.
@@ -161,13 +262,69 @@ function extractFacebookError(result, status) {
   return `Facebook API Error: ${status}`;
 }
 
+async function resolveLiveFacebookPageTarget(settings) {
+  const configuredPageId = normalizePageId(settings.facebookPageId);
+  const accessToken = String(settings.facebookPageAccessToken || "");
+
+  if (!accessToken) {
+    return {
+      pageId: configuredPageId,
+      configuredPageId,
+      pageName: "",
+      source: "configured_page_id",
+      mismatch: false,
+      lookupError: null,
+    };
+  }
+
+  try {
+    const lookupUrl = new URL(`${FB_BASE_URL}/me`);
+    lookupUrl.searchParams.set("fields", "id,name");
+    lookupUrl.searchParams.set("access_token", accessToken);
+    const response = await fetch(lookupUrl);
+    const result = await response.json();
+
+    if (!response.ok || !result?.id) {
+      return {
+        pageId: configuredPageId,
+        configuredPageId,
+        pageName: "",
+        source: "configured_page_id",
+        mismatch: false,
+        lookupError: sanitizeFacebookErrorPayload(result) || { status: response.status },
+      };
+    }
+
+    const tokenPageId = normalizePageId(result.id);
+    const mismatch = Boolean(configuredPageId && tokenPageId && configuredPageId !== tokenPageId);
+
+    return {
+      pageId: tokenPageId || configuredPageId,
+      configuredPageId,
+      pageName: result.name || "",
+      source: mismatch || !configuredPageId ? "token_profile_id" : "configured_page_id",
+      mismatch,
+      lookupError: null,
+    };
+  } catch (error) {
+    return {
+      pageId: configuredPageId,
+      configuredPageId,
+      pageName: "",
+      source: "configured_page_id",
+      mismatch: false,
+      lookupError: { message: error?.message || "Facebook page token lookup failed" },
+    };
+  }
+}
+
 /**
  * Publishes a post to the Facebook Page's feed immediately.
  * @param {Object} post - The post data.
  * @param {Object} settings - App settings containing tokens.
  * @returns {Promise<{data: any, error: string|null, mode: string}>}
  */
-export async function publishFacebookPost(post, settings) {
+export async function publishFacebookPost(post, settings, options = {}) {
   const diagnostics = getFacebookPublishDiagnostics(post);
   if (!validateFacebookConfig(settings)) {
     logger.warn("Facebook configuration missing during publish attempt.");
@@ -182,6 +339,10 @@ export async function publishFacebookPost(post, settings) {
 
   if (settings.facebookPublishMode !== "live") {
     logger.info("Facebook Publish (MOCK MODE): Simulating success...");
+    const mockDiagnostics = getSanitizedFacebookPublishDiagnostics(post, settings);
+    if (options.onDiagnostics) {
+      await options.onDiagnostics(mockDiagnostics);
+    }
     return {
       data: { id: "mock-facebook-post-id" },
       error: null,
@@ -189,6 +350,7 @@ export async function publishFacebookPost(post, settings) {
       diagnostics: {
         ...diagnostics,
         publishMode: settings.facebookPublishMode || "mock",
+        sanitized: mockDiagnostics,
       },
       facebookErrorPayload: null,
     };
@@ -221,7 +383,38 @@ export async function publishFacebookPost(post, settings) {
       diagnostics: payloadDiagnostics,
       endpoint,
     } = buildFacebookPostPayload(post);
-    const url = `${FB_BASE_URL}/${settings.facebookPageId}/${endpoint}?access_token=${settings.facebookPageAccessToken}`;
+    const pageTarget = await resolveLiveFacebookPageTarget(settings);
+    if (!pageTarget.pageId) {
+      return {
+        data: null,
+        error: "Missing Facebook Page ID after live token validation.",
+        mode: "connected",
+        diagnostics: {
+          ...payloadDiagnostics,
+          publishMode: settings.facebookPublishMode,
+        },
+        facebookErrorPayload: null,
+      };
+    }
+
+    const sanitizedDiagnostics = buildSanitizedLiveDiagnostics({
+      post,
+      settings,
+      payloadDiagnostics,
+      endpoint,
+      endpointPageId: pageTarget.pageId,
+      configuredPageId: pageTarget.configuredPageId,
+      pageTargetSource: pageTarget.source,
+      pageTargetName: pageTarget.pageName,
+      pageIdMismatch: pageTarget.mismatch,
+      pageLookupError: pageTarget.lookupError,
+    });
+    logger.info("Facebook live publish diagnostics.", sanitizedDiagnostics);
+    if (options.onDiagnostics) {
+      await options.onDiagnostics(sanitizedDiagnostics);
+    }
+
+    const url = `${FB_BASE_URL}/${pageTarget.pageId}/${endpoint}?access_token=${settings.facebookPageAccessToken}`;
     logger.info("Facebook publish payload prepared.", {
       publishMode: settings.facebookPublishMode,
       publishTarget: payloadDiagnostics.publishTarget,
@@ -246,6 +439,7 @@ export async function publishFacebookPost(post, settings) {
         diagnostics: {
           ...payloadDiagnostics,
           publishMode: settings.facebookPublishMode,
+          sanitized: sanitizedDiagnostics,
         },
         facebookErrorPayload: result?.error || result,
       };
@@ -262,6 +456,7 @@ export async function publishFacebookPost(post, settings) {
       diagnostics: {
         ...payloadDiagnostics,
         publishMode: settings.facebookPublishMode,
+        sanitized: sanitizedDiagnostics,
       },
       facebookErrorPayload: null,
     };

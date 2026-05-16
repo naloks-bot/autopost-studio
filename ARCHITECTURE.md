@@ -126,6 +126,8 @@ Current reliability boundary inside this layer:
 * app state now refreshes from Supabase truth instead of relying on stale browser state
 * repeated `post_due` / `publish_skipped` noise for already-posted items should remain suppressed
 * scheduler observability must log execution truth, not optimistic intent
+* active page settings are the source of truth for page-specific Facebook `page_id` and page access token routing
+* live Facebook publish validates the page token target before the final Graph request and records sanitized diagnostics only
 * image posts must publish as attached Facebook photos, while text-only posts continue to publish through the stable feed path
 * production cron delivery comes from `cron-job.org` hitting the stable Supabase Edge Function endpoint with `x-cron-secret`
 * GitHub Actions is retained only for manual `workflow_dispatch` fallback/debug execution and is not the production scheduler trigger
@@ -237,6 +239,7 @@ The stable production boundary now includes:
 * scheduled live publish through `cron-job.org -> Supabase Edge Function`
 * duplicate-prevention claim locking
 * execution-truth operation logging
+* sanitized live Facebook publish diagnostics for page/token/endpoint/image routing without raw token exposure
 * app-state refresh from Supabase truth without requiring manual browser refresh for normal publish/schedule sync
 * attached-photo publish behavior for posts with `image_url`
 * additive content stock workflow metadata for `hook`, `content_pillar`, `approved_at`, and `quality_checklist`

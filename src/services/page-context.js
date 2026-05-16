@@ -104,11 +104,16 @@ export function resolveEffectivePublishConfig({ post = null, pageId, settings = 
     ...settings,
     facebookPageId: settings.facebookPageId || "",
     facebookPageAccessToken: settings.facebookPageAccessToken || "",
+    facebookTokenSource: "global_settings",
+    facebookPageLabel: "Global V1",
   };
   const pageSpecificSettings = {
     ...settings,
     facebookPageId: resolvedPage?.facebookPageId || "",
     facebookPageAccessToken: resolvedPage?.facebookPageAccessToken || "",
+    facebookTokenSource: "active_page_settings",
+    facebookPageLabel: resolvedPage?.label || "",
+    facebookWorkspacePageId: resolvedPage?.id || "default",
   };
   const isLiveMode = settings.facebookPublishMode === "live";
 
@@ -123,6 +128,7 @@ export function resolveEffectivePublishConfig({ post = null, pageId, settings = 
       livePerPagePublishStatus: "Disabled",
       effectiveSettings,
       effectivePageId: effectiveSettings.facebookPageId || "",
+      tokenSource: readiness.pageConfigReady ? "active_page_settings" : "global_settings",
       canAttemptPublish: mockConfigReady,
       blockedReason: mockConfigReady
         ? ""
@@ -139,6 +145,7 @@ export function resolveEffectivePublishConfig({ post = null, pageId, settings = 
       livePerPagePublishStatus: "Active",
       effectiveSettings: pageSpecificSettings,
       effectivePageId: pageSpecificSettings.facebookPageId,
+      tokenSource: "active_page_settings",
       canAttemptPublish: true,
       blockedReason: "",
       isPageSpecificLive: true,
@@ -153,6 +160,7 @@ export function resolveEffectivePublishConfig({ post = null, pageId, settings = 
       livePerPagePublishStatus: "Blocked",
       effectiveSettings: null,
       effectivePageId: "",
+      tokenSource: "none",
       canAttemptPublish: false,
       blockedReason: "Requested page could not be resolved. Live publish was blocked to avoid publishing to the wrong page.",
       isPageSpecificLive: false,
@@ -167,6 +175,7 @@ export function resolveEffectivePublishConfig({ post = null, pageId, settings = 
       livePerPagePublishStatus: "Blocked",
       effectiveSettings: null,
       effectivePageId: "",
+      tokenSource: "none",
       canAttemptPublish: false,
       blockedReason: "Page-specific publish config is incomplete. Live publish was blocked to avoid publishing to the wrong page.",
       isPageSpecificLive: false,
@@ -181,6 +190,7 @@ export function resolveEffectivePublishConfig({ post = null, pageId, settings = 
       livePerPagePublishStatus: "Fallback",
       effectiveSettings: globalSettings,
       effectivePageId: globalSettings.facebookPageId,
+      tokenSource: "global_settings",
       canAttemptPublish: true,
       blockedReason: "",
       fallbackReason: readiness.fallbackReason || "Default page is using the stable global V1 publish config.",
@@ -195,6 +205,7 @@ export function resolveEffectivePublishConfig({ post = null, pageId, settings = 
     livePerPagePublishStatus: "Blocked",
     effectiveSettings: null,
     effectivePageId: "",
+    tokenSource: "none",
     canAttemptPublish: false,
     blockedReason: "Global V1 publish config is incomplete, and no safe page-specific live config is available.",
     isPageSpecificLive: false,
