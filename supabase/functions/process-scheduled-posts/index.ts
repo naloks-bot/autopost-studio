@@ -447,22 +447,28 @@ serve(async (req) => {
         if (claimError) throw claimError;
 
         if (!claimedPost) {
-          await writeOperationLog({
-            category: "scheduler",
-            level: "warn",
-            source: "scheduler_edge",
-            event: "publish_skipped",
-            message: `Scheduled publish skipped for "${post.topic}" because the post state changed before claim.`,
-            page_id: publishConfig.resolvedPageId,
-            post_id: String(post.id),
-            metadata: buildLogMetadata(post, publishConfig, {
-              publish_mode: publishMode,
-              result: "skipped",
-              error_message: "Post state changed before scheduler claim",
-            }),
-          });
-          postResult.action = "skipped";
-          postResult.error = "Post state changed before scheduler claim";
+          const { data: latestPost } = await supabase.from("posts").select("*").eq("id", post.id).maybeSingle();
+          const alreadyCompleted =
+            latestPost?.status === "posted" || (latestPost?.status !== "scheduled" && !latestPost?.scheduled_at);
+          if (!alreadyCompleted) {
+            await writeOperationLog({
+              category: "scheduler",
+              level: "warn",
+              source: "scheduler_edge",
+              event: "publish_skipped",
+              message: `Scheduled publish skipped for "${post.topic}" because the post state changed before claim.`,
+              page_id: publishConfig.resolvedPageId,
+              post_id: String(post.id),
+              metadata: buildLogMetadata(latestPost || post, publishConfig, {
+                publish_mode: publishMode,
+                result: "skipped",
+                latest_status: latestPost?.status || null,
+                error_message: "Post state changed before scheduler claim",
+              }),
+            });
+          }
+          postResult.action = alreadyCompleted ? "stale_completed" : "skipped";
+          postResult.error = alreadyCompleted ? "" : "Post state changed before scheduler claim";
           results.push(postResult);
           continue;
         }
@@ -585,6 +591,14 @@ serve(async (req) => {
           finalizeError = fallbackFinalize.error;
         }
         if (finalizeError) throw finalizeError;
+        if (!finalizeData) {
+          const { data: latestPost, error: latestError } = await supabase.from("posts").select("*").eq("id", post.id).maybeSingle();
+          if (latestError) throw latestError;
+          if (latestPost?.status !== "posted") {
+            throw new Error(`Post finalization did not reach posted state. Latest status: ${latestPost?.status || "unknown"}`);
+          }
+          finalizeData = latestPost;
+        }
 
         await writeOperationLog({
           category: "scheduler",

@@ -179,8 +179,19 @@ function getReviewCardTone(review) {
   return "border-cyan-500/20 bg-cyan-500/10 text-cyan-100";
 }
 
+function isDisplayableImageUrl(value = "") {
+  const imageUrl = String(value || "").trim();
+  return Boolean(imageUrl && /^(https?:|data:image\/|blob:)/i.test(imageUrl));
+}
+
 function ReviewThumbnail({ imageUrl, title, large = false }) {
   const sizeClass = large ? "h-56 w-full md:h-64" : "h-24 w-24 sm:h-28 sm:w-28";
+  const [hasImageError, setHasImageError] = useState(false);
+  const safeImageUrl = isDisplayableImageUrl(imageUrl) ? String(imageUrl).trim() : "";
+
+  useEffect(() => {
+    setHasImageError(false);
+  }, [safeImageUrl]);
 
   return (
     <div
@@ -188,14 +199,45 @@ function ReviewThumbnail({ imageUrl, title, large = false }) {
         large ? "" : "shrink-0"
       }`}
     >
-      {imageUrl ? (
-        <img src={imageUrl} alt={title || "Review image"} className="h-full w-full object-cover" />
+      {safeImageUrl && !hasImageError ? (
+        <img
+          src={safeImageUrl}
+          alt={title || "Review image"}
+          className="h-full w-full object-cover"
+          onError={() => setHasImageError(true)}
+        />
       ) : (
         <div className="flex h-full w-full items-center justify-center px-3 text-center text-xs font-semibold text-slate-500">
           ยังไม่มีรูป
         </div>
       )}
     </div>
+  );
+}
+
+function SafeQueueImage({ imageUrl, alt = "Preview" }) {
+  const [hasImageError, setHasImageError] = useState(false);
+  const safeImageUrl = isDisplayableImageUrl(imageUrl) ? String(imageUrl).trim() : "";
+
+  useEffect(() => {
+    setHasImageError(false);
+  }, [safeImageUrl]);
+
+  if (!safeImageUrl || hasImageError) {
+    return (
+      <div className="flex h-full w-full items-center justify-center px-3 text-center text-xs font-semibold text-slate-500">
+        ยังไม่มีรูป
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={safeImageUrl}
+      alt={alt}
+      className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+      onError={() => setHasImageError(true)}
+    />
   );
 }
 
@@ -1131,9 +1173,9 @@ function StatusPage({
                 key={post.id}
                 className="group relative flex flex-col gap-3 overflow-hidden rounded-[1.5rem] border border-white/5 bg-slate-900/60 p-4 transition-all hover:bg-slate-900/80 lg:flex-row"
               >
-                {post.image_url ? (
+                {isDisplayableImageUrl(post.image_url) ? (
                   <div className="h-20 w-full shrink-0 overflow-hidden rounded-xl lg:h-24 lg:w-32">
-                    <img src={post.image_url} alt="Preview" className="h-full w-full object-cover transition duration-500 group-hover:scale-105" />
+                    <SafeQueueImage imageUrl={post.image_url} />
                   </div>
                 ) : null}
 

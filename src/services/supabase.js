@@ -774,7 +774,14 @@ export async function finalizeRemotePublishedPost(postId, { postedAt, facebookPo
 
   if (!data) {
     const latest = await fetchRemotePostById(postId);
-    return { data: latest.data, error: null, mode: latest.mode };
+    if (latest.data?.status === "posted") {
+      return { data: latest.data, error: null, mode: latest.mode };
+    }
+    return {
+      data: null,
+      error: new Error(`Post finalization did not reach posted state. Latest status: ${latest.data?.status || "unknown"}`),
+      mode: latest.mode,
+    };
   }
 
   const latest = await fetchRemotePostById(postId);

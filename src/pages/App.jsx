@@ -309,6 +309,30 @@ function App() {
     [appendClientOperationLog]
   );
 
+  const refreshRemoteTruth = useCallback(async ({ includeLogs = true, showConnectionError = false } = {}) => {
+    const [postsResult, logsResult] = await Promise.all([
+      fetchRemotePosts(),
+      includeLogs ? fetchOperationLogs() : Promise.resolve({ data: null, mode: null }),
+    ]);
+
+    if (postsResult.data) setRemotePosts(postsResult.data);
+    if (postsResult.mode) setConnectionMode(postsResult.mode);
+    if (showConnectionError && postsResult.error && postsResult.mode !== "offline") {
+      setConnectionError(toUserSafeMessage(postsResult.error, "ยังโหลดร่างจาก Supabase ไม่ได้"));
+    }
+
+    if (logsResult.data) setOperationLogs(logsResult.data);
+    if (logsResult.mode) setLogsMode(logsResult.mode);
+
+    return {
+      posts: postsResult.data || null,
+      logs: logsResult.data || null,
+      postsMode: postsResult.mode || null,
+      logsMode: logsResult.mode || null,
+      error: postsResult.error || null,
+    };
+  }, []);
+
   async function loadAllData(showSpinner = false) {
     if (dataLock.current) return;
     dataLock.current = true;
@@ -1017,6 +1041,7 @@ function App() {
 
       if (updated.data) {
         mergeRemotePostTruth(updated.data);
+        await refreshRemoteTruth({ includeLogs: false });
         setStatusNotice({
           tone: nextStatus === "approved" ? "success" : "warning",
           message: nextStatus === "approved" ? "อนุมัติ draft แล้ว พร้อมเลือกเวลาโพสต์" : "ย้าย draft กลับไปรอตรวจใหม่แล้ว",
@@ -1030,7 +1055,7 @@ function App() {
       });
       return false;
     },
-    [localDrafts, mergeRemotePostTruth, remotePosts]
+    [localDrafts, mergeRemotePostTruth, refreshRemoteTruth, remotePosts]
   );
 
   const handleRunAIQualityCheck = useCallback(
@@ -1505,6 +1530,7 @@ function App() {
             },
           });
           setStatusNotice({ tone: "success", message: "โพสต์เรียบร้อยแล้ว" });
+          await refreshRemoteTruth({ includeLogs: true });
           return true;
         }
 
@@ -1530,6 +1556,7 @@ function App() {
           },
         });
         setStatusNotice({ tone: "warning", message: "โพสต์ไปแล้ว แต่ยังอัปเดตสถานะในระบบไม่สำเร็จ" });
+        await refreshRemoteTruth({ includeLogs: true });
         return false;
       } catch (error) {
         await recordOperationLog({
@@ -1546,7 +1573,7 @@ function App() {
         return false;
       }
     },
-    [mergeRemotePostTruth, recordOperationLog]
+    [mergeRemotePostTruth, recordOperationLog, refreshRemoteTruth]
   );
 
   const handleSchedulePost = useCallback(
@@ -1614,6 +1641,7 @@ function App() {
           tone: "success",
           message: `ตั้งเวลาโพสต์แล้วสำหรับ ${formatDate(update.data.scheduled_at || scheduledDate.toISOString())}`,
         });
+        await refreshRemoteTruth({ includeLogs: true });
         return true;
       } catch (error) {
         setStatusNotice({
@@ -1625,7 +1653,7 @@ function App() {
         setIsSchedulingPostId(null);
       }
     },
-    [mergeRemotePostTruth, recordOperationLog, remotePosts, settings.facebookPublishMode]
+    [mergeRemotePostTruth, recordOperationLog, refreshRemoteTruth, remotePosts, settings.facebookPublishMode]
   );
 
   const handleUnschedulePost = useCallback(
@@ -1694,14 +1722,17 @@ function App() {
 
     schedulerLock.current = true;
       try {
-        const summary = await runSchedulerTick(currentPosts, currentSettings, {
+        const latestTruth = await refreshRemoteTruth({ includeLogs: false });
+        if (latestTruth.error) return;
+        const latestPosts = latestTruth.posts || [];
+        if (!latestPosts.length) return;
+
+        const summary = await runSchedulerTick(latestPosts, currentSettings, {
           onPostPublished: (updatedPost) => {
             mergeRemotePostTruth(updatedPost);
           },
         });
-        const logsResult = await fetchOperationLogs();
-        if (logsResult.data) setOperationLogs(logsResult.data);
-        if (logsResult.mode) setLogsMode(logsResult.mode);
+        await refreshRemoteTruth({ includeLogs: true });
         if (summary.due > 0 || summary.published > 0 || summary.failed > 0) {
           setSchedulerStatus({ lastRun: new Date().toISOString(), ...summary });
         }

@@ -178,29 +178,34 @@ export async function processScheduledPosts({ posts, settings, onPostPublished }
         });
 
         if (!claimResult.claimed) {
-          await createOperationLog(
-            buildSchedulerLogEntry({
-              level: "warn",
-              event: "publish_skipped",
-              message: `Scheduled publish skipped for "${post.topic}" because the post state changed before claim.`,
-              post: claimResult.data || post,
-              effectivePublish,
-              publishDiagnostics,
-              extraMetadata: {
-                result: "skipped",
-                error_message: "Post state changed before scheduler claim",
-              },
-            })
-          );
+          const latestPost = claimResult.data || post;
+          const alreadyCompleted = latestPost.status === "posted" || (latestPost.status !== "scheduled" && !latestPost.scheduled_at);
+          if (!alreadyCompleted) {
+            await createOperationLog(
+              buildSchedulerLogEntry({
+                level: "warn",
+                event: "publish_skipped",
+                message: `Scheduled publish skipped for "${post.topic}" because the post state changed before claim.`,
+                post: latestPost,
+                effectivePublish,
+                publishDiagnostics,
+                extraMetadata: {
+                  result: "skipped",
+                  latest_status: latestPost.status || null,
+                  error_message: "Post state changed before scheduler claim",
+                },
+              })
+            );
+          }
           summary.results.push({
             id: post.id,
-            status: "skipped",
+            status: alreadyCompleted ? "stale_completed" : "skipped",
             topic: post.topic,
             page_id: effectivePublish.resolvedPageId,
             page_label: effectivePublish.label,
             publish_source: effectivePublish.effectivePublishSource,
             live_page_publish_status: effectivePublish.livePerPagePublishStatus,
-            error: "Post state changed before scheduler claim",
+            error: alreadyCompleted ? "" : "Post state changed before scheduler claim",
           });
           continue;
         }
