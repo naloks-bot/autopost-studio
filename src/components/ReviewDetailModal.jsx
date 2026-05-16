@@ -64,18 +64,20 @@ function isDisplayableImageUrl(value = "") {
 }
 
 function getReviewDisplayHook(post = {}) {
-  return String(post.hook || deriveHookFromContent(post.content, post.topic) || post.topic || "").trim();
+  const item = post || {};
+  return String(item?.hook || deriveHookFromContent(item?.content, item?.topic) || item?.topic || "").trim();
 }
 
 function buildReviewImageState(post = {}) {
-  const imageUrl = String(post.image_url || "").trim();
+  const item = post || {};
+  const imageUrl = String(item?.image_url || item?.imageUrl || "").trim();
   return {
     imageUrl,
     previewUrl: imageUrl,
-    provider: post.image_provider || null,
-    revisedPrompt: post.image_revised_prompt || null,
-    storagePath: post.image_storage_path || null,
-    storageMode: post.image_storage_mode || null,
+    provider: item?.image_provider || item?.imageProvider || null,
+    revisedPrompt: item?.image_revised_prompt || item?.imageRevisedPrompt || null,
+    storagePath: item?.image_storage_path || item?.imageStoragePath || null,
+    storageMode: item?.image_storage_mode || item?.imageStorageMode || null,
   };
 }
 
@@ -91,12 +93,14 @@ function getUploadFileExtension(file) {
 }
 
 function hasImageStateChanged(post = {}, imageState = {}) {
+  const item = post || {};
+  const nextImageState = imageState || {};
   return (
-    String(post.image_url || "").trim() !== String(imageState.imageUrl || "").trim() ||
-    (post.image_provider || null) !== (imageState.provider || null) ||
-    (post.image_revised_prompt || null) !== (imageState.revisedPrompt || null) ||
-    (post.image_storage_path || null) !== (imageState.storagePath || null) ||
-    (post.image_storage_mode || null) !== (imageState.storageMode || null)
+    String(item?.image_url || item?.imageUrl || "").trim() !== String(nextImageState?.imageUrl || "").trim() ||
+    (item?.image_provider || item?.imageProvider || null) !== (nextImageState?.provider || null) ||
+    (item?.image_revised_prompt || item?.imageRevisedPrompt || null) !== (nextImageState?.revisedPrompt || null) ||
+    (item?.image_storage_path || item?.imageStoragePath || null) !== (nextImageState?.storagePath || null) ||
+    (item?.image_storage_mode || item?.imageStorageMode || null) !== (nextImageState?.storageMode || null)
   );
 }
 
@@ -138,7 +142,7 @@ export default function ReviewDetailModal({
   const aiStatusSummary = getAIReviewSummary(aiReview);
   const currentHook = useMemo(() => getReviewDisplayHook(post || {}), [post?.hook, post?.content, post?.topic]);
   const currentCaption = String(post?.content || "").trim();
-  const displayImageUrl = String(draftImage.previewUrl || draftImage.imageUrl || "").trim();
+  const displayImageUrl = String(draftImage?.previewUrl || draftImage?.imageUrl || "").trim();
   const canExpandImage = isDisplayableImageUrl(displayImageUrl);
   const hasUnsavedChanges = Boolean(
     post &&
@@ -315,7 +319,7 @@ export default function ReviewDetailModal({
     try {
       const today = new Date().toISOString().split("T")[0];
       const extension = getUploadFileExtension(file);
-      const filePath = `uploads/${today}/review-${post.id}-${Date.now()}.${extension}`;
+      const filePath = `uploads/${today}/review-${post?.id || "draft"}-${Date.now()}.${extension}`;
       const uploadResult = await uploadImageBlob(filePath, file);
 
       if (!uploadResult.data) {
@@ -330,7 +334,7 @@ export default function ReviewDetailModal({
         imageUrl: uploadResult.data,
         previewUrl: uploadResult.data,
         provider: "upload",
-        revisedPrompt: post.image_revised_prompt || null,
+        revisedPrompt: post?.image_revised_prompt || null,
         storagePath: filePath,
         storageMode: "supabase",
       };
@@ -338,7 +342,7 @@ export default function ReviewDetailModal({
       setDraftImage(nextImageState);
       await persistEdits({
         imageStateOverride: nextImageState,
-        successMessage: post.status === "approved" ? "เปลี่ยนรูปแล้ว และต้องอนุมัติใหม่ก่อนไปต่อ" : "เปลี่ยนรูปแล้ว",
+        successMessage: post?.status === "approved" ? "เปลี่ยนรูปแล้ว และต้องอนุมัติใหม่ก่อนไปต่อ" : "เปลี่ยนรูปแล้ว",
       });
     } finally {
       setIsUploadingImage(false);

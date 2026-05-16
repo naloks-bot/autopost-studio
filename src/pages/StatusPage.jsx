@@ -188,18 +188,20 @@ function isDisplayableImageUrl(value = "") {
 }
 
 function getReviewDisplayHook(post = {}) {
-  return String(post.hook || deriveHookFromContent(post.content, post.topic) || post.topic || "").trim();
+  const item = post || {};
+  return String(item?.hook || deriveHookFromContent(item?.content, item?.topic) || item?.topic || "").trim();
 }
 
 function buildReviewImageState(post = {}) {
-  const imageUrl = String(post.image_url || "").trim();
+  const item = post || {};
+  const imageUrl = String(item?.image_url || item?.imageUrl || "").trim();
   return {
     imageUrl,
     previewUrl: imageUrl,
-    provider: post.image_provider || null,
-    revisedPrompt: post.image_revised_prompt || null,
-    storagePath: post.image_storage_path || null,
-    storageMode: post.image_storage_mode || null,
+    provider: item?.image_provider || item?.imageProvider || null,
+    revisedPrompt: item?.image_revised_prompt || item?.imageRevisedPrompt || null,
+    storagePath: item?.image_storage_path || item?.imageStoragePath || null,
+    storageMode: item?.image_storage_mode || item?.imageStorageMode || null,
   };
 }
 
@@ -215,12 +217,14 @@ function getUploadFileExtension(file) {
 }
 
 function hasImageStateChanged(post = {}, imageState = {}) {
+  const item = post || {};
+  const nextImageState = imageState || {};
   return (
-    String(post.image_url || "").trim() !== String(imageState.imageUrl || "").trim() ||
-    (post.image_provider || null) !== (imageState.provider || null) ||
-    (post.image_revised_prompt || null) !== (imageState.revisedPrompt || null) ||
-    (post.image_storage_path || null) !== (imageState.storagePath || null) ||
-    (post.image_storage_mode || null) !== (imageState.storageMode || null)
+    String(item?.image_url || item?.imageUrl || "").trim() !== String(nextImageState?.imageUrl || "").trim() ||
+    (item?.image_provider || item?.imageProvider || null) !== (nextImageState?.provider || null) ||
+    (item?.image_revised_prompt || item?.imageRevisedPrompt || null) !== (nextImageState?.revisedPrompt || null) ||
+    (item?.image_storage_path || item?.imageStoragePath || null) !== (nextImageState?.storagePath || null) ||
+    (item?.image_storage_mode || item?.imageStorageMode || null) !== (nextImageState?.storageMode || null)
   );
 }
 
@@ -344,6 +348,8 @@ function ReviewQueueActions({
   publishActionState,
   onDelete,
 }) {
+  if (!post) return null;
+
   const isApproved = post.status === "approved";
   const canSendToSchedule = canSchedulePost(post);
   const canSendToPublish = canPublishPost(post);
@@ -685,7 +691,7 @@ function StatusPage({
   const [publishActionNotice, setPublishActionNotice] = useState(null);
 
   const stockSummary = useMemo(
-    () => buildStockSummary([...remotePosts, ...(localDrafts || [])], workspacePages, LOW_STOCK_THRESHOLD),
+    () => buildStockSummary([...(remotePosts || []), ...(localDrafts || [])].filter(Boolean), workspacePages, LOW_STOCK_THRESHOLD),
     [localDrafts, remotePosts, workspacePages]
   );
   const activePageStock = stockSummary.byPage.find((page) => page.pageId === activePageId) || stockSummary.byPage[0];
@@ -693,7 +699,8 @@ function StatusPage({
   const reviewQueue = useMemo(
     () =>
       sortQueuePosts(
-        allPendingPosts.filter((post) => {
+        (allPendingPosts || []).filter((post) => {
+          if (!post) return false;
           const status = post.status || "draft";
           return (post.page_id || "default") === activePageId && ["draft", "review", "approved"].includes(status);
         })
@@ -702,7 +709,7 @@ function StatusPage({
   );
 
   const operationalView = useMemo(() => {
-    const pageRemotePosts = remotePosts.filter((post) => (post.page_id || "default") === activePageId);
+    const pageRemotePosts = (remotePosts || []).filter((post) => post && (post.page_id || "default") === activePageId);
     const scheduledPosts = sortQueuePosts(pageRemotePosts.filter((post) => post.status === "scheduled"));
     const failedPosts = sortQueuePosts(pageRemotePosts.filter((post) => post.status === "failed"));
     const postedPosts = sortQueuePosts(pageRemotePosts.filter((post) => post.status === "posted"));
@@ -730,7 +737,7 @@ function StatusPage({
   }, [activePageId, remotePosts, selectedFilter]);
 
   const reviewDetailPost = useMemo(
-    () => allPendingPosts.find((post) => post.id === reviewDetailPostId) || null,
+    () => (allPendingPosts || []).find((post) => post?.id === reviewDetailPostId) || null,
     [allPendingPosts, reviewDetailPostId]
   );
   const reviewDetailAIReview = reviewDetailPost ? aiReviewByPostId?.[reviewDetailPost.id] || null : null;
