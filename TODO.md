@@ -2,7 +2,7 @@
 
 ## Current Status
 
-AutoPost Studio now has a locked stable production baseline.
+AutoPost Studio now has a frozen Content Stock OS production baseline that is usable for real Facebook content work.
 
 Completed and locked:
 
@@ -14,6 +14,24 @@ Completed and locked:
 * real publish stabilization complete
 * production deployment sync verified
 * cinematic editorial direction locked
+* compact Review Queue cards shipped
+* Review Detail Modal shipped with desktop two-column layout
+* image prompt is visible and copyable from the modal
+* AI/manual checklist confusion removed from the primary review workflow
+* post-now action restored
+* approval undo added for safe approved posts
+* batch 5 / 10 / 20 generation now produces more meaningfully different drafts
+* batch generation is more quota-friendly and avoids rapid parallel Gemini spam
+* Gemini 429 / rate-limit now has clearer Thai messaging
+* manual `โพสต์` works for approved posts
+* manual publish claim now safely supports `approved -> publishing`
+* unapproved posts cannot publish
+* scheduled / publishing / posted posts cannot publish again
+* duplicate prevention is preserved
+* scheduled live publish works through `cron-job.org -> Supabase Edge Function`
+* app state now refreshes from Supabase truth without waiting for manual browser refresh in the normal workflow
+* repeated `post_due` / `publish_skipped` noise for already-posted items was fixed
+* Mock / Live safety preserved
 
 Current development direction:
 
@@ -22,13 +40,16 @@ Current development direction:
 * invisible systems narrative direction
 * global aesthetic + Thai emotional storytelling
 * operational reliability and content workflow over architecture expansion
-* current active work is Facebook Content Stock OS stabilization after the successful Phase 1A SQL apply
+* next priority is producing real content stock for Vance Nexus AI
 * Clip OS remains future planning only
 
-Production schema state:
+Production connection path:
 
-* Phase 1A Supabase SQL has been applied successfully in Supabase SQL Editor
-* `supabase-setup.sql` is rerun-safe with `DROP POLICY IF EXISTS` before every `CREATE POLICY`
+* Vercel hosts the frontend
+* Supabase stores posts, settings, logs, and images
+* Supabase Edge Function `process-scheduled-posts` handles server-side scheduled publishing
+* `cron-job.org` is the production scheduler trigger every 5 minutes
+* GitHub Actions is retained only as manual fallback/debug, not as the production scheduler
 
 ---
 
@@ -43,7 +64,7 @@ Production schema state:
 7. Prefer large safe batches.
 8. Commit only meaningful checkpoints.
 9. Update docs only after meaningful milestones.
-10. Keep Codex instructions concise, specific, and outcome-based.
+10. Keep Codex prompts concise but complete enough to solve complex issues in one pass.
 11. Every Codex task must clearly state what to change, what not to touch, expected result, required verification, and what summary to report back.
 12. Check the actual production root cause before attempting another fix for the same issue.
 
@@ -57,164 +78,37 @@ Operational workflow lock:
 * complete safe deployment/configuration steps automatically whenever possible
 * if a manual/auth-required step blocks progress, provide exact manual instructions with where to go, what to click/run, expected success result, and the result/error to report back
 * preserve stable systems: scheduler V1, publish flow, storage flow, Supabase architecture, Create flow, and provider routing
-* Codex task reports must include changed files, exact change points, build result, commit/push result, production deploy result, production QA result, cleanup result, and final git status
+* future app changes should be bug/blocker only unless they directly save time or cost
 
-Locked Model Selection Rules:
+Locked model selection rules:
 
-* Production reliability, scheduler logic, Edge Function work, Supabase state work, and approval workflow safety work use `GPT-5.5 High`
+* choose exactly one model per task based on risk
+* production reliability, scheduler logic, Edge Function work, Supabase state work, and approval workflow safety work use `GPT-5.5 High`
 * UI, layout, and operator UX work use `GPT-5.4 Medium`
 * docs and cleanup use `GPT-5.4 Low` or `GPT-5.4 Medium`
-* `Extra High` is used only if High fails after 2 serious attempts or production data risk is high
+* use a stronger model when state, publish, or safety risk justifies it
 
 ---
 
-# Locked Roadmap
-
-## Phase 1 - Automation Reliability Lock
+# Current Next Focus
 
 Goal:
-Production-safe scheduling reliability.
+Produce real content stock for Vance Nexus AI using the current frozen baseline.
 
-TODO:
+Immediate next work:
 
-* scheduler QA
-* overnight scheduling tests
-* scheduled image publish QA
-* duplicate prevention QA
-* failed publish handling QA
-* cron + Edge Function reliability verification
+* create real broad-topic content batches where batch mode is helpful
+* use single-draft Create flow for normal everyday production
+* review, approve, schedule, and publish real content through the current production workflow
+* confirm content quality and operator speed during real use
 
-Current checkpoint:
+Not the next focus:
 
-* final reliability hardening batch is now in code
-* migration-safe `posts` schema alignment is now included in `supabase-setup.sql` for production recovery
-* Phase 1B Edge Function deploy is complete in production
-* browser-closed server automation path is verified through the Edge Function and manual cron invocation
-* image publish path is now locked to attached Facebook photo publishing when `image_url` exists
-* GitHub Actions scheduled cron is retired from production use; `workflow_dispatch` remains as manual fallback/debug only
-* production automation should now be triggered by external cron calling the same Edge Function with `x-cron-secret`
-* remaining Phase 1 work should focus on external cron production confirmation and overnight QA, not architecture changes
-
-Not allowed:
-
-* scheduler redesign
-* queue redesign
-* backend rewrite
-
-Success condition:
-System can reliably auto-post with the app/browser/computer closed.
-
-External cron setup to apply:
-
-* Provider: `cron-job.org`
-* URL: `https://qydjsobtspoykhzcckht.supabase.co/functions/v1/process-scheduled-posts`
-* Method: `POST`
-* Interval: every 5 minutes
-* Required header: `x-cron-secret: <CRON_SECRET>`
-* Optional header: `Content-Type: application/json`
-* Expected success response: HTTP `200`
-
-Recommended visibility:
-
-* keep cron-job.org execution history enabled
-* spot-check Supabase post rows for `scheduled -> posted` transitions and cleared `scheduled_at`
-
-## Phase 2 - Content Factory Workflow
-
-Goal:
-Efficient batch content creation and scheduling.
-
-TODO:
-
-* batch content workflow
-* draft stock workflow
-* reusable content structures
-* save/schedule workflow optimization
-* cinematic consistency workflow
-
-Phase 2A checkpoint:
-
-* Create actions are compact and scroll naturally without sticky pinning
-* queue density improved for faster desktop scanning
-* posted items collapsed by default
-* logs styling softened to operational cyan/neutral tone
-* advanced diagnostics moved behind collapsible sections
-
-Phase 2B checkpoint:
-
-* quick schedule presets added to speed up save + schedule workflow
-* duplicate/reuse flow added for draft and posted content
-* Status page now supports compact queue filters and summary counts
-* scheduled items now have fast reschedule actions using the existing schedule handler only
-
-Phase 2B.1 checkpoint:
-
-* quick schedule layout cleaned up for better Create-page scanning
-* image prompt generation now uses current post context instead of canned placeholder output
-* Status header and queue filters stay compact and scroll naturally
-* active queue cards now support delete-with-confirm and modal schedule editing
-* AI Library navigation is hidden until a functional version is ready
-
-Phase 1A checkpoint:
-
-* stock dashboard now shows counts for `draft`, `review`, `approved`, `scheduled`, `posted`, and `failed`
-* low-stock warnings now call out pages that are short on available content stock
-* batch Facebook draft generation now creates separate review items in 5/10/20 batches
-* review queue now supports AI-assisted quality review, optional manual checklist guidance, approve, keep-as-draft, edit, and send-to-schedule
-* page memory foundation now exposes page purpose, target audience, writing tone, content pillars, avoid list, and default CTA
-* scheduler and publish flow remain additive and approval-gated without changing the stable processor architecture
-
-Current stabilization TODO:
-
-* QA batch generation for 5 / 10 / 20 drafts
-* QA review queue actions across Supabase and local fallback drafts
-* verify approval-gated scheduling/publish behavior remains intact
-* verify stock counts and low-stock warnings stay accurate and quiet
-* keep fixes minimal, additive, and production-safe
-
-Important:
-Focus on operator efficiency and low token usage. Avoid unnecessary UI redesign.
-
-Success condition:
-Can stockpile and schedule 30-100 posts consistently.
-
-## Phase 3 - Prompt Intelligence Layer
-
-Goal:
-Improve cinematic image consistency and reduce abstract prompt failures.
-
-TODO:
-
-* topic -> cinematic image prompt translation
-* visual metaphor mapping
-* narrative-aware image prompt generation
-* cinematic image consistency refinement
-* brand-aware prompt structure
-
-Important:
-Extend existing systems only. Do not rewrite provider architecture.
-
-Success condition:
-Short topics reliably generate cinematic editorial visuals.
-
-## Phase 4 - Brand Memory + Lightweight Analytics
-
-Goal:
-Long-term optimization and AI-assisted content refinement.
-
-TODO:
-
-* engagement tracking
-* hook/topic performance tracking
-* image performance tracking
-* reusable winning pattern memory
-* lightweight brand memory refinement
-
-Important:
-Keep analytics lightweight and operational.
-
-Success condition:
-System can learn and reinforce high-performing content patterns.
+* Clip OS
+* video features
+* app redesign
+* speculative feature expansion
+* architecture change without a proven blocker
 
 ---
 
@@ -227,3 +121,5 @@ System can learn and reinforce high-performing content patterns.
 * backend rewrite
 * advanced analytics expansion
 * speculative provider frameworks
+* Clip OS implementation
+* video feature implementation

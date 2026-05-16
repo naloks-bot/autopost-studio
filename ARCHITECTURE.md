@@ -2,7 +2,7 @@
 
 ## Operating Principle
 
-AutoPost Studio is now locked as an AI Editorial Operating System with a stable production baseline. The architecture must support cinematic editorial content operations while keeping system churn low and preserving the already-stable publish pipeline.
+AutoPost Studio is now locked as a stable production baseline for real Facebook content work. The architecture should preserve the current Content Stock OS workflow, keep publish safety intact, and avoid reopening systems that are already usable in production.
 
 Core architecture priorities:
 
@@ -45,6 +45,8 @@ Not part of the current architecture direction:
 * auth/billing expansion
 * mobile app expansion
 * speculative provider framework expansion
+* Clip OS implementation
+* video feature implementation
 
 ---
 
@@ -63,6 +65,14 @@ Responsible for:
 Rule:
 Extend the existing provider system only. Do not redesign provider architecture.
 
+Current content-generation baseline:
+
+* normal workflow remains single-draft creation
+* batch generation for 5 / 10 / 20 drafts is intended for broad topics and article-series style content
+* batch generation now creates meaningfully different drafts more safely
+* Gemini usage should remain quota-friendly and should not spam rapid parallel requests
+* Gemini 429 / rate-limit messaging should remain clear in Thai
+
 ## 2. Editorial Workflow Layer
 
 Responsible for:
@@ -78,14 +88,13 @@ Preserve the current stable Create flow and optimize operator efficiency without
 
 Current operator UX boundary inside this layer:
 
-* operator action sections should scroll naturally unless a future QA pass proves pinning is needed
-* desktop queue density can be improved without changing queue architecture
-* posted/completed visibility can be collapsed by default to prioritize active work
-* advanced runtime diagnostics should be hidden behind explicit operator intent when possible
-* quick schedule presets, duplicate/reuse actions, queue filters, and fast reschedule controls are allowed when they only orchestrate the existing draft/save/schedule handlers
-* targeted operator UI cleanup may replace queue-card actions, schedule presentation, and non-functional navigation when backend behavior stays unchanged
-* additive approval workflow, AI-assisted review scoring, optional checklist guidance, stock counts, and batch draft generation are allowed when they reuse the stable draft/save/schedule/publish path
-* current UI work should stay in Phase 1A stabilization mode and avoid expanding into Clip OS
+* compact Review Queue cards are the baseline for high-volume scanning
+* Review Detail Modal uses a desktop two-column layout and stacked mobile layout
+* image prompt is visible and copyable from the modal
+* AI/manual checklist confusion should remain removed from the primary review workflow
+* post-now action is available only through the existing safe publish path
+* approval undo is allowed only for safe approved posts that are not yet scheduled, publishing, or posted
+* quick schedule presets, queue filters, fast reschedule controls, and review actions must continue to orchestrate existing handlers rather than creating new workflow logic
 
 ## 3. Publishing + Automation Layer
 
@@ -103,13 +112,20 @@ Reliability hardening is allowed. Redesign is not.
 Current reliability boundary inside this layer:
 
 * Supabase DB is the authoritative publish state
-* manual and scheduled publish both claim `publishing` before Facebook API execution
+* manual publish now safely claims `approved -> publishing`
+* scheduled publish claims `scheduled -> publishing`
 * successful publish finalization clears `scheduled_at`, persists `facebook_post_id`, and re-reads DB truth
 * failed publishes transition to `failed` instead of silently remaining in queue
+* scheduled, publishing, and posted rows must not be manually published again
+* unapproved rows must not publish
+* duplicate prevention claim locking remains required for both manual and scheduled paths
+* app state now refreshes from Supabase truth instead of relying on stale browser state
+* repeated `post_due` / `publish_skipped` noise for already-posted items should remain suppressed
 * scheduler observability must log execution truth, not optimistic intent
 * image posts must publish as attached Facebook photos, while text-only posts continue to publish through the stable feed path
-* production cron delivery comes from an external cron provider hitting the stable Supabase Edge Function endpoint with `x-cron-secret`
+* production cron delivery comes from `cron-job.org` hitting the stable Supabase Edge Function endpoint with `x-cron-secret`
 * GitHub Actions is retained only for manual `workflow_dispatch` fallback/debug execution and is not the production scheduler trigger
+* Mock / Live safety must remain unchanged
 
 ## 4. Storage + Persistence Layer
 
@@ -117,6 +133,7 @@ Responsible for:
 
 * Supabase draft persistence
 * settings persistence
+* operation log persistence
 * generated image persistence
 * public HTTPS image URL safety
 
@@ -126,7 +143,19 @@ Preserve the current stable Supabase/storage architecture.
 Current storage safety rule:
 
 * `supabase-setup.sql` must remain rerun-safe in Supabase SQL Editor with `DROP POLICY IF EXISTS` immediately before each `CREATE POLICY`
-* additive Phase 1A post metadata (`hook`, `content_pillar`, `approved_at`, `quality_checklist`) remains part of the safe schema contract
+* additive Content Stock OS metadata such as `hook`, `content_pillar`, `approved_at`, and `quality_checklist` remains part of the safe schema contract
+
+---
+
+# Production Path
+
+Current production connection path:
+
+* Vercel hosts the frontend
+* Supabase stores posts, settings, logs, and images
+* Supabase Edge Function `process-scheduled-posts` handles server-side scheduled publishing
+* `cron-job.org` triggers the Edge Function every 5 minutes in production
+* GitHub Actions is retained only as a manual fallback/debug tool
 
 ---
 
@@ -142,7 +171,7 @@ Permanent workflow rules:
 6. Preserve rollback safety.
 7. Commit only meaningful checkpoints.
 8. Update docs only after meaningful milestones.
-9. Keep Codex instructions concise, specific, and outcome-based.
+9. Keep Codex prompts concise but complete enough to solve complex issues in one pass.
 10. Every Codex task must clearly state what to change, what not to touch, expected result, required verification, and what summary to report back.
 11. Check the actual production root cause before attempting another fix for the same issue.
 
@@ -150,110 +179,44 @@ Operational workflow rules:
 
 1. Choose exactly one model per task based on risk.
 2. Production reliability, backend safety, scheduler logic, Supabase state, and approval-gated scheduling/publish workflow use `GPT-5.5 High`.
-3. Architecture planning and large safe refactors use High reasoning only when the task risk justifies it.
-4. UI polish, small components, and operator UX use `GPT-5.4 Medium`.
-5. Docs and cleanup use `GPT-5.4 Low` or `GPT-5.4 Medium`.
-6. Prompt intelligence and cinematic content quality use High only when the task is genuinely quality-critical.
-7. Production-affecting work must continue through local implementation, `npm run build`, meaningful checkpoint commit, GitHub push, Vercel production deployment verification, and live production behavior verification when possible.
-8. Production-affecting verification must include the real deployed website and production path, not local-only behavior.
-9. Safe deployment/configuration steps should be completed automatically whenever possible.
-10. If a manual platform step is required, provide exact navigation, actions, expected success result, and failure details to report back.
-11. Codex task reports must include changed files, exact change points, build result, commit/push result, production deploy result, production QA result, cleanup result, and final git status.
-
-Locked model selection rules:
-
-1. Choose exactly one model per task based on risk.
-2. Production reliability, scheduler logic, Edge Function work, Supabase state work, and approval workflow safety work use `GPT-5.5 High`.
-3. UI, layout, and operator UX work use `GPT-5.4 Medium`.
+3. UI polish, small components, and operator UX use `GPT-5.4 Medium`.
 4. Docs and cleanup use `GPT-5.4 Low` or `GPT-5.4 Medium`.
-5. Use `Extra High` only when High has already failed after 2 serious attempts or production data risk is high.
+5. Use a stronger model when state, publish, or safety risk justifies it.
+6. Production-affecting work must continue through local implementation, `npm run build`, meaningful checkpoint commit, GitHub push, Vercel production deployment verification, and live production behavior verification when possible.
+7. Production-affecting verification must include the real deployed website and production path, not local-only behavior.
+8. Safe deployment/configuration steps should be completed automatically whenever possible.
+9. If a manual platform step is required, provide exact navigation, actions, expected success result, and failure details to report back.
+10. Codex task reports must include changed files, exact change points, build result, commit/push result, production deploy result, production QA result, cleanup result, and final git status.
 
 ---
 
 # Locked Roadmap
 
-## Phase 1 - Automation Reliability Lock
+## Current Next Focus
 
-Focus:
+The next priority is not app expansion. The next priority is producing real content stock for Vance Nexus AI using the current frozen baseline.
 
-* scheduler QA
-* overnight scheduling tests
-* scheduled image publish QA
-* duplicate prevention QA
-* failed publish handling QA
-* cron + Edge Function reliability verification
+Allowed changes from here:
 
-Architecture rule:
-No scheduler redesign, queue redesign, or backend rewrite.
+* bug fixes
+* blocker fixes
+* fixes that directly save time or cost in real content work
 
-## Phase 2 - Content Factory Workflow
+Not allowed from here without a proven production need:
 
-Focus:
+* Clip OS work
+* video workflow expansion
+* speculative feature expansion
+* architecture reopening
 
-* batch content workflow
-* draft stock workflow
-* reusable content structures
-* save/schedule workflow optimization
-* cinematic consistency workflow
+## Future Layers, Deferred
 
-Architecture rule:
-Improve workflow efficiency using the current system boundary.
+These remain future planning only and are not active implementation work:
 
-Phase 2A UI direction:
-
-* simplify operator scanning
-* reduce oversized cards and spacing
-* keep primary actions visible
-* treat logs as an operational timeline, not a permanent failure console
-* hide diagnostics behind advanced disclosure instead of making them always-on
-
-Phase 2B workflow direction:
-
-* accelerate draft stockpiling with one-click schedule presets
-* support draft/post reuse through safe draft duplication
-* improve queue scanning with compact filters and summary counts
-* allow fast reschedule adjustments without changing scheduler logic
-
-Phase 2B.1 operator fix direction:
-
-* keep Create and Status controls compact and desktop-friendly without sticky pinning
-* image prompt generation should derive from the current post context before falling back
-* non-functional UI surfaces should be hidden until they have real persistence behind them
-
-Phase 1A content stock direction:
-
-* add stock visibility before adding new automation
-* treat `approved` as the safe state between draft review and scheduling
-* keep scheduler ownership on `scheduled` only
-* keep human approval required before scheduling or publishing, even when AI review assistance is present
-* keep review metadata additive to the current post model
-* prefer local-first page memory expansion over risky architecture changes
-
-## Phase 3 - Prompt Intelligence Layer
-
-Focus:
-
-* topic -> cinematic image prompt translation
-* visual metaphor mapping
-* narrative-aware prompt generation
-* cinematic image consistency refinement
-* brand-aware prompt structure
-
-Architecture rule:
-Refine prompt intelligence inside the existing AI layer. No provider rewrite.
-
-## Phase 4 - Brand Memory + Lightweight Analytics
-
-Focus:
-
-* engagement tracking
-* hook/topic performance tracking
-* image performance tracking
-* reusable winning pattern memory
-* lightweight brand memory refinement
-
-Architecture rule:
-Keep analytics operational and lightweight. Avoid enterprise-style overengineering.
+* Prompt Intelligence Layer refinement
+* Brand Memory + Lightweight Analytics
+* Clip OS
+* video features
 
 ---
 
@@ -261,34 +224,17 @@ Keep analytics operational and lightweight. Avoid enterprise-style overengineeri
 
 The stable production boundary now includes:
 
-* Gemini generation working
-* caption/imagePrompt separation
-* upload-first image flow
-* Supabase storage persistence
-* public HTTPS image URLs
-* save draft
-* reload/edit draft
-* mock publish
-* real Facebook publish
-* production deployment synchronization
-* stale-state overwrite protection for manual and scheduled publish
-* duplicate prevention claim lock for due scheduled posts
+* single-draft Create flow
+* batch 5 / 10 / 20 content generation with safer diversity
+* compact Review Queue workflow
+* Review Detail Modal with image prompt access and copy
+* approval-gated review, schedule, and publish flow
+* manual `โพสต์` for approved posts
+* scheduled live publish through `cron-job.org -> Supabase Edge Function`
+* duplicate-prevention claim locking
 * execution-truth operation logging
-* 5-minute production cron cadence for scheduler triggering via external cron
-* migration-safe Supabase `posts` schema alignment for the full current publish lifecycle contract
-* Phase 1B production Edge Function deployment
-* browser-closed server automation path verification through the Edge Function and manual cron invocation
-* production-safe due-post evaluation diagnostics
+* app-state refresh from Supabase truth without requiring manual browser refresh for normal publish/schedule sync
 * attached-photo publish behavior for posts with `image_url`
-* additive content stock workflow metadata for `hook`, `content_pillar`, `approved_at`, and manual quality checklist state
-
-External cron setup contract:
-
-* provider: `cron-job.org`
-* endpoint: `https://qydjsobtspoykhzcckht.supabase.co/functions/v1/process-scheduled-posts`
-* method: `POST`
-* cadence: every 5 minutes
-* auth header: `x-cron-secret: <CRON_SECRET>`
-* success response: HTTP `200` with either `No due posts` or `Processing complete`
+* additive content stock workflow metadata for `hook`, `content_pillar`, `approved_at`, and `quality_checklist`
 
 Future work should build on this boundary, not reopen it without a proven blocker.
