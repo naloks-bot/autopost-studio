@@ -1172,20 +1172,67 @@ function App() {
   const handlePublishPost = useCallback(
     async (postId) => {
       try {
-        const post = remotePosts.find((item) => item.id === postId);
+        const currentSettings = stateRef.current.settings;
+        const latestResult = await fetchRemotePostById(postId);
+        if (latestResult.error) {
+          await recordOperationLog({
+            level: "error",
+            source: "manual_publish",
+            event: "publish_blocked",
+            message: "Manual publish could not verify latest Supabase post state.",
+            post_id: postId,
+            metadata: {
+              result: "blocked",
+              error_message: latestResult.error?.message || "Unable to verify latest post state before manual publish",
+            },
+          });
+          setStatusNotice({
+            tone: "danger",
+            message: "ตรวจสอบสถานะล่าสุดจาก Supabase ไม่สำเร็จ จึงยังไม่โพสต์ กรุณารีเฟรชแล้วลองใหม่",
+          });
+          return false;
+        }
+        if (latestResult.data) mergeRemotePostTruth(latestResult.data);
+
+        const post = latestResult.data || stateRef.current.remotePosts.find((item) => item.id === postId);
         if (post && !canPublishPost(post)) {
-          setStatusNotice({ tone: "warning", message: "กรุณาอนุมัติ draft นี้ก่อนโพสต์" });
-          return;
+          const latestStatus = post.status || "draft";
+          const message =
+            latestStatus === "scheduled"
+              ? "โพสต์นี้ถูกตั้งเวลาไว้แล้ว ถ้าต้องการโพสต์ทันทีให้ยกเลิกเวลาก่อน แล้วอนุมัติใหม่"
+              : latestStatus === "publishing"
+                ? "โพสต์นี้กำลังอยู่ระหว่างการโพสต์แล้ว"
+                : latestStatus === "posted"
+                  ? "โพสต์นี้ถูกโพสต์แล้ว จึงไม่สามารถโพสต์ซ้ำได้"
+                  : latestStatus === "failed"
+                    ? "โพสต์นี้อยู่สถานะ failed กรุณาย้ายกลับไปตรวจและอนุมัติใหม่ก่อนโพสต์"
+                    : "กรุณาอนุมัติ draft นี้ก่อนโพสต์";
+          await recordOperationLog({
+            level: "warn",
+            source: "manual_publish",
+            event: "publish_blocked",
+            message,
+            page_id: post.page_id || "default",
+            post_id: post.id,
+            metadata: {
+              topic: post.topic,
+              latest_status: latestStatus,
+              result: "blocked",
+              error_message: "Manual publish requires approved status",
+            },
+          });
+          setStatusNotice({ tone: "warning", message });
+          return false;
         }
         if (!post) {
           setStatusNotice({ tone: "danger", message: "ไม่พบโพสต์ที่ต้องการ" });
-          return;
+          return false;
         }
 
         const effectivePublish = resolveEffectivePublishConfig({
           post,
-          settings,
-          pages: settings.workspacePages,
+          settings: currentSettings,
+          pages: currentSettings.workspacePages,
         });
         const publishDiagnostics = getFacebookPublishDiagnostics(post);
 
@@ -1210,7 +1257,7 @@ function App() {
             tone: "warning",
             message: effectivePublish.blockedReason || effectivePublish.fallbackReason || "โพสต์นี้ยังไม่พร้อมสำหรับการโพสต์",
           });
-          return;
+          return false;
         }
 
         if (effectivePublish.effectiveSettings.facebookPublishMode === "live" && publishDiagnostics.imageBlocked) {
@@ -1238,7 +1285,7 @@ function App() {
             tone: "warning",
             message: `${message} กรุณาอัปโหลดใหม่หรือบันทึกร่างหลังอัปโหลดขึ้นคลาวด์สำเร็จ`,
           });
-          return;
+          return false;
         }
 
         if (effectivePublish.fallbackReason) {
@@ -1267,15 +1314,14 @@ function App() {
               ? `${effectivePublish.label} (page-specific)`
               : effectivePublish.effectivePublishLabel;
           if (!window.confirm(`ต้องการโพสต์ "${post.topic}" ไปที่ Facebook ตอนนี้หรือไม่? (${targetLabel})`)) {
-            return;
+            return false;
           }
         }
 
-        const claimResult = await claimRemotePostForPublishing(post.id, ["draft", "scheduled", "failed"], {
-          scheduled_at: post.status === "scheduled" ? post.scheduled_at || null : undefined,
-        });
+        const claimResult = await claimRemotePostForPublishing(post.id, ["approved"]);
         if (!claimResult.claimed) {
           if (claimResult.data) mergeRemotePostTruth(claimResult.data);
+          const latestStatus = claimResult.data?.status || "unknown";
           await recordOperationLog({
             level: "warn",
             source: "manual_publish",
@@ -1289,15 +1335,16 @@ function App() {
               publish_source: effectivePublish.effectivePublishSource,
               live_page_publish_status: effectivePublish.livePerPagePublishStatus,
               image_url_type: publishDiagnostics.originalImageUrlType,
+              latest_status: latestStatus,
               result: "skipped",
               error_message: "Post state changed before manual publish claim",
             },
           });
           setStatusNotice({
             tone: "warning",
-            message: "โพสต์นี้มีการเปลี่ยนสถานะไปแล้ว จึงข้ามการโพสต์และรีเฟรชสถานะล่าสุดให้เรียบร้อย",
+            message: `โพสต์นี้มีสถานะล่าสุดเป็น ${latestStatus} แล้ว จึงข้ามการโพสต์และรีเฟรชสถานะล่าสุดให้เรียบร้อย`,
           });
-          return;
+          return false;
         }
 
         const claimedPost = claimResult.data || { ...post, status: "publishing" };
@@ -1387,7 +1434,7 @@ function App() {
             },
           });
           setStatusNotice({ tone: "danger", message: `โพสต์ไม่สำเร็จ: ${toUserSafeMessage(result.error, "โพสต์ไม่สำเร็จ")}` });
-          return;
+          return false;
         }
 
         await recordOperationLog({
@@ -1458,7 +1505,7 @@ function App() {
             },
           });
           setStatusNotice({ tone: "success", message: "โพสต์เรียบร้อยแล้ว" });
-          return;
+          return true;
         }
 
         const latest = await fetchRemotePostById(postId);
@@ -1483,6 +1530,7 @@ function App() {
           },
         });
         setStatusNotice({ tone: "warning", message: "โพสต์ไปแล้ว แต่ยังอัปเดตสถานะในระบบไม่สำเร็จ" });
+        return false;
       } catch (error) {
         await recordOperationLog({
           level: "error",
@@ -1495,9 +1543,10 @@ function App() {
           },
         });
         setStatusNotice({ tone: "danger", message: `โพสต์ไม่สำเร็จ: ${toUserSafeMessage(error, "โพสต์ไม่สำเร็จ")}` });
+        return false;
       }
     },
-    [mergeRemotePostTruth, recordOperationLog, remotePosts, settings]
+    [mergeRemotePostTruth, recordOperationLog]
   );
 
   const handleSchedulePost = useCallback(

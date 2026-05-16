@@ -74,7 +74,7 @@ export function canSchedulePost(post = {}) {
 }
 
 export function canPublishPost(post = {}) {
-  return Boolean(post?.source !== "local" && (post?.status === "approved" || post?.status === "scheduled" || post?.status === "failed"));
+  return Boolean(post?.source !== "local" && post?.status === "approved");
 }
 
 export function getAvailableStockCount(posts = [], pageId = "") {

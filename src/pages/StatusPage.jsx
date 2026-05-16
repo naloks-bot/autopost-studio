@@ -712,17 +712,12 @@ function StatusPage({
           publishSource: effectivePublish?.effectivePublishSource || null,
           livePagePublishStatus: effectivePublish?.livePerPagePublishStatus || null,
           blockedReason: publishActionState.blockedReason || "",
-          willCallHandlePublishPost: publishActionState.canAttemptPublish,
+          willCallHandlePublishPost: publishActionState.eligible,
         });
       }
 
       if (!publishActionState.eligible) {
         setPublishActionNotice({ tone: "warning", message: "กรุณาอนุมัติ draft นี้ก่อนโพสต์" });
-        return;
-      }
-
-      if (publishActionState.blockedReason) {
-        setPublishActionNotice({ tone: "warning", message: publishActionState.blockedReason });
         return;
       }
 
