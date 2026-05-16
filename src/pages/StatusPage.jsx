@@ -5,6 +5,7 @@ import {
   Calendar,
   CheckCircle2,
   ChevronDown,
+  Copy,
   Clock,
   Facebook,
   Info,
@@ -216,6 +217,11 @@ function getAIReviewSummary(review) {
   return review.verdict || review.message || "มีผลตรวจ AI แล้ว";
 }
 
+function canUndoApproval(post) {
+  if (!post) return false;
+  return post.status === "approved" && !["scheduled", "publishing", "posted"].includes(post.status);
+}
+
 function ReviewQueueActions({
   post,
   aiReviewLoadingPostId,
@@ -226,6 +232,7 @@ function ReviewQueueActions({
   onImproveReviewPost,
   onLoadDraftToEditor,
   onApprove,
+  onUndoApproval,
   onMoveToDraft,
   onSchedule,
   onPublish,
@@ -234,6 +241,7 @@ function ReviewQueueActions({
   const isApproved = post.status === "approved";
   const canSendToSchedule = canSchedulePost(post);
   const canSendToPublish = canPublishPost(post);
+  const canUndo = canUndoApproval(post);
 
   return (
     <div className={className}>
@@ -264,22 +272,24 @@ function ReviewQueueActions({
         fullWidth={fullWidth}
       />
       <ActionButton
-        label="อนุมัติ"
+        label={canUndo ? "ยกเลิกอนุมัติ" : "อนุมัติ"}
         icon={CheckCircle2}
-        onClick={() => void onApprove(post.id)}
-        variant={isApproved ? "secondary" : "emerald"}
-        disabled={isApproved}
+        onClick={() => void (canUndo ? onUndoApproval(post.id) : onApprove(post.id))}
+        variant={canUndo ? "outline" : isApproved ? "secondary" : "emerald"}
+        disabled={isApproved && !canUndo}
         className="px-3 py-2 text-xs"
         fullWidth={fullWidth}
       />
-      <ActionButton
-        label="Draft"
-        icon={RotateCcw}
-        onClick={() => void onMoveToDraft(post.id)}
-        variant="outline"
-        className="px-3 py-2 text-xs"
-        fullWidth={fullWidth}
-      />
+      {!canUndo ? (
+        <ActionButton
+          label="Draft"
+          icon={RotateCcw}
+          onClick={() => void onMoveToDraft(post.id)}
+          variant="outline"
+          className="px-3 py-2 text-xs"
+          fullWidth={fullWidth}
+        />
+      ) : null}
       <ActionButton
         label="ตั้งเวลา"
         icon={Calendar}
@@ -322,17 +332,48 @@ function ReviewDetailModal({
   onImproveReviewPost,
   onLoadDraftToEditor,
   onApprove,
+  onUndoApproval,
   onMoveToDraft,
   onSchedule,
   onPublish,
   onDelete,
 }) {
   if (!post) return null;
+  const [copyState, setCopyState] = useState("idle");
+  const imagePrompt = String(post.image_prompt || "").trim();
+  const hasImagePrompt = Boolean(imagePrompt);
+  const aiStatusSummary = getAIReviewSummary(aiReview);
+
+  const handleCopyImagePrompt = async () => {
+    if (!hasImagePrompt) return;
+
+    try {
+      if (navigator?.clipboard?.writeText) {
+        await navigator.clipboard.writeText(imagePrompt);
+      } else {
+        const textarea = document.createElement("textarea");
+        textarea.value = imagePrompt;
+        textarea.setAttribute("readonly", "");
+        textarea.style.position = "absolute";
+        textarea.style.left = "-9999px";
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textarea);
+      }
+
+      setCopyState("copied");
+      window.setTimeout(() => setCopyState("idle"), 1800);
+    } catch {
+      setCopyState("error");
+      window.setTimeout(() => setCopyState("idle"), 1800);
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-sm" onClick={onClose}>
       <div
-        className="max-h-[88vh] w-full max-w-4xl overflow-y-auto rounded-[1.5rem] border border-white/10 bg-slate-950 p-4 shadow-2xl shadow-slate-950/60"
+        className="max-h-[88vh] w-full max-w-5xl overflow-y-auto rounded-[1.5rem] border border-white/10 bg-slate-950 p-4 shadow-2xl shadow-slate-950/60"
         onClick={(event) => event.stopPropagation()}
       >
         <div className="flex items-start justify-between gap-4">
@@ -351,88 +392,93 @@ function ReviewDetailModal({
           </button>
         </div>
 
-        <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1fr)_16rem]">
-          <div className="space-y-4">
+        <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(18rem,22rem)_minmax(0,1fr)] lg:items-start">
+          <div className="space-y-3">
             <ReviewThumbnail imageUrl={post.image_url} title={post.topic || post.hook} large />
-
             <div className="flex flex-wrap items-center gap-2">
               <CompactMetaPill tone={post.source === "local" ? "warning" : "accent"}>
                 {post.source === "local" ? "Local" : "Supabase"}
               </CompactMetaPill>
               <CompactMetaPill tone={getReviewStatusTone(post.status)}>{post.status || "draft"}</CompactMetaPill>
               {post.content_pillar ? <CompactMetaPill tone="accent">Pillar: {post.content_pillar}</CompactMetaPill> : null}
-              <CompactMetaPill tone={completion.isComplete ? "success" : "warning"}>Checklist {completion.completed}/{completion.total}</CompactMetaPill>
             </div>
+          </div>
 
-            <div className="rounded-[1.5rem] border border-white/5 bg-slate-900/60 p-4">
+          <div className="space-y-3">
+            <div className="rounded-[1.25rem] border border-white/5 bg-slate-900/60 p-4">
               <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-slate-500">Hook</p>
               <p className="mt-2 text-base font-semibold leading-relaxed text-cyan-200">{post.hook || post.topic || "ยังไม่มี hook"}</p>
             </div>
 
-            <div className="rounded-[1.5rem] border border-white/5 bg-slate-900/60 p-4">
+            <div className="rounded-[1.25rem] border border-white/5 bg-slate-900/60 p-4">
               <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-slate-500">Caption</p>
               <p className="mt-2 whitespace-pre-wrap text-sm leading-7 text-slate-300">{post.content || "-"}</p>
             </div>
 
-            <div className={`rounded-[1.5rem] border p-4 ${getReviewCardTone(aiReview)}`}>
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="text-[10px] font-bold uppercase tracking-[0.16em]">AI Review</span>
-                {typeof aiReview?.score === "number" ? (
-                  <span className="rounded-full border border-black/10 bg-black/10 px-2 py-1 text-[10px] font-bold">
-                    คะแนน {aiReview.score.toFixed(1)}/10
-                  </span>
-                ) : null}
+            <div className="rounded-[1.25rem] border border-white/5 bg-slate-900/60 p-4">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-slate-500">Image Prompt</p>
+                <button
+                  type="button"
+                  onClick={() => void handleCopyImagePrompt()}
+                  disabled={!hasImagePrompt}
+                  className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] font-semibold text-slate-300 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <Copy className="h-3.5 w-3.5" />
+                  คัดลอก
+                </button>
               </div>
-              <p className="mt-2 text-sm font-semibold">{getAIReviewSummary(aiReview)}</p>
+              <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-300">{hasImagePrompt ? imagePrompt : "ยังไม่มี image prompt"}</p>
+              {copyState === "copied" ? <p className="mt-2 text-xs text-emerald-300">คัดลอก image prompt แล้ว</p> : null}
+              {copyState === "error" ? <p className="mt-2 text-xs text-rose-300">คัดลอกไม่สำเร็จ ลองใหม่อีกครั้ง</p> : null}
+            </div>
+
+            <div className={`rounded-[1.25rem] border p-4 ${getReviewCardTone(aiReview)}`}>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-[10px] font-bold uppercase tracking-[0.16em]">AI Review</span>
+                  {typeof aiReview?.score === "number" ? (
+                    <span className="rounded-full border border-black/10 bg-black/10 px-2 py-1 text-[10px] font-bold">
+                      คะแนน {aiReview.score.toFixed(1)}/10
+                    </span>
+                  ) : null}
+                </div>
+                <CompactMetaPill tone={aiReview?.type === "warning" || (typeof aiReview?.score === "number" && aiReview.score < 7) ? "warning" : "success"}>
+                  {aiStatusSummary}
+                </CompactMetaPill>
+              </div>
+              <p className="mt-2 text-xs opacity-90">กดเช็คเมื่ออยากใช้ AI review และ quota เพิ่มเติม</p>
               {aiReview?.feedback ? <p className="mt-2 text-sm leading-relaxed">{aiReview.feedback}</p> : null}
               {aiReview?.improvementDirection ? <p className="mt-2 text-xs opacity-90">แนวปรับ: {aiReview.improvementDirection}</p> : null}
               {aiReview?.message && !aiReview?.feedback ? <p className="mt-2 text-xs opacity-90">{aiReview.message}</p> : null}
             </div>
 
-            <div className="rounded-[1.5rem] border border-white/5 bg-slate-900/60 p-4">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-slate-500">Checklist Result</p>
-                <CompactMetaPill tone={completion.isComplete ? "success" : "warning"}>
-                  {completion.completed}/{completion.total}
-                </CompactMetaPill>
-              </div>
-              <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                {REVIEW_CHECKLIST_FIELDS.map((field) => {
-                  const checked = Boolean(post.quality_checklist?.[field.id]);
-                  return (
-                    <div
-                      key={`${post.id}-${field.id}`}
-                      className={`rounded-xl border px-3 py-2 text-sm ${
-                        checked
-                          ? "border-emerald-400/20 bg-emerald-500/10 text-emerald-100"
-                          : "border-white/10 bg-slate-950/50 text-slate-400"
-                      }`}
-                    >
-                      <span className="font-semibold">{field.label}</span>
-                      <span className="ml-2 text-xs">{checked ? "ผ่าน" : "ยังไม่ได้ติ๊ก"}</span>
-                    </div>
-                  );
-                })}
+            <div className="rounded-[1.25rem] border border-white/5 bg-slate-900/60 p-4">
+              <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-slate-500">Actions</p>
+              <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+                <ReviewQueueActions
+                  post={post}
+                  aiReviewLoadingPostId={aiReviewLoadingPostId}
+                  aiImproveLoadingPostId={aiImproveLoadingPostId}
+                  className="contents"
+                  onRunAIQualityCheck={onRunAIQualityCheck}
+                  onImproveReviewPost={onImproveReviewPost}
+                  onLoadDraftToEditor={onLoadDraftToEditor}
+                  onApprove={onApprove}
+                  onUndoApproval={onUndoApproval}
+                  onMoveToDraft={onMoveToDraft}
+                  onSchedule={onSchedule}
+                  onPublish={onPublish}
+                  onDelete={onDelete}
+                />
               </div>
             </div>
-          </div>
 
-          <div className="space-y-3 xl:border-l xl:border-white/5 xl:pl-5">
-            <ReviewQueueActions
-              post={post}
-              aiReviewLoadingPostId={aiReviewLoadingPostId}
-              aiImproveLoadingPostId={aiImproveLoadingPostId}
-              fullWidth
-              className="flex flex-col gap-2"
-              onRunAIQualityCheck={onRunAIQualityCheck}
-              onImproveReviewPost={onImproveReviewPost}
-              onLoadDraftToEditor={onLoadDraftToEditor}
-              onApprove={onApprove}
-              onMoveToDraft={onMoveToDraft}
-              onSchedule={onSchedule}
-              onPublish={onPublish}
-              onDelete={onDelete}
-            />
+            {aiReview ? null : (
+              <div className="rounded-[1.25rem] border border-dashed border-white/10 bg-slate-950/40 px-4 py-3 text-xs text-slate-400">
+                Manual checklist ไม่ได้เป็นตัวหลักใน modal นี้แล้ว ถ้าต้องการคุณภาพเชิงลึก ให้ใช้ปุ่มเช็ค AI จากด้านบน
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -793,6 +839,7 @@ function StatusPage({
                     onImproveReviewPost={handleImproveReviewPost}
                     onLoadDraftToEditor={handleLoadDraftToEditor}
                     onApprove={(postId) => handleSetDraftReviewStatus(postId, "approved")}
+                    onUndoApproval={(postId) => handleSetDraftReviewStatus(postId, "review")}
                     onMoveToDraft={(postId) => handleSetDraftReviewStatus(postId, "draft")}
                     onSchedule={(nextPost) => {
                       setReviewDetailPostId(null);
@@ -1174,6 +1221,7 @@ function StatusPage({
         onImproveReviewPost={handleImproveReviewPost}
         onLoadDraftToEditor={handleLoadDraftToEditor}
         onApprove={(postId) => handleSetDraftReviewStatus(postId, "approved")}
+        onUndoApproval={(postId) => handleSetDraftReviewStatus(postId, "review")}
         onMoveToDraft={(postId) => handleSetDraftReviewStatus(postId, "draft")}
         onSchedule={(post) => {
           setReviewDetailPostId(null);
