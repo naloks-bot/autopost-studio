@@ -222,14 +222,6 @@ function canUndoApproval(post) {
   return post.status === "approved" && !["scheduled", "publishing", "posted"].includes(post.status);
 }
 
-function buildActionHandler(action) {
-  return (event) => {
-    event?.preventDefault?.();
-    event?.stopPropagation?.();
-    return action();
-  };
-}
-
 function ReviewQueueActions({
   post,
   aiReviewLoadingPostId,
@@ -244,26 +236,19 @@ function ReviewQueueActions({
   onMoveToDraft,
   onSchedule,
   onPublish,
-  publishState,
   onDelete,
 }) {
   const isApproved = post.status === "approved";
   const canSendToSchedule = canSchedulePost(post);
+  const canSendToPublish = canPublishPost(post);
   const canUndo = canUndoApproval(post);
-  const canShowPublish = publishState?.visible ?? canPublishPost(post);
-  const canClickPublish = publishState?.enabled ?? false;
-  const publishReason = publishState?.reason || "";
 
   return (
-    <div
-      className={className}
-      onClick={(event) => event.stopPropagation()}
-      onClickCapture={(event) => event.stopPropagation()}
-    >
+    <div className={className}>
       <ActionButton
         label="เช็ค"
         icon={Bot}
-        onClick={buildActionHandler(() => void onRunAIQualityCheck(post.id))}
+        onClick={() => void onRunAIQualityCheck(post.id)}
         variant="secondary"
         isLoading={aiReviewLoadingPostId === post.id}
         className="px-3 py-2 text-xs"
@@ -272,7 +257,7 @@ function ReviewQueueActions({
       <ActionButton
         label="ปรับปรุง"
         icon={Pencil}
-        onClick={buildActionHandler(() => void onImproveReviewPost(post.id))}
+        onClick={() => void onImproveReviewPost(post.id)}
         variant="outline"
         isLoading={aiImproveLoadingPostId === post.id}
         className="px-3 py-2 text-xs"
@@ -281,7 +266,7 @@ function ReviewQueueActions({
       <ActionButton
         label="แก้ไข"
         icon={Pencil}
-        onClick={buildActionHandler(() => onLoadDraftToEditor(post))}
+        onClick={() => onLoadDraftToEditor(post)}
         variant="outline"
         className="px-3 py-2 text-xs"
         fullWidth={fullWidth}
@@ -289,7 +274,7 @@ function ReviewQueueActions({
       <ActionButton
         label={canUndo ? "ยกเลิกอนุมัติ" : "อนุมัติ"}
         icon={CheckCircle2}
-        onClick={buildActionHandler(() => void (canUndo ? onUndoApproval(post.id) : onApprove(post.id)))}
+        onClick={() => void (canUndo ? onUndoApproval(post.id) : onApprove(post.id))}
         variant={canUndo ? "outline" : isApproved ? "secondary" : "emerald"}
         disabled={isApproved && !canUndo}
         className="px-3 py-2 text-xs"
@@ -299,7 +284,7 @@ function ReviewQueueActions({
         <ActionButton
           label="Draft"
           icon={RotateCcw}
-          onClick={buildActionHandler(() => void onMoveToDraft(post.id))}
+          onClick={() => void onMoveToDraft(post.id)}
           variant="outline"
           className="px-3 py-2 text-xs"
           fullWidth={fullWidth}
@@ -308,30 +293,29 @@ function ReviewQueueActions({
       <ActionButton
         label="ตั้งเวลา"
         icon={Calendar}
-        onClick={buildActionHandler(() => onSchedule(post))}
+        onClick={() => onSchedule(post)}
         variant="amber"
         disabled={!canSendToSchedule}
         className="px-3 py-2 text-xs"
         fullWidth={fullWidth}
       />
-      {canShowPublish ? (
-        <div className={fullWidth ? "w-full" : ""}>
-          <ActionButton
-            label="โพสต์"
-            icon={Send}
-            onClick={buildActionHandler(() => void onPublish(post.id))}
-            variant="secondary"
-            disabled={!canClickPublish}
-            className="px-3 py-2 text-xs"
-            fullWidth={fullWidth}
-          />
-          {!canClickPublish && publishReason ? <p className="mt-1 text-[10px] text-amber-300">{publishReason}</p> : null}
-        </div>
+      {canSendToPublish ? (
+        <ActionButton
+          label="โพสต์"
+          icon={Send}
+          onClick={(event) => {
+            event.stopPropagation();
+            void onPublish(post.id);
+          }}
+          variant="secondary"
+          className="px-3 py-2 text-xs"
+          fullWidth={fullWidth}
+        />
       ) : null}
       <ActionButton
         label="ลบ"
         icon={Trash2}
-        onClick={buildActionHandler(() => void onDelete(post))}
+        onClick={() => void onDelete(post)}
         variant="danger"
         className="px-3 py-2 text-xs"
         fullWidth={fullWidth}
@@ -344,7 +328,6 @@ function ReviewDetailModal({
   post,
   aiReview,
   completion,
-  publishState,
   aiReviewLoadingPostId,
   aiImproveLoadingPostId,
   onClose,
@@ -480,7 +463,6 @@ function ReviewDetailModal({
                   post={post}
                   aiReviewLoadingPostId={aiReviewLoadingPostId}
                   aiImproveLoadingPostId={aiImproveLoadingPostId}
-                  publishState={publishState}
                   className="contents"
                   onRunAIQualityCheck={onRunAIQualityCheck}
                   onImproveReviewPost={onImproveReviewPost}
@@ -633,22 +615,6 @@ function StatusPage({
   );
   const reviewDetailAIReview = reviewDetailPost ? aiReviewByPostId?.[reviewDetailPost.id] || null : null;
   const reviewDetailCompletion = getChecklistCompletion(reviewDetailPost?.quality_checklist);
-  const reviewDetailPublishState = reviewDetailPost
-    ? (() => {
-        const canShow = canPublishPost(reviewDetailPost);
-        if (!canShow) return { visible: false, enabled: false, reason: "" };
-        const effectivePublish = resolveEffectivePublishConfig({
-          post: reviewDetailPost,
-          settings,
-          pages: workspacePages,
-        });
-        return {
-          visible: true,
-          enabled: Boolean(effectivePublish.canAttemptPublish),
-          reason: effectivePublish.blockedReason || effectivePublish.fallbackReason || "",
-        };
-      })()
-    : { visible: false, enabled: false, reason: "" };
 
   const quickSchedulePresets = useMemo(
     () => getQuickSchedulePresets(operationalView.scheduledPosts),
@@ -801,20 +767,6 @@ function StatusPage({
           reviewQueue.map((post) => {
             const completion = getChecklistCompletion(post.quality_checklist);
             const aiReview = aiReviewByPostId?.[post.id] || null;
-            const publishState = (() => {
-              const canShow = canPublishPost(post);
-              if (!canShow) return { visible: false, enabled: false, reason: "" };
-              const effectivePublish = resolveEffectivePublishConfig({
-                post,
-                settings,
-                pages: workspacePages,
-              });
-              return {
-                visible: true,
-                enabled: Boolean(effectivePublish.canAttemptPublish),
-                reason: effectivePublish.blockedReason || effectivePublish.fallbackReason || "",
-              };
-            })();
 
             return (
               <article
@@ -883,7 +835,6 @@ function StatusPage({
                     post={post}
                     aiReviewLoadingPostId={aiReviewLoadingPostId}
                     aiImproveLoadingPostId={aiImproveLoadingPostId}
-                    publishState={publishState}
                     className="grid grid-cols-2 gap-2 sm:grid-cols-4 xl:w-[18rem] xl:grid-cols-2"
                     onRunAIQualityCheck={handleRunAIQualityCheck}
                     onImproveReviewPost={handleImproveReviewPost}
@@ -1264,7 +1215,6 @@ function StatusPage({
         post={reviewDetailPost}
         aiReview={reviewDetailAIReview}
         completion={reviewDetailCompletion}
-        publishState={reviewDetailPublishState}
         aiReviewLoadingPostId={aiReviewLoadingPostId}
         aiImproveLoadingPostId={aiImproveLoadingPostId}
         onClose={() => setReviewDetailPostId(null)}
