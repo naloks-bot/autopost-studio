@@ -27,6 +27,7 @@ Recent completed checkpoints:
 
 * compact Review Queue cards shipped for faster scanning
 * Review Detail Modal now uses a desktop two-column layout
+* Review Detail Modal now supports inline hook/caption editing, clearer full-image preview, and in-modal image replacement
 * image prompt is visible and copyable from Review Detail Modal
 * AI/manual checklist confusion was removed from Review Queue and modal emphasis
 * post-now action was restored for approved posts

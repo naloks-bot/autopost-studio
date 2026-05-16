@@ -16,16 +16,19 @@ import {
   X,
 } from "lucide-react";
 import ActionButton from "../components/ActionButton.jsx";
+import ReviewDetailModalPanel from "../components/ReviewDetailModal.jsx";
 import {
   buildStockSummary,
   canPublishPost,
   canSchedulePost,
+  deriveHookFromContent,
   getChecklistCompletion,
   LOW_STOCK_THRESHOLD,
   REVIEW_CHECKLIST_FIELDS,
 } from "../services/content-stock.js";
 import { getPagePublishReadiness, resolveEffectivePublishConfig, runPerPagePublishDryRun } from "../services/page-context.js";
 import { getFastReschedulePresets, getQuickSchedulePresets, toLocalDateTimeValue } from "../services/schedule-presets.js";
+import { uploadImageBlob } from "../services/storage.js";
 
 function getMinDateTimeLocalValue() {
   return toLocalDateTimeValue(new Date());
@@ -184,6 +187,43 @@ function isDisplayableImageUrl(value = "") {
   return Boolean(imageUrl && /^(https?:|data:image\/|blob:)/i.test(imageUrl));
 }
 
+function getReviewDisplayHook(post = {}) {
+  return String(post.hook || deriveHookFromContent(post.content, post.topic) || post.topic || "").trim();
+}
+
+function buildReviewImageState(post = {}) {
+  const imageUrl = String(post.image_url || "").trim();
+  return {
+    imageUrl,
+    previewUrl: imageUrl,
+    provider: post.image_provider || null,
+    revisedPrompt: post.image_revised_prompt || null,
+    storagePath: post.image_storage_path || null,
+    storageMode: post.image_storage_mode || null,
+  };
+}
+
+function getUploadFileExtension(file) {
+  const original = file?.name?.split(".").pop()?.toLowerCase();
+  if (original && ["jpg", "jpeg", "png", "webp"].includes(original)) {
+    return original === "jpeg" ? "jpg" : original;
+  }
+
+  if (file?.type === "image/png") return "png";
+  if (file?.type === "image/webp") return "webp";
+  return "jpg";
+}
+
+function hasImageStateChanged(post = {}, imageState = {}) {
+  return (
+    String(post.image_url || "").trim() !== String(imageState.imageUrl || "").trim() ||
+    (post.image_provider || null) !== (imageState.provider || null) ||
+    (post.image_revised_prompt || null) !== (imageState.revisedPrompt || null) ||
+    (post.image_storage_path || null) !== (imageState.storagePath || null) ||
+    (post.image_storage_mode || null) !== (imageState.storageMode || null)
+  );
+}
+
 function ReviewThumbnail({ imageUrl, title, large = false }) {
   const sizeClass = large ? "h-56 w-full md:h-64" : "h-24 w-24 sm:h-28 sm:w-28";
   const [hasImageError, setHasImageError] = useState(false);
@@ -292,6 +332,7 @@ function ReviewQueueActions({
   aiImproveLoadingPostId,
   fullWidth = false,
   className = "",
+  disabled = false,
   onRunAIQualityCheck,
   onImproveReviewPost,
   onLoadDraftToEditor,
@@ -317,6 +358,7 @@ function ReviewQueueActions({
         onClick={() => void onRunAIQualityCheck(post.id)}
         variant="secondary"
         isLoading={aiReviewLoadingPostId === post.id}
+        disabled={disabled}
         className="px-3 py-2 text-xs"
         fullWidth={fullWidth}
       />
@@ -326,6 +368,7 @@ function ReviewQueueActions({
         onClick={() => void onImproveReviewPost(post.id)}
         variant="outline"
         isLoading={aiImproveLoadingPostId === post.id}
+        disabled={disabled}
         className="px-3 py-2 text-xs"
         fullWidth={fullWidth}
       />
@@ -334,6 +377,7 @@ function ReviewQueueActions({
         icon={Pencil}
         onClick={() => onLoadDraftToEditor(post)}
         variant="outline"
+        disabled={disabled}
         className="px-3 py-2 text-xs"
         fullWidth={fullWidth}
       />
@@ -342,7 +386,7 @@ function ReviewQueueActions({
         icon={CheckCircle2}
         onClick={() => void (canUndo ? onUndoApproval(post.id) : onApprove(post.id))}
         variant={canUndo ? "outline" : isApproved ? "secondary" : "emerald"}
-        disabled={isApproved && !canUndo}
+        disabled={disabled || (isApproved && !canUndo)}
         className="px-3 py-2 text-xs"
         fullWidth={fullWidth}
       />
@@ -352,6 +396,7 @@ function ReviewQueueActions({
           icon={RotateCcw}
           onClick={() => void onMoveToDraft(post.id)}
           variant="outline"
+          disabled={disabled}
           className="px-3 py-2 text-xs"
           fullWidth={fullWidth}
         />
@@ -361,7 +406,7 @@ function ReviewQueueActions({
         icon={Calendar}
         onClick={() => onSchedule(post)}
         variant="amber"
-        disabled={!canSendToSchedule}
+        disabled={disabled || !canSendToSchedule}
         className="px-3 py-2 text-xs"
         fullWidth={fullWidth}
       />
@@ -375,6 +420,7 @@ function ReviewQueueActions({
               void onPublish(post);
             }}
             variant="secondary"
+            disabled={disabled}
             className="px-3 py-2 text-xs"
             fullWidth={fullWidth}
           />
@@ -386,6 +432,7 @@ function ReviewQueueActions({
         icon={Trash2}
         onClick={() => void onDelete(post)}
         variant="danger"
+        disabled={disabled}
         className="px-3 py-2 text-xs"
         fullWidth={fullWidth}
       />
@@ -615,6 +662,7 @@ function StatusPage({
   handlePublishPost,
   handleSchedulePost,
   handleSetDraftReviewStatus,
+  handleSaveReviewDetailEdits,
   handleRunAIQualityCheck,
   handleImproveReviewPost,
   handleUpdateQualityChecklist,
@@ -1332,7 +1380,7 @@ function StatusPage({
         )}
       </section>
 
-      <ReviewDetailModal
+      <ReviewDetailModalPanel
         post={reviewDetailPost}
         aiReview={reviewDetailAIReview}
         completion={reviewDetailCompletion}
@@ -1340,6 +1388,7 @@ function StatusPage({
         aiReviewLoadingPostId={aiReviewLoadingPostId}
         aiImproveLoadingPostId={aiImproveLoadingPostId}
         onClose={() => setReviewDetailPostId(null)}
+        onSaveEdits={handleSaveReviewDetailEdits}
         onRunAIQualityCheck={handleRunAIQualityCheck}
         onImproveReviewPost={handleImproveReviewPost}
         onLoadDraftToEditor={handleLoadDraftToEditor}

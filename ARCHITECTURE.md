@@ -90,6 +90,7 @@ Current operator UX boundary inside this layer:
 
 * compact Review Queue cards are the baseline for high-volume scanning
 * Review Detail Modal uses a desktop two-column layout and stacked mobile layout
+* Review Detail Modal now supports inline hook/caption editing, clearer full-image preview, and in-modal image replacement while reusing existing draft save and storage flows
 * image prompt is visible and copyable from the modal
 * AI/manual checklist confusion should remain removed from the primary review workflow
 * post-now action is available only through the existing safe publish path

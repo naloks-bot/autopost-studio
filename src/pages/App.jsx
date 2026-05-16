@@ -1008,6 +1008,89 @@ function App() {
     [mergeRemotePostTruth]
   );
 
+  const handleSaveReviewDetailEdits = useCallback(
+    async (postId, changes = {}) => {
+      const post = [...stateRef.current.remotePosts, ...stateRef.current.localDrafts].find((item) => item.id === postId);
+      if (!post) {
+        const error = new Error("ไม่พบ draft ที่ต้องการแก้ไข");
+        setStatusNotice({ tone: "danger", message: error.message });
+        return { ok: false, post: null, approvalReset: false, error };
+      }
+
+      const nextContent = sanitizeGeneratedCaption(typeof changes.content === "string" ? changes.content : String(post.content || "").trim());
+      const currentHook = String(post.hook || deriveHookFromContent(post.content, post.topic) || post.topic || "").trim();
+      const nextHook = String(changes.hook || currentHook).trim() || deriveHookFromContent(nextContent, post.topic);
+      const nextImageUrl =
+        typeof changes.image_url === "string" ? changes.image_url.trim() : String(post.image_url || "").trim();
+      const nextImageProvider =
+        typeof changes.image_provider === "undefined" ? post.image_provider || null : changes.image_provider || null;
+      const nextImageRevisedPrompt =
+        typeof changes.image_revised_prompt === "undefined"
+          ? post.image_revised_prompt || null
+          : changes.image_revised_prompt || null;
+      const nextImageStoragePath =
+        typeof changes.image_storage_path === "undefined" ? post.image_storage_path || null : changes.image_storage_path || null;
+      const nextImageStorageMode =
+        typeof changes.image_storage_mode === "undefined" ? post.image_storage_mode || null : changes.image_storage_mode || null;
+
+      const approvalReset =
+        post.status === "approved" &&
+        (nextContent !== String(post.content || "").trim() ||
+          nextHook !== currentHook ||
+          nextImageUrl !== String(post.image_url || "").trim() ||
+          nextImageProvider !== (post.image_provider || null) ||
+          nextImageRevisedPrompt !== (post.image_revised_prompt || null) ||
+          nextImageStoragePath !== (post.image_storage_path || null) ||
+          nextImageStorageMode !== (post.image_storage_mode || null));
+
+      const nextDraft = {
+        ...post,
+        content: nextContent,
+        hook: nextHook,
+        image_url: nextImageUrl,
+        image_provider: nextImageProvider,
+        image_revised_prompt: nextImageRevisedPrompt,
+        image_storage_path: nextImageStoragePath,
+        image_storage_mode: nextImageStorageMode,
+        status: approvalReset ? "review" : post.status || "draft",
+        approved_at: approvalReset ? null : post.approved_at || null,
+        scheduled_at: post.status === "scheduled" ? post.scheduled_at || null : null,
+        created_at: post.created_at || new Date().toISOString(),
+      };
+
+      if (post.source === "local") {
+        const updated = updateLocalDraft(postId, nextDraft);
+        if (!updated) {
+          const error = new Error("บันทึก draft ในเครื่องไม่สำเร็จ");
+          setStatusNotice({ tone: "danger", message: error.message });
+          return { ok: false, post, approvalReset: false, error };
+        }
+
+        setLocalDrafts((current) => current.map((item) => (item.id === postId ? updated : item)));
+        const message = approvalReset ? "บันทึกแล้ว และส่งกลับไปรอตรวจเพื่ออนุมัติใหม่" : "บันทึกการแก้ไข draft แล้ว";
+        setStatusNotice({ tone: approvalReset ? "warning" : "success", message });
+        return { ok: true, post: updated, approvalReset, message };
+      }
+
+      const workspacePages = getWorkspacePages(stateRef.current.settings);
+      const updated = await updateRemoteDraft(postId, nextDraft, { workspacePages });
+      if (!updated.data) {
+        const error = updated.error || new Error("บันทึกการแก้ไข draft ไม่สำเร็จ");
+        setStatusNotice({
+          tone: "danger",
+          message: `บันทึกการแก้ไขไม่สำเร็จ: ${toUserSafeMessage(error, "กรุณาลองอีกครั้ง")}`,
+        });
+        return { ok: false, post, approvalReset: false, error };
+      }
+
+      mergeRemotePostTruth(updated.data);
+      const message = approvalReset ? "บันทึกแล้ว และส่งกลับไปรอตรวจเพื่ออนุมัติใหม่" : "บันทึกการแก้ไข draft แล้ว";
+      setStatusNotice({ tone: approvalReset ? "warning" : "success", message });
+      return { ok: true, post: updated.data, approvalReset, message };
+    },
+    [mergeRemotePostTruth]
+  );
+
   const handleSetDraftReviewStatus = useCallback(
     async (postId, nextStatus) => {
       const post = [...remotePosts, ...localDrafts].find((item) => item.id === postId);
@@ -1959,6 +2042,7 @@ function App() {
                   handlePublishPost={handlePublishPost}
                   handleSchedulePost={handleSchedulePost}
                   handleSetDraftReviewStatus={handleSetDraftReviewStatus}
+                  handleSaveReviewDetailEdits={handleSaveReviewDetailEdits}
                   handleRunAIQualityCheck={handleRunAIQualityCheck}
                   handleImproveReviewPost={handleImproveReviewPost}
                   handleUpdateQualityChecklist={handleUpdateQualityChecklist}

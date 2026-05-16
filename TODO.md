@@ -16,6 +16,7 @@ Completed and locked:
 * cinematic editorial direction locked
 * compact Review Queue cards shipped
 * Review Detail Modal shipped with desktop two-column layout
+* Review Detail Modal now supports inline hook/caption editing, clearer full-image preview, and image replacement from the modal
 * image prompt is visible and copyable from the modal
 * AI/manual checklist confusion removed from the primary review workflow
 * post-now action restored
