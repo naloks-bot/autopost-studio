@@ -42,6 +42,7 @@ import { createOperationLog, fetchOperationLogs } from "../services/operation-lo
 import { getFacebookPublishDiagnostics, publishFacebookPost, validateFacebookConfig } from "../services/facebook.js";
 import {
   generateImagePrompt,
+  generateBatchPostContent,
   improvePostContent,
   generatePostContent,
   getTextProviderRuntime,
@@ -60,6 +61,36 @@ import { resolveEffectivePublishConfig } from "../services/page-context.js";
 import { runSchedulerTick } from "../services/scheduler.js";
 
 const THEME_KEY = "autopost-studio-theme";
+const DEFAULT_BATCH_ANGLES = [
+  "pain point / common mistake",
+  "quick win / first step",
+  "myth vs reality",
+  "checklist / practical guide",
+  "story / relatable scenario",
+  "before and after",
+  "expert tip",
+  "FAQ answer",
+  "benefit-focused angle",
+  "CTA / engagement question",
+];
+
+function normalizeForSimilarity(value = "") {
+  return String(value || "")
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}\s]/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function isTooSimilarToPrevious(value = "", previousValues = []) {
+  const normalized = normalizeForSimilarity(value);
+  if (!normalized) return false;
+  const preview = normalized.slice(0, 120);
+  return previousValues.some((previous) => {
+    const prior = normalizeForSimilarity(previous);
+    return prior === normalized || prior.slice(0, 120) === preview;
+  });
+}
 
 function formatDate(value) {
   if (!value) return "-";
@@ -641,57 +672,56 @@ function App() {
     let fallbackCount = 0;
 
     try {
-      for (let index = 0; index < count; index += 1) {
-        const contentPillar = contentPillars[index % contentPillars.length] || "";
-        const variationAngle = contentPillar || `Distinct angle ${index + 1}`;
-        const result = await generatePostContent({
-          formData: {
-            ...form,
-            topic: `${baseTopic}\nBatch draft ${index + 1} of ${count}. Focus: ${variationAngle}. Make this item meaningfully distinct from the other drafts.`,
-            pageLabel: overrides.pageLabel ?? activeWorkspacePage?.label ?? "",
-            pagePurpose: overrides.pagePurpose ?? activeWorkspacePage?.purpose ?? "",
-            pageTargetAudience: overrides.pageTargetAudience ?? activeWorkspacePage?.targetAudience ?? "",
-            pageWritingDirection: overrides.pageWritingDirection ?? activeWorkspacePage?.writingDirection ?? "",
-            pageImageDirection: overrides.pageImageDirection ?? activeWorkspacePage?.imageDirection ?? "",
-            pageReadme: overrides.pageReadme ?? activeWorkspacePage?.readme ?? "",
-            pageTone: overrides.pageTone ?? activeWorkspacePage?.tone ?? "",
-            pageContentPillars: overrides.pageContentPillars ?? activeWorkspacePage?.contentPillars ?? "",
-            pageAvoidList: overrides.pageAvoidList ?? activeWorkspacePage?.avoidList ?? "",
-            pageDefaultCta: overrides.pageDefaultCta ?? activeWorkspacePage?.defaultCta ?? "",
-          },
-          settings,
+      const batchAngles = Array.from({ length: count }, (_, index) => contentPillars[index % contentPillars.length] || DEFAULT_BATCH_ANGLES[index % DEFAULT_BATCH_ANGLES.length]);
+      const batchResult = await generateBatchPostContent({
+        count,
+        angles: batchAngles,
+        formData: {
+          ...form,
+          topic: baseTopic,
+          pageLabel: overrides.pageLabel ?? activeWorkspacePage?.label ?? "",
+          pagePurpose: overrides.pagePurpose ?? activeWorkspacePage?.purpose ?? "",
+          pageTargetAudience: overrides.pageTargetAudience ?? activeWorkspacePage?.targetAudience ?? "",
+          pageWritingDirection: overrides.pageWritingDirection ?? activeWorkspacePage?.writingDirection ?? "",
+          pageImageDirection: overrides.pageImageDirection ?? activeWorkspacePage?.imageDirection ?? "",
+          pageReadme: overrides.pageReadme ?? activeWorkspacePage?.readme ?? "",
+          pageTone: overrides.pageTone ?? activeWorkspacePage?.tone ?? "",
+          pageContentPillars: overrides.pageContentPillars ?? activeWorkspacePage?.contentPillars ?? "",
+          pageAvoidList: overrides.pageAvoidList ?? activeWorkspacePage?.avoidList ?? "",
+          pageDefaultCta: overrides.pageDefaultCta ?? activeWorkspacePage?.defaultCta ?? "",
+        },
+        settings,
+      });
+
+      if (!batchResult.data?.length) {
+        setCreateNotice({
+          tone: batchResult.noticeTone || "danger",
+          message: batchResult.noticeMessage || batchResult.error || "สร้าง batch draft ไม่สำเร็จ",
         });
+        return { ok: false, count: 0 };
+      }
 
-        const { cleanCaption, cleanImagePrompt } = splitGeneratedPostContent(result.data || "");
-        const caption = sanitizeGeneratedCaption(cleanCaption || "");
-        let imagePrompt = cleanImagePrompt || "";
+      const seenCaptions = [];
+      for (let index = 0; index < batchResult.data.length; index += 1) {
+        const item = batchResult.data[index];
+        const contentPillar = contentPillars[index % contentPillars.length] || "";
+        const angle = batchAngles[index] || `Distinct angle ${index + 1}`;
+        const needsAngleHint = isTooSimilarToPrevious(item.caption, seenCaptions);
+        const caption = needsAngleHint
+          ? sanitizeGeneratedCaption(`${item.caption}\n\nมุมเล่าเรื่อง: ${angle}`)
+          : sanitizeGeneratedCaption(item.caption || "");
+        const hook = needsAngleHint ? `${item.hook || deriveHookFromContent(caption, baseTopic)} (${angle})` : item.hook || deriveHookFromContent(caption, baseTopic);
+        const imagePrompt =
+          item.imagePrompt ||
+          `Editorial social media image about ${baseTopic}, distinct angle: ${angle}, realistic lighting, clear subject, vertical 4:5`;
 
-        if (!imagePrompt) {
-          const imagePromptResult = await generateImagePrompt({
-            formData: {
-              ...form,
-              topic: baseTopic,
-              content: caption,
-              pageLabel: overrides.pageLabel ?? activeWorkspacePage?.label ?? "",
-              pagePurpose: overrides.pagePurpose ?? activeWorkspacePage?.purpose ?? "",
-              pageTargetAudience: overrides.pageTargetAudience ?? activeWorkspacePage?.targetAudience ?? "",
-              pageImageDirection: overrides.pageImageDirection ?? activeWorkspacePage?.imageDirection ?? "",
-              pageWritingDirection: overrides.pageWritingDirection ?? activeWorkspacePage?.writingDirection ?? "",
-              pageReadme: overrides.pageReadme ?? activeWorkspacePage?.readme ?? "",
-              pageTone: overrides.pageTone ?? activeWorkspacePage?.tone ?? "",
-              pageContentPillars: overrides.pageContentPillars ?? activeWorkspacePage?.contentPillars ?? "",
-              pageAvoidList: overrides.pageAvoidList ?? activeWorkspacePage?.avoidList ?? "",
-            },
-            settings,
-          });
-          imagePrompt = imagePromptResult.data || "";
-        }
+        seenCaptions.push(caption);
 
         const draft = {
           page_id: safePageId,
-          topic: buildBatchTopic(baseTopic, contentPillar, index),
+          topic: item.title || buildBatchTopic(baseTopic, contentPillar || angle, index),
           content: caption,
-          hook: deriveHookFromContent(caption, baseTopic),
+          hook,
           content_pillar: contentPillar,
           image_prompt: imagePrompt,
           image_url: "",

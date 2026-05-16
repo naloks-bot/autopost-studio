@@ -179,7 +179,7 @@ function getReviewCardTone(review) {
 }
 
 function ReviewThumbnail({ imageUrl, title, large = false }) {
-  const sizeClass = large ? "h-72 w-full sm:h-80" : "h-24 w-24 sm:h-28 sm:w-28";
+  const sizeClass = large ? "h-56 w-full md:h-64" : "h-24 w-24 sm:h-28 sm:w-28";
 
   return (
     <div
@@ -206,6 +206,13 @@ function getReviewStatusTone(postStatus = "") {
 
 function getAIReviewSummary(review) {
   if (!review) return "ยังไม่ได้เช็ค AI";
+  if (review.type === "warning") {
+    const message = review.message || "";
+    if (/quota|rate limit/i.test(message)) return "AI quota เต็ม / เช็คไม่สำเร็จ";
+    return "AI quota เต็ม / เช็คไม่สำเร็จ";
+  }
+  if (typeof review.score === "number" && review.score < 7) return "ควรปรับปรุง";
+  if (review.verdict) return "AI เช็คแล้ว";
   return review.verdict || review.message || "มีผลตรวจ AI แล้ว";
 }
 
@@ -221,10 +228,12 @@ function ReviewQueueActions({
   onApprove,
   onMoveToDraft,
   onSchedule,
+  onPublish,
   onDelete,
 }) {
   const isApproved = post.status === "approved";
   const canSendToSchedule = canSchedulePost(post);
+  const canSendToPublish = canPublishPost(post);
 
   return (
     <div className={className}>
@@ -280,6 +289,16 @@ function ReviewQueueActions({
         className="px-3 py-2 text-xs"
         fullWidth={fullWidth}
       />
+      {canSendToPublish ? (
+        <ActionButton
+          label="โพสต์"
+          icon={Send}
+          onClick={() => onPublish(post.id)}
+          variant="secondary"
+          className="px-3 py-2 text-xs"
+          fullWidth={fullWidth}
+        />
+      ) : null}
       <ActionButton
         label="ลบ"
         icon={Trash2}
@@ -305,6 +324,7 @@ function ReviewDetailModal({
   onApprove,
   onMoveToDraft,
   onSchedule,
+  onPublish,
   onDelete,
 }) {
   if (!post) return null;
@@ -312,7 +332,7 @@ function ReviewDetailModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-sm" onClick={onClose}>
       <div
-        className="max-h-[92vh] w-full max-w-6xl overflow-y-auto rounded-[2rem] border border-white/10 bg-slate-950 p-5 shadow-2xl shadow-slate-950/60"
+        className="max-h-[88vh] w-full max-w-4xl overflow-y-auto rounded-[1.5rem] border border-white/10 bg-slate-950 p-4 shadow-2xl shadow-slate-950/60"
         onClick={(event) => event.stopPropagation()}
       >
         <div className="flex items-start justify-between gap-4">
@@ -331,7 +351,7 @@ function ReviewDetailModal({
           </button>
         </div>
 
-        <div className="mt-5 grid gap-5 xl:grid-cols-[minmax(0,1fr)_19rem]">
+        <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1fr)_16rem]">
           <div className="space-y-4">
             <ReviewThumbnail imageUrl={post.image_url} title={post.topic || post.hook} large />
 
@@ -410,6 +430,7 @@ function ReviewDetailModal({
               onApprove={onApprove}
               onMoveToDraft={onMoveToDraft}
               onSchedule={onSchedule}
+              onPublish={onPublish}
               onDelete={onDelete}
             />
           </div>
@@ -730,10 +751,10 @@ function StatusPage({
                       </h4>
                       <p className="mt-2 line-clamp-3 text-sm leading-relaxed text-slate-400">{post.content || "-"}</p>
 
-                      <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                      <div className="mt-3">
                         <div className={`rounded-xl border px-3 py-2 text-sm ${getReviewCardTone(aiReview)}`}>
                           <div className="flex items-center justify-between gap-2">
-                            <span className="text-[10px] font-bold uppercase tracking-[0.16em]">AI</span>
+                            <span className="text-[10px] font-bold uppercase tracking-[0.16em]">AI Status</span>
                             {typeof aiReview?.score === "number" ? (
                               <span className="rounded-full border border-black/10 bg-black/10 px-2 py-0.5 text-[10px] font-bold">
                                 {aiReview.score.toFixed(1)}/10
@@ -743,7 +764,7 @@ function StatusPage({
                           <p className="mt-1 line-clamp-2 text-xs font-semibold">{getAIReviewSummary(aiReview)}</p>
                         </div>
 
-                        <div className="rounded-xl border border-white/10 bg-slate-950/40 px-3 py-2 text-sm text-slate-300">
+                        <div className="hidden rounded-xl border border-white/10 bg-slate-950/40 px-3 py-2 text-sm text-slate-300">
                           <div className="flex items-center justify-between gap-2">
                             <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500">Checklist</span>
                             <CompactMetaPill tone={completion.isComplete ? "success" : "warning"}>
@@ -777,6 +798,7 @@ function StatusPage({
                       setReviewDetailPostId(null);
                       handleOpenSchedule(nextPost);
                     }}
+                    onPublish={handlePublishPost}
                     onDelete={handleDeleteRequest}
                   />
                 </div>
@@ -1157,6 +1179,7 @@ function StatusPage({
           setReviewDetailPostId(null);
           handleOpenSchedule(post);
         }}
+        onPublish={handlePublishPost}
         onDelete={async (post) => {
           const didDelete = await handleDeleteRequest(post);
           if (didDelete) setReviewDetailPostId(null);

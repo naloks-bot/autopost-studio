@@ -63,6 +63,8 @@ function createGenerationResult(payload) {
   return {
     data: payload.data ?? null,
     error: payload.error ?? null,
+    errorCode: payload.errorCode ?? null,
+    rawError: payload.rawError ?? null,
     mode: payload.mode || "mock",
     status: payload.status || "success",
     requestedProvider: payload.requestedProvider || payload.mode || "mock",
@@ -424,6 +426,62 @@ Rules:
 - Do not include explanations or labels.`;
 }
 
+function buildBatchContentPrompt({ formData = {}, settings = {}, count = 5, angles = [] }) {
+  const voice = settings.brandVoice || "Professional";
+  const business = settings.businessName || "My Brand";
+  const topic = formData.topic || "Social Media Update";
+  const pageLabel = formData.pageLabel ? `Page: ${formData.pageLabel}` : "";
+  const pageWritingDirection = formData.pageWritingDirection ? `Page writing direction: ${formData.pageWritingDirection}` : "";
+  const pageImageDirection = formData.pageImageDirection ? `Page image direction: ${formData.pageImageDirection}` : "";
+  const pageReadme = formData.pageReadme ? `Page memory: ${formData.pageReadme}` : "";
+  const pageTone = formData.pageTone ? `Page tone: ${formData.pageTone}` : "";
+  const pagePurpose = formData.pagePurpose ? `Page purpose: ${formData.pagePurpose}` : "";
+  const pageTargetAudience = formData.pageTargetAudience ? `Target audience: ${formData.pageTargetAudience}` : "";
+  const pageContentPillars = formData.pageContentPillars ? `Content pillars: ${formData.pageContentPillars}` : "";
+  const pageAvoidList = formData.pageAvoidList ? `Avoid list: ${formData.pageAvoidList}` : "";
+  const pageDefaultCta = formData.pageDefaultCta ? `Default CTA: ${formData.pageDefaultCta}` : "";
+  const angleList = angles.length
+    ? angles.map((angle, index) => `${index + 1}. ${angle}`).join("\n")
+    : Array.from({ length: count }, (_, index) => `${index + 1}. Distinct angle ${index + 1}`).join("\n");
+
+  return `Generate ${count} meaningfully different Thai social media draft options for ${business}.
+Tone: ${voice}
+Topic: ${topic}
+${pageLabel}
+${pageTone}
+${pagePurpose}
+${pageTargetAudience}
+${pageContentPillars}
+${pageAvoidList}
+${pageDefaultCta}
+${pageWritingDirection}
+${pageImageDirection}
+${pageReadme}
+
+Use these angle hints, one draft per angle:
+${angleList}
+
+Return valid JSON only with this exact shape:
+{
+  "drafts": [
+    {
+      "title": "short unique Thai draft title",
+      "hook": "unique Thai hook",
+      "caption": "publish-ready Thai caption",
+      "imagePrompt": "English image-generation prompt matching only this draft"
+    }
+  ]
+}
+
+Rules:
+- Return exactly ${count} drafts.
+- Every draft must have a clearly different angle, hook, caption structure, and image prompt.
+- Do not reuse the same opening sentence across drafts.
+- Do not add markdown, code fences, or commentary.
+- Caption must contain only publish-ready post text.
+- Image prompts must be in English and must not appear inside captions.`;
+}
+
 function extractJsonObjectResponse(raw = "") {
   const normalized = String(raw || "").trim();
   if (!normalized) return null;
@@ -449,6 +507,41 @@ function extractJsonObjectResponse(raw = "") {
   }
 
   return null;
+}
+
+function extractJsonArrayResponse(raw = "") {
+  const objectPayload = extractJsonObjectResponse(raw);
+  if (Array.isArray(objectPayload?.drafts)) return objectPayload.drafts;
+  if (Array.isArray(objectPayload)) return objectPayload;
+
+  const normalized = String(raw || "").trim();
+  const firstBracket = normalized.indexOf("[");
+  const lastBracket = normalized.lastIndexOf("]");
+  if (firstBracket >= 0 && lastBracket > firstBracket) {
+    try {
+      return JSON.parse(normalized.slice(firstBracket, lastBracket + 1));
+    } catch {
+      return [];
+    }
+  }
+
+  return [];
+}
+
+function normalizeBatchDraftItem(item = {}, index = 0, fallbackTopic = "") {
+  const title = String(item.title || item.topic || "").trim();
+  const caption = sanitizeGeneratedCaption(item.caption || item.content || "");
+  const hook = String(item.hook || "").trim() || caption.split(/\r?\n/).find(Boolean) || title;
+  const imagePrompt = sanitizeImagePromptValue(item.imagePrompt || item.image_prompt || item.visualPrompt || "");
+
+  if (!caption) return null;
+
+  return {
+    title: title || `${fallbackTopic || "Batch draft"} ${index + 1}`,
+    hook,
+    caption,
+    imagePrompt,
+  };
 }
 
 function normalizeReviewScore(value) {
@@ -591,6 +684,33 @@ async function generateMockText(formData, settings, meta = {}) {
 
 IMAGE_PROMPT:
 Friendly beginner learning AI at a desk with laptop, clean modern workspace, approachable technology atmosphere, soft natural lighting, realistic social media visual, vertical composition`,
+    error: meta.error || null,
+    mode: "mock",
+    status: meta.status || "success",
+    requestedProvider: meta.requestedProvider || "mock",
+    fallbackReason: meta.fallbackReason || null,
+    noticeTone: meta.noticeTone || null,
+    noticeMessage: meta.noticeMessage || null,
+  });
+}
+
+async function generateMockBatchText({ formData = {}, count = 5, angles = [], meta = {} } = {}) {
+  await new Promise((resolve) => setTimeout(resolve, 700));
+
+  const topic = String(formData.topic || "หัวข้อโพสต์").trim();
+  const fallbackAngles = ["ปัญหาที่เจอบ่อย", "วิธีเริ่มแบบง่าย", "ตัวอย่างจากชีวิตจริง", "ข้อผิดพลาดที่ควรเลี่ยง", "เช็กลิสต์ก่อนลงมือ"];
+  const drafts = Array.from({ length: count }, (_, index) => {
+    const angle = angles[index] || fallbackAngles[index % fallbackAngles.length] || `มุมที่ ${index + 1}`;
+    return {
+      title: `${topic} - ${angle}`,
+      hook: `${angle}: ${topic}`,
+      caption: `${angle}\n\nถ้ากำลังคิดเรื่อง "${topic}" ลองมองจากมุมนี้ก่อน: เริ่มจากสิ่งที่ทำได้ทันทีหนึ่งอย่าง แล้วค่อยปรับให้เข้ากับงานจริงของคุณ\n\nโพสต์นี้เป็น draft ที่ ${index + 1} เพื่อให้ทีมเลือกมุมเล่าเรื่องได้หลากหลายขึ้น`,
+      imagePrompt: `Editorial social media image about ${topic}, angle ${index + 1}: ${angle}, realistic lighting, clear subject, modern composition, vertical 4:5`,
+    };
+  });
+
+  return createGenerationResult({
+    data: drafts,
     error: meta.error || null,
     mode: "mock",
     status: meta.status || "success",
@@ -845,6 +965,99 @@ export async function generatePostContent({ formData, settings }) {
   }
 }
 
+export async function generateBatchPostContent({ formData, settings, count = 5, angles = [] } = {}) {
+  const topic = String(formData?.topic || "").trim();
+  if (!topic || topic.length < 5) {
+    return createGenerationResult({
+      data: [],
+      error: "Please enter at least 5 characters for the topic before generating batch drafts.",
+      mode: "mock",
+      status: "blocked",
+      requestedProvider: getPreferredTextProvider(settings),
+      noticeTone: "danger",
+      noticeMessage: "Topic is too short. Add a clearer topic before generating.",
+    });
+  }
+
+  const runtime = getTextProviderRuntime(settings);
+  const limitedCount = Math.max(1, Math.min(20, Number(count) || 5));
+
+  if (runtime.activeProvider === "mock") {
+    return generateMockBatchText({
+      formData,
+      count: limitedCount,
+      angles,
+      meta: {
+        requestedProvider: runtime.selectedProvider,
+        error: runtime.selectedProvider === "mock" ? null : `${runtime.detail}. Using Mock fallback.`,
+        fallbackReason: runtime.detail,
+        status: runtime.selectedProvider === "mock" ? "success" : "fallback",
+        noticeTone: runtime.selectedProvider === "mock" ? "info" : "warning",
+        noticeMessage:
+          runtime.selectedProvider === "mock"
+            ? "Generated batch in Mock mode."
+            : `${getProviderLabel(runtime.selectedProvider)} is not ready. Generated Mock batch instead.`,
+      },
+    });
+  }
+
+  const prompt = buildBatchContentPrompt({
+    formData,
+    settings,
+    count: limitedCount,
+    angles,
+  });
+
+  const result = await runTextTaskWithProvider(prompt, runtime, settings);
+  if (!result.data) {
+    const isGeminiRateLimit = runtime.selectedProvider === "gemini" && result.errorCode === 429;
+    const message = isGeminiRateLimit
+      ? "Gemini quota เต็ม / rate limit กรุณารอสักครู่ หรือเปลี่ยน provider"
+      : `${getProviderLabel(runtime.selectedProvider)} batch generation failed: ${compactProviderError(result.error)}`;
+
+    return createGenerationResult({
+      data: [],
+      error: message,
+      errorCode: result.errorCode,
+      rawError: result.rawError || result.error,
+      mode: result.mode || runtime.selectedProvider,
+      status: "blocked",
+      requestedProvider: runtime.selectedProvider,
+      noticeTone: isGeminiRateLimit ? "warning" : "danger",
+      noticeMessage: message,
+    });
+  }
+
+  const parsedDrafts = extractJsonArrayResponse(result.data)
+    .map((item, index) => normalizeBatchDraftItem(item, index, topic))
+    .filter(Boolean)
+    .slice(0, limitedCount);
+
+  if (!parsedDrafts.length) {
+    return createGenerationResult({
+      data: [],
+      error: "AI batch output could not be parsed.",
+      mode: result.mode,
+      status: "blocked",
+      requestedProvider: runtime.selectedProvider,
+      noticeTone: "danger",
+      noticeMessage: "AI ส่ง batch draft กลับมาในรูปแบบที่อ่านไม่สำเร็จ กรุณาลองใหม่",
+    });
+  }
+
+  return createGenerationResult({
+    data: parsedDrafts,
+    mode: result.mode,
+    status: parsedDrafts.length >= limitedCount ? "success" : "partial",
+    requestedProvider: runtime.selectedProvider,
+    noticeTone: parsedDrafts.length >= limitedCount ? "success" : "warning",
+    noticeMessage:
+      parsedDrafts.length >= limitedCount
+        ? `Generated ${parsedDrafts.length} distinct drafts with ${getProviderLabel(result.mode)}.`
+        : `AI returned ${parsedDrafts.length}/${limitedCount} usable drafts.`,
+  });
+}
+
 export async function reviewPostQuality({ post, settings, pageContext = {} }) {
   const runtime = getTextProviderRuntime(settings);
   if (runtime.activeProvider === "mock") {
@@ -860,6 +1073,9 @@ export async function reviewPostQuality({ post, settings, pageContext = {} }) {
     const prompt = buildQualityReviewPrompt(post, settings, pageContext);
     const result = await runTextTaskWithProvider(prompt, runtime, settings);
     if (!result.data) {
+      if (runtime.selectedProvider === "gemini" && result.errorCode === 429) {
+        return buildUnavailableTaskResult(runtime, "Gemini quota เต็ม / rate limit กรุณารอสักครู่ หรือเปลี่ยน provider");
+      }
       return buildUnavailableTaskResult(
         runtime,
         `AI ตรวจคุณภาพไม่สำเร็จ: ${compactProviderError(result.error, "กรุณาลองใหม่อีกครั้ง")}`
