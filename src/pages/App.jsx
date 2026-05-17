@@ -1519,6 +1519,9 @@ function App() {
             ? { ...post, image_url: publishDiagnostics.resolvedImageUrl }
             : post;
         const result = await publishFacebookPost(publishPost, effectivePublish.effectiveSettings, {
+          publishPath: "manual",
+          activeAppPageId: effectivePublish.resolvedPageId,
+          localPageKey: effectivePublish.resolvedPageId,
           onDiagnostics: async (diagnostics) => {
             await recordOperationLog({
               level: "info",
@@ -1558,6 +1561,7 @@ function App() {
               attempted_image_url: publishDiagnostics.originalImageUrl || null,
               fallback_reason: effectivePublish.fallbackReason || "",
               facebook_error_payload: result.facebookErrorPayload || null,
+              missing_permissions: result.diagnostics?.sanitized?.missing_permissions || [],
               result: result.mode === "mock" ? "mock" : "failed",
               error_message: result.error || "",
             },
@@ -1578,6 +1582,7 @@ function App() {
               attempted_image_url: publishDiagnostics.originalImageUrl || null,
               fallback_reason: effectivePublish.fallbackReason || "",
               facebook_error_payload: result.facebookErrorPayload || null,
+              missing_permissions: result.diagnostics?.sanitized?.missing_permissions || [],
               result: result.mode === "mock" ? "mock" : "failed",
               error_message: result.error || "",
             },

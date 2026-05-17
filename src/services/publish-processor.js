@@ -325,6 +325,9 @@ export async function processScheduledPosts({ posts, settings, onPostPublished }
         );
 
         const publishResult = await publishFacebookPost(post, effectivePublish.effectiveSettings, {
+          publishPath: "scheduler_client",
+          activeAppPageId: effectivePublish.resolvedPageId,
+          localPageKey: effectivePublish.resolvedPageId,
           onDiagnostics: async (diagnostics) => {
             await createOperationLog(
               buildSchedulerLogEntry({
@@ -450,6 +453,7 @@ export async function processScheduledPosts({ posts, settings, onPostPublished }
                 result: publishResult.mode === "mock" ? "mock" : "failed",
                 error_message: publishResult.error || "",
                 facebook_error_payload: publishResult.facebookErrorPayload || null,
+                missing_permissions: publishResult.diagnostics?.sanitized?.missing_permissions || [],
               },
             })
           );
@@ -465,6 +469,7 @@ export async function processScheduledPosts({ posts, settings, onPostPublished }
                 result: publishResult.mode === "mock" ? "mock" : "failed",
                 error_message: publishResult.error || "",
                 facebook_error_payload: publishResult.facebookErrorPayload || null,
+                missing_permissions: publishResult.diagnostics?.sanitized?.missing_permissions || [],
               },
             })
           );

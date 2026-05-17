@@ -57,6 +57,25 @@ function sanitizeFacebookErrorPayload(payload) {
   };
 }
 
+const FACEBOOK_PERMISSION_NAMES = [
+  "pages_manage_posts",
+  "pages_read_engagement",
+  "pages_manage_metadata",
+  "pages_read_user_content",
+  "pages_manage_ads",
+  "pages_show_list",
+  "pages_messaging",
+];
+
+function getMissingFacebookPermissions(message = "") {
+  const text = String(message || "");
+  return FACEBOOK_PERMISSION_NAMES.filter((permission) => text.includes(permission));
+}
+
+function getFacebookTokenRefreshMessage() {
+  return "Facebook Page token หมดอายุ ไม่มีสิทธิ์ หรือไม่ตรงกับเพจ กรุณา refresh/re-save Page Access Token ใน Settings > Manage Pages แล้วลองใหม่";
+}
+
 function buildSanitizedLiveDiagnostics({
   post = {},
   settings = {},
@@ -68,14 +87,28 @@ function buildSanitizedLiveDiagnostics({
   pageTargetName = "",
   pageIdMismatch = false,
   pageLookupError = null,
+  publishPath = "unknown",
+  activeAppPageId = "",
+  localPageKey = "",
+  tokenProbePageId = "",
+  missingPermissions = [],
 } = {}) {
   const tokenSource = settings.facebookTokenSource || settings.facebookPublishSource || "unknown";
   const imageUrl = payloadDiagnostics.resolvedImageUrl || "";
+  const graphPageId = endpointPageId || configuredPageId || "";
+  const appPageId = activeAppPageId || settings.facebookWorkspacePageId || localPageKey || "";
+  const probePageId = tokenProbePageId || (pageTargetSource === "token_profile_id" ? endpointPageId || "" : "");
 
   return {
-    page_id: endpointPageId || configuredPageId || "",
+    publish_path: publishPath,
+    active_app_page_id: appPageId,
+    local_page_key: localPageKey || appPageId,
+    page_id: graphPageId,
+    facebook_graph_page_id: graphPageId,
     configured_page_id: configuredPageId || "",
-    token_profile_page_id: pageTargetSource === "token_profile_id" ? endpointPageId || "" : "",
+    token_probe_page_id: probePageId,
+    token_profile_page_id: probePageId,
+    token_owner_page_id_matches_target_page_id: Boolean(probePageId && graphPageId && probePageId === graphPageId),
     page_id_source: pageTargetSource,
     page_id_mismatch: Boolean(pageIdMismatch),
     page_name: pageTargetName || settings.facebookPageLabel || "",
@@ -91,6 +124,7 @@ function buildSanitizedLiveDiagnostics({
     title: post.topic || "",
     scheduled_at: post.scheduled_at || null,
     page_lookup_error: pageLookupError,
+    missing_permissions: Array.isArray(missingPermissions) ? missingPermissions : [],
   };
 }
 
@@ -112,6 +146,11 @@ export function getSanitizedFacebookPublishDiagnostics(post = {}, settings = {},
     pageTargetName: options.pageTargetName || "",
     pageIdMismatch: options.pageIdMismatch || false,
     pageLookupError: options.pageLookupError || null,
+    publishPath: options.publishPath || "unknown",
+    activeAppPageId: options.activeAppPageId || settings.facebookWorkspacePageId || "",
+    localPageKey: options.localPageKey || settings.facebookWorkspacePageId || "",
+    tokenProbePageId: options.tokenProbePageId || "",
+    missingPermissions: options.missingPermissions || [],
   });
 }
 
@@ -252,9 +291,9 @@ function extractFacebookError(result, status) {
   if (result.error) {
     const code = result.error.code;
     const subcode = result.error.error_subcode;
+    const missingPermissions = getMissingFacebookPermissions(result.error.message);
     
-    if (code === 190) return "Facebook Access Token expired or invalid. Please refresh it in Settings.";
-    if (code === 200) return "Insufficient permissions. Ensure 'pages_manage_posts' is granted.";
+    if (missingPermissions.length || code === 190 || code === 200) return getFacebookTokenRefreshMessage();
     if (code === 100) return `Facebook Validation Error: ${result.error.message}`;
     
     return result.error.message || `Facebook Error (${code})`;
@@ -273,6 +312,7 @@ async function resolveLiveFacebookPageTarget(settings) {
       pageName: "",
       source: "configured_page_id",
       mismatch: false,
+      tokenProbePageId: "",
       lookupError: null,
     };
   }
@@ -291,6 +331,7 @@ async function resolveLiveFacebookPageTarget(settings) {
         pageName: "",
         source: "configured_page_id",
         mismatch: false,
+        tokenProbePageId: "",
         lookupError: sanitizeFacebookErrorPayload(result) || { status: response.status },
       };
     }
@@ -304,6 +345,7 @@ async function resolveLiveFacebookPageTarget(settings) {
       pageName: result.name || "",
       source: mismatch || !configuredPageId ? "token_profile_id" : "configured_page_id",
       mismatch,
+      tokenProbePageId: tokenPageId,
       lookupError: null,
     };
   } catch (error) {
@@ -313,6 +355,7 @@ async function resolveLiveFacebookPageTarget(settings) {
       pageName: "",
       source: "configured_page_id",
       mismatch: false,
+      tokenProbePageId: "",
       lookupError: { message: error?.message || "Facebook page token lookup failed" },
     };
   }
@@ -408,6 +451,11 @@ export async function publishFacebookPost(post, settings, options = {}) {
       pageTargetName: pageTarget.pageName,
       pageIdMismatch: pageTarget.mismatch,
       pageLookupError: pageTarget.lookupError,
+      publishPath: options.publishPath || "manual",
+      activeAppPageId: options.activeAppPageId || settings.facebookWorkspacePageId || "",
+      localPageKey: options.localPageKey || settings.facebookWorkspacePageId || "",
+      tokenProbePageId: pageTarget.tokenProbePageId || "",
+      missingPermissions: getMissingFacebookPermissions(pageTarget.lookupError?.message || ""),
     });
     logger.info("Facebook live publish diagnostics.", sanitizedDiagnostics);
     if (options.onDiagnostics) {
@@ -431,7 +479,12 @@ export async function publishFacebookPost(post, settings, options = {}) {
 
     if (!response.ok) {
       const msg = extractFacebookError(result, response.status);
-      logger.error("Facebook Publish Failed:", msg, result);
+      const facebookErrorPayload = sanitizeFacebookErrorPayload(result) || result?.error || result;
+      const missingPermissions = Array.from(new Set([
+        ...getMissingFacebookPermissions(pageTarget.lookupError?.message || ""),
+        ...getMissingFacebookPermissions(result?.error?.message || ""),
+      ]));
+      logger.error("Facebook Publish Failed:", msg, facebookErrorPayload);
       return {
         data: null,
         error: msg,
@@ -439,9 +492,12 @@ export async function publishFacebookPost(post, settings, options = {}) {
         diagnostics: {
           ...payloadDiagnostics,
           publishMode: settings.facebookPublishMode,
-          sanitized: sanitizedDiagnostics,
+          sanitized: {
+            ...sanitizedDiagnostics,
+            missing_permissions: missingPermissions,
+          },
         },
-        facebookErrorPayload: result?.error || result,
+        facebookErrorPayload,
       };
     }
 

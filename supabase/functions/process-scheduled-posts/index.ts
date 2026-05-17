@@ -95,6 +95,36 @@ function sanitizeFacebookErrorPayload(payload: Record<string, any> | null | unde
   };
 }
 
+const FACEBOOK_PERMISSION_NAMES = [
+  "pages_manage_posts",
+  "pages_read_engagement",
+  "pages_manage_metadata",
+  "pages_read_user_content",
+  "pages_manage_ads",
+  "pages_show_list",
+  "pages_messaging",
+];
+
+function getMissingFacebookPermissions(message: string | null | undefined) {
+  const text = String(message || "");
+  return FACEBOOK_PERMISSION_NAMES.filter((permission) => text.includes(permission));
+}
+
+function getFacebookTokenRefreshMessage() {
+  return "Facebook Page token หมดอายุ ไม่มีสิทธิ์ หรือไม่ตรงกับเพจ กรุณา refresh/re-save Page Access Token ใน Settings > Manage Pages แล้วลองใหม่";
+}
+
+function extractFacebookError(result: Record<string, any>, status: number) {
+  if (result?.error) {
+    const missingPermissions = getMissingFacebookPermissions(result.error.message);
+    if (missingPermissions.length || result.error.code === 190 || result.error.code === 200) return getFacebookTokenRefreshMessage();
+    if (result.error.code === 100) return `Facebook Validation Error: ${result.error.message}`;
+    return result.error.message || `Facebook Error (${result.error.code})`;
+  }
+
+  return `Facebook API Error: ${status}`;
+}
+
 function buildSanitizedPublishDiagnostics(
   post: Record<string, any>,
   publishConfig: Record<string, any>,
@@ -105,11 +135,19 @@ function buildSanitizedPublishDiagnostics(
   const safeImageUrl = String(post.image_url || "").trim() && !isUnsafeImageUrl(post.image_url)
     ? String(post.image_url || "").trim()
     : "";
+  const graphPageId = pageTarget.pageId || publishConfig.pageId || "";
+  const tokenProbePageId = pageTarget.tokenProbePageId || "";
 
   return {
-    page_id: pageTarget.pageId || publishConfig.pageId || "",
+    publish_path: "scheduler_edge",
+    active_app_page_id: publishConfig.resolvedPageId || "",
+    local_page_key: publishConfig.resolvedPageId || "",
+    page_id: graphPageId,
+    facebook_graph_page_id: graphPageId,
     configured_page_id: pageTarget.configuredPageId || publishConfig.pageId || "",
-    token_profile_page_id: pageTarget.source === "token_profile_id" ? pageTarget.pageId || "" : "",
+    token_probe_page_id: tokenProbePageId,
+    token_profile_page_id: tokenProbePageId,
+    token_owner_page_id_matches_target_page_id: Boolean(tokenProbePageId && graphPageId && tokenProbePageId === graphPageId),
     page_id_source: pageTarget.source || "configured_page_id",
     page_id_mismatch: Boolean(pageTarget.mismatch),
     page_name: pageTarget.pageName || publishConfig.pageLabel || "",
@@ -125,6 +163,7 @@ function buildSanitizedPublishDiagnostics(
     title: post.topic || "",
     scheduled_at: post.scheduled_at || null,
     page_lookup_error: pageTarget.lookupError || null,
+    missing_permissions: getMissingFacebookPermissions(pageTarget.lookupError?.message || ""),
   };
 }
 
@@ -138,6 +177,7 @@ async function resolveLiveFacebookPageTarget(pageId: string, accessToken: string
       pageName: "",
       source: "configured_page_id",
       mismatch: false,
+      tokenProbePageId: "",
       lookupError: null,
     };
   }
@@ -157,6 +197,7 @@ async function resolveLiveFacebookPageTarget(pageId: string, accessToken: string
         pageName: "",
         source: "configured_page_id",
         mismatch: false,
+        tokenProbePageId: "",
         lookupError: sanitizeFacebookErrorPayload(result) || { status: response.status },
       };
     }
@@ -170,6 +211,7 @@ async function resolveLiveFacebookPageTarget(pageId: string, accessToken: string
       pageName: result.name || "",
       source: mismatch || !configuredPageId ? "token_profile_id" : "configured_page_id",
       mismatch,
+      tokenProbePageId: tokenPageId,
       lookupError: null,
     };
   } catch (error) {
@@ -179,6 +221,7 @@ async function resolveLiveFacebookPageTarget(pageId: string, accessToken: string
       pageName: "",
       source: "configured_page_id",
       mismatch: false,
+      tokenProbePageId: "",
       lookupError: { message: error instanceof Error ? error.message : "Facebook page token lookup failed" },
     };
   }
@@ -702,7 +745,15 @@ serve(async (req) => {
           });
           const fbData = await fbResponse.json();
           if (!fbResponse.ok) {
-            throw new Error(fbData.error?.message || `Facebook API Error: ${fbResponse.status}`);
+            const sanitizedError = sanitizeFacebookErrorPayload(fbData) || fbData?.error || fbData;
+            const missingPermissions = Array.from(new Set([
+              ...getMissingFacebookPermissions(pageTarget.lookupError?.message || ""),
+              ...getMissingFacebookPermissions(fbData?.error?.message || ""),
+            ]));
+            const error = new Error(extractFacebookError(fbData, fbResponse.status));
+            (error as any).facebookErrorPayload = sanitizedError;
+            (error as any).missingPermissions = missingPermissions;
+            throw error;
           }
           facebookPostId = fbData.post_id || fbData.id || facebookPostId;
         }
@@ -805,6 +856,8 @@ serve(async (req) => {
         postResult.success = true;
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : String(err || "Unknown scheduler error");
+        const facebookErrorPayload = (err as any)?.facebookErrorPayload || null;
+        const missingPermissions = (err as any)?.missingPermissions || getMissingFacebookPermissions(errorMessage);
         await supabase
           .from("posts")
           .update({
@@ -827,6 +880,8 @@ serve(async (req) => {
             publish_mode: publishMode,
             result: "failed",
             error_message: errorMessage,
+            facebook_error_payload: facebookErrorPayload,
+            missing_permissions: missingPermissions,
           }),
         });
 
@@ -842,6 +897,8 @@ serve(async (req) => {
             publish_mode: publishMode,
             result: "failed",
             error_message: errorMessage,
+            facebook_error_payload: facebookErrorPayload,
+            missing_permissions: missingPermissions,
           }),
         });
 
