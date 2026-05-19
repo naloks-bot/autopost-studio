@@ -6,9 +6,10 @@ AutoPost Studio now has a frozen Content Stock OS production baseline that is us
 
 Completed and locked:
 
-* Phase 1 image storage leak protection shipped: safe unpublished draft/post delete now attempts Supabase Storage image cleanup without blocking delete UX
+* Phase 1 image storage leak protection shipped: safe unpublished draft/post delete now uses a pre-delete snapshot and attempts exact-path Supabase Storage image cleanup without blocking delete UX
 * published post images are retained by delete safety guards
 * Review Queue / queue card images now use lazy loading to reduce avoidable image egress
+* `supabase-setup.sql` now includes the required `generated-images` delete policy for client-side draft cleanup
 * publish flow stable
 * scheduler V1 stable
 * Create flow stable

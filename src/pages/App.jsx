@@ -40,7 +40,7 @@ import {
 } from "../services/supabase.js";
 import { createOperationLog, fetchOperationLogs } from "../services/operation-logs.js";
 import { getFacebookPublishDiagnostics, publishFacebookPost, validateFacebookConfig } from "../services/facebook.js";
-import { deleteStoredImage } from "../services/storage.js";
+import { deleteStoredImage, resolveStoredImageDeletePath } from "../services/storage.js";
 import {
   generateImagePrompt,
   generateBatchPostContent,
@@ -180,11 +180,23 @@ function canSafelyDeleteStoredImage(post) {
   if (!post) return false;
 
   const status = String(post.status || "draft").toLowerCase();
-  if (["scheduled", "publishing", "posted"].includes(status)) {
+  if (["scheduled", "publishing", "posted", "published"].includes(status)) {
     return false;
   }
 
   return ["draft", "review", "approved", "failed"].includes(status) || post.source === "local";
+}
+
+function createStoredImageCleanupSnapshot(post) {
+  if (!post) return null;
+
+  return {
+    id: post.id || null,
+    source: post.source || "remote",
+    status: String(post.status || "draft").toLowerCase(),
+    image_storage_path: String(post.image_storage_path || "").trim(),
+    image_url: String(post.image_url || "").trim(),
+  };
 }
 
 function SettingsField({ label, value, onChange, placeholder, multiline = false, secret = false, type = "text", options = [] }) {
@@ -1891,11 +1903,27 @@ function App() {
 
   const handleDeletePost = useCallback(async (post) => {
     if (!post) return false;
+    const cleanupSnapshot = createStoredImageCleanupSnapshot(post);
 
     const attemptStoredImageCleanup = async (targetPost) => {
       if (!canSafelyDeleteStoredImage(targetPost)) {
+        console.info("[AutoPost Storage] cleanup skipped by status guard", {
+          postId: targetPost?.id || null,
+          status: targetPost?.status || null,
+        });
         return { skipped: true, reason: "status_guard" };
       }
+
+      const resolvedStoragePath = resolveStoredImageDeletePath({
+        path: targetPost?.image_storage_path || "",
+        imageUrl: targetPost?.image_url || "",
+      });
+      console.info("[AutoPost Storage] cleanup attempt", {
+        postId: targetPost?.id || null,
+        status: targetPost?.status || null,
+        hasImageStoragePath: Boolean(targetPost?.image_storage_path),
+        resolvedStoragePath: resolvedStoragePath || null,
+      });
 
       const cleanupResult = await deleteStoredImage({
         path: targetPost?.image_storage_path || "",
@@ -1903,23 +1931,33 @@ function App() {
       });
 
       if (cleanupResult.error) {
-        console.warn("[AutoPost Storage] image cleanup skipped after delete", {
+        console.warn("[AutoPost Storage] cleanup failed after delete", {
           postId: targetPost?.id || null,
           status: targetPost?.status || null,
-          storagePath: targetPost?.image_storage_path || null,
-          imageUrl: targetPost?.image_url || null,
+          hasImageStoragePath: Boolean(targetPost?.image_storage_path),
+          resolvedStoragePath: cleanupResult.path || resolvedStoragePath || null,
           error: cleanupResult.error,
           reason: cleanupResult.reason || "",
         });
+        return cleanupResult;
       }
 
+      console.info("[AutoPost Storage] cleanup result", {
+        postId: targetPost?.id || null,
+        status: targetPost?.status || null,
+        hasImageStoragePath: Boolean(targetPost?.image_storage_path),
+        resolvedStoragePath: cleanupResult.path || resolvedStoragePath || null,
+        deleted: Boolean(cleanupResult.deleted),
+        skipped: Boolean(cleanupResult.skipped),
+        reason: cleanupResult.reason || "",
+      });
       return cleanupResult;
     };
 
     if (post.source === "local") {
       removeLocalDraft(post.id);
       setLocalDrafts((current) => current.filter((draft) => draft.id !== post.id));
-      void attemptStoredImageCleanup(post);
+      void attemptStoredImageCleanup(cleanupSnapshot);
       setStatusNotice({ tone: "success", message: "Draft removed from this device." });
       return true;
     }
@@ -1934,7 +1972,7 @@ function App() {
     }
 
     setRemotePosts((current) => current.filter((item) => item.id !== post.id));
-    void attemptStoredImageCleanup(deleted.data || post);
+    void attemptStoredImageCleanup(cleanupSnapshot);
     setStatusNotice({ tone: "success", message: "Queue item removed from the app." });
     return true;
   }, []);

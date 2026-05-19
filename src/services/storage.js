@@ -8,6 +8,8 @@ import { hasSupabaseConfig, supabase } from "./supabase.js";
 
 const BUCKET_NAME = "generated-images";
 const SUPABASE_PROJECT_URL = String(import.meta.env.VITE_SUPABASE_URL || "").replace(/\/+$/, "");
+const LOCKED_PUBLIC_BUCKET_PREFIX =
+  "https://xbwsxmewhsmchhpbjmgr.supabase.co/storage/v1/object/public/generated-images/";
 const IMAGE_MAX_WIDTH = 1600;
 const IMAGE_JPEG_QUALITY = 0.85;
 const JPEG_RECOMPRESS_THRESHOLD_BYTES = 1024 * 1024;
@@ -18,12 +20,17 @@ function normalizeStoragePath(path = "") {
 
 function getSafeStoragePathFromPublicUrl(value = "") {
   const publicUrl = String(value || "").trim();
-  if (!publicUrl || !SUPABASE_PROJECT_URL) return "";
+  if (!publicUrl) return "";
 
   try {
     const parsed = new URL(publicUrl);
-    const expectedPrefix = `${SUPABASE_PROJECT_URL}/storage/v1/object/public/${BUCKET_NAME}/`;
     const normalizedUrl = `${parsed.origin}${parsed.pathname}`;
+    const envPrefix = SUPABASE_PROJECT_URL
+      ? `${SUPABASE_PROJECT_URL}/storage/v1/object/public/${BUCKET_NAME}/`
+      : "";
+    const expectedPrefix =
+      envPrefix && envPrefix === LOCKED_PUBLIC_BUCKET_PREFIX ? envPrefix : LOCKED_PUBLIC_BUCKET_PREFIX;
+
     if (!normalizedUrl.startsWith(expectedPrefix)) {
       return "";
     }
@@ -349,6 +356,10 @@ export function getPublicImageUrl(path) {
   return isPublicHttpsUrl(publicUrl) ? publicUrl : null;
 }
 
+export function resolveStoredImageDeletePath({ path = "", imageUrl = "" } = {}) {
+  return normalizeStoragePath(path) || getSafeStoragePathFromPublicUrl(imageUrl);
+}
+
 export async function deleteStoredImage({ path = "", imageUrl = "" } = {}) {
   if (!hasSupabaseConfig || !supabase) {
     return {
@@ -361,7 +372,7 @@ export async function deleteStoredImage({ path = "", imageUrl = "" } = {}) {
     };
   }
 
-  const normalizedPath = normalizeStoragePath(path) || getSafeStoragePathFromPublicUrl(imageUrl);
+  const normalizedPath = resolveStoredImageDeletePath({ path, imageUrl });
   if (!normalizedPath) {
     return {
       deleted: false,

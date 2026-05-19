@@ -330,6 +330,7 @@ drop policy if exists "authenticated can delete operation logs" on public.operat
 drop policy if exists "anon can read generated images" on storage.objects;
 drop policy if exists "anon can upload generated images" on storage.objects;
 drop policy if exists "anon can update generated images" on storage.objects;
+drop policy if exists "anon can delete generated images" on storage.objects;
 
 drop policy if exists "anon can read app settings" on public.app_settings;
 create policy "anon can read app settings"
@@ -468,3 +469,10 @@ for update
 to anon
 using (bucket_id = 'generated-images')
 with check (bucket_id = 'generated-images');
+
+drop policy if exists "anon can delete generated images" on storage.objects;
+create policy "anon can delete generated images"
+on storage.objects
+for delete
+to anon
+using (bucket_id = 'generated-images');

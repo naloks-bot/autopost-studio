@@ -25,9 +25,10 @@ Current stable systems now locked:
 
 Recent completed checkpoints:
 
-* Phase 1 image storage leak protection shipped: deleting a safe unpublished draft/post now attempts Supabase Storage image cleanup by stored path without blocking delete UX
+* Phase 1 image storage leak protection shipped: deleting a safe unpublished draft/post now captures a pre-delete snapshot and attempts Supabase Storage image cleanup by exact stored path without blocking delete UX
 * published post images are retained during delete safety checks
 * review queue / queue card images now use lazy loading to reduce unnecessary image egress
+* generated-images client delete requires the matching Supabase Storage `DELETE` policy; `supabase-setup.sql` now includes it for production-safe draft cleanup
 * thumbnail system and cleanup scheduler/orphan scanner remain future work
 * compact Review Queue cards shipped for faster scanning
 * Review Detail Modal now uses a desktop two-column layout

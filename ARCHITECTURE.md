@@ -150,7 +150,9 @@ Current storage safety rule:
 
 * `supabase-setup.sql` must remain rerun-safe in Supabase SQL Editor with `DROP POLICY IF EXISTS` immediately before each `CREATE POLICY`
 * additive Content Stock OS metadata such as `hook`, `content_pillar`, `approved_at`, and `quality_checklist` remains part of the safe schema contract
-* Phase 1 storage leak protection keeps `image_storage_path` as the primary cleanup target when deleting safe unpublished drafts/posts, while retaining images for published posts and leaving thumbnail/orphan cleanup as future work
+* Phase 1 storage leak protection keeps a pre-delete post snapshot and uses `image_storage_path` as the primary cleanup target when deleting safe unpublished drafts/posts
+* if `image_storage_path` is missing, cleanup may only parse the same-project public URL prefix for `generated-images`; published/scheduled/publishing posts remain excluded from cleanup
+* client-side draft cleanup depends on the matching `storage.objects` delete policy for `generated-images`, while thumbnail/orphan cleanup remains future work
 
 ---
 
