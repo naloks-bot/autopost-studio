@@ -34,7 +34,10 @@ Recent completed checkpoints:
 * draft delete cleanup now attempts to remove both full images and thumbnails for safe unpublished posts
 * Create/save image state now preserves `thumbnail_storage_path` so new drafts keep thumbnail metadata through save/read/delete cleanup
 * direct anon delete policy for `generated-images` remains removed; Edge Function delete is the storage cleanup path
-* cleanup scheduler/orphan scanner remain future work
+* cleanup automation is now prepared through Edge Function `cleanup-maintenance` with conservative retention rules and dry-run-by-default behavior
+* operation logs older than 30 days are cleanup candidates
+* only safe draft-like posts older than 60 days, or failed/cancelled/test posts older than 14 days, are cleanup candidates
+* orphan files under `generated-images/uploads/` and `generated-images/thumbs/` older than 48 hours are cleanup candidates only when no post row references them
 * compact Review Queue cards shipped for faster scanning
 * Review Detail Modal now uses a desktop two-column layout
 * Review Detail Modal now supports inline hook/caption editing, clearer full-image preview, and in-modal image replacement
@@ -69,6 +72,7 @@ Production connection path:
 * Vercel hosts the frontend
 * Supabase stores posts, settings, logs, and images
 * Supabase Edge Function `process-scheduled-posts` handles server-side scheduled publishing
+* Supabase Edge Function `cleanup-maintenance` is available for manual or cron-driven maintenance cleanup
 * `cron-job.org` is the production scheduler trigger every 5 minutes
 * GitHub Actions is retained only as manual fallback/debug and is not the production scheduler
 
@@ -168,6 +172,16 @@ Production external cron setup:
 * Optional header: `Content-Type: application/json`
 * Expected success response: HTTP `200` with either `{"message":"No due posts","count":0,...}` or `{"message":"Processing complete","count":<n>,...}`
 * Recommended health check: enable cron-job.org run notifications/history and periodically confirm recent HTTP `200` responses plus matching Supabase post state transitions
+
+Cleanup maintenance endpoint:
+
+* URL: `https://xbwsxmewhsmchhpbjmgr.supabase.co/functions/v1/cleanup-maintenance`
+* Method: `POST`
+* Required header: `x-cron-secret: <CRON_SECRET>`
+* Default behavior: dry run only
+* Dry run example: `POST .../cleanup-maintenance?dryRun=true`
+* Real cleanup example: `POST .../cleanup-maintenance?dryRun=false`
+* Safe usage note: schedule real cleanup only after confirming dry-run output looks correct in production
 
 ---
 

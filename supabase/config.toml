@@ -3,3 +3,6 @@ verify_jwt = false
 
 [functions.delete-generated-image]
 verify_jwt = false
+
+[functions.cleanup-maintenance]
+verify_jwt = false

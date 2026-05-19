@@ -157,7 +157,9 @@ Current storage safety rule:
 * draft cleanup now removes both full image objects and thumbnail objects when safe unpublished posts are deleted
 * Create/upload state must preserve `thumbnail_storage_path` through draft save/read cycles so cleanup can target both `uploads/...` and `thumbs/...`
 * direct anon `storage.objects` delete access for `generated-images` stays removed; cleanup runs through the Edge Function path
-* orphan cleanup remains future work
+* long-term maintenance cleanup now runs through a separate service-role Edge Function with `x-cron-secret` auth and `dryRun=true` by default
+* maintenance retention rules are conservative: `operation_logs` > 30 days, safe draft-like posts > 60 days, failed/cancelled/test posts > 14 days, and orphan `uploads/` or `thumbs/` files > 48 hours only when no post references them
+* approved, review, scheduled, publishing, posted, and published rows remain protected from maintenance deletion
 
 ---
 
@@ -168,6 +170,7 @@ Current production connection path:
 * Vercel hosts the frontend
 * Supabase stores posts, settings, logs, and images
 * Supabase Edge Function `process-scheduled-posts` handles server-side scheduled publishing
+* Supabase Edge Function `cleanup-maintenance` handles storage/log retention cleanup separately from publish scheduling
 * `cron-job.org` triggers the Edge Function every 5 minutes in production
 * GitHub Actions is retained only as a manual fallback/debug tool
 

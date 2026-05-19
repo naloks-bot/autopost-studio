@@ -14,6 +14,7 @@ Completed and locked:
 * deleting a safe unpublished draft/post now attempts to remove both `image_storage_path` and `thumbnail_storage_path`
 * thumbnail metadata persistence is fixed so new draft saves keep `thumbnail_storage_path` and delete cleanup can reach both storage objects
 * direct anon delete policy for `generated-images` remains removed; cleanup goes through the Edge Function path
+* maintenance cleanup function shipped with conservative retention rules for logs, safe old draft-like posts, and confirmed orphan files
 * publish flow stable
 * scheduler V1 stable
 * Create flow stable
@@ -99,7 +100,7 @@ Operational workflow lock:
 
 Remaining future work for image egress/storage:
 
-* cleanup scheduler / orphan scanner
+* attach `cleanup-maintenance` to a production cron cadence after dry-run QA confirms retention output is correct
 
 Locked model selection rules:
 
