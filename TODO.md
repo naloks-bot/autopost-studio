@@ -10,6 +10,8 @@ Completed and locked:
 * published post images are retained by delete safety guards
 * Review Queue / queue card images now use lazy loading to reduce avoidable image egress
 * `supabase-setup.sql` now includes the required `generated-images` delete policy for client-side draft cleanup
+* draft cleanup is now hardened via a dedicated Edge Function using service-role delete with server-side status/path checks
+* anon delete policy remains temporarily for rollback safety and should be removed only after Edge Function production QA passes
 * publish flow stable
 * scheduler V1 stable
 * Create flow stable

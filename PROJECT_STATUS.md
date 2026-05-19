@@ -29,6 +29,8 @@ Recent completed checkpoints:
 * published post images are retained during delete safety checks
 * review queue / queue card images now use lazy loading to reduce unnecessary image egress
 * generated-images client delete requires the matching Supabase Storage `DELETE` policy; `supabase-setup.sql` now includes it for production-safe draft cleanup
+* draft image cleanup is now hardened through a dedicated Supabase Edge Function that validates status/path server-side and deletes via service role
+* anon `generated-images` delete policy remains temporarily in place until Edge Function production QA passes, then can be removed
 * thumbnail system and cleanup scheduler/orphan scanner remain future work
 * compact Review Queue cards shipped for faster scanning
 * Review Detail Modal now uses a desktop two-column layout

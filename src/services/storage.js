@@ -10,6 +10,7 @@ const BUCKET_NAME = "generated-images";
 const SUPABASE_PROJECT_URL = String(import.meta.env.VITE_SUPABASE_URL || "").replace(/\/+$/, "");
 const LOCKED_PUBLIC_BUCKET_PREFIX =
   "https://xbwsxmewhsmchhpbjmgr.supabase.co/storage/v1/object/public/generated-images/";
+const DELETE_GENERATED_IMAGE_FUNCTION = "delete-generated-image";
 const IMAGE_MAX_WIDTH = 1600;
 const IMAGE_JPEG_QUALITY = 0.85;
 const JPEG_RECOMPRESS_THRESHOLD_BYTES = 1024 * 1024;
@@ -360,7 +361,7 @@ export function resolveStoredImageDeletePath({ path = "", imageUrl = "" } = {}) 
   return normalizeStoragePath(path) || getSafeStoragePathFromPublicUrl(imageUrl);
 }
 
-export async function deleteStoredImage({ path = "", imageUrl = "" } = {}) {
+export async function deleteStoredImage({ path = "", imageUrl = "", status = "", postId = null } = {}) {
   if (!hasSupabaseConfig || !supabase) {
     return {
       deleted: false,
@@ -385,16 +386,26 @@ export async function deleteStoredImage({ path = "", imageUrl = "" } = {}) {
   }
 
   logger.info("Deleting image object from Supabase Storage.", {
-    bucket: BUCKET_NAME,
+    functionName: DELETE_GENERATED_IMAGE_FUNCTION,
     path: normalizedPath,
+    status: String(status || "").trim().toLowerCase() || null,
+    postId: postId || null,
   });
 
   try {
-    const { error } = await supabase.storage.from(BUCKET_NAME).remove([normalizedPath]);
+    const { data, error } = await supabase.functions.invoke(DELETE_GENERATED_IMAGE_FUNCTION, {
+      body: {
+        image_storage_path: path || "",
+        image_url: imageUrl || "",
+        status: String(status || "").trim().toLowerCase() || "",
+        post_id: postId || null,
+      },
+    });
+
     if (error) {
-      const message = classifyStorageError(error);
-      logger.warn("Supabase Storage image delete failed.", {
-        bucket: BUCKET_NAME,
+      const message = String(error.message || "Edge Function image delete failed").trim();
+      logger.warn("Edge Function image delete request failed.", {
+        functionName: DELETE_GENERATED_IMAGE_FUNCTION,
         path: normalizedPath,
         error,
       });
@@ -404,26 +415,59 @@ export async function deleteStoredImage({ path = "", imageUrl = "" } = {}) {
         mode: "connected",
         path: normalizedPath,
         skipped: false,
-        reason: "delete_failed",
+        reason: "function_request_failed",
       };
     }
 
-    logger.info("Supabase Storage image delete successful.", {
-      bucket: BUCKET_NAME,
-      path: normalizedPath,
+    if (!data?.ok) {
+      const message = String(data?.error || "Edge Function image delete failed").trim();
+      logger.warn("Edge Function image delete rejected.", {
+        functionName: DELETE_GENERATED_IMAGE_FUNCTION,
+        path: normalizedPath,
+        response: data,
+      });
+      return {
+        deleted: false,
+        error: message,
+        mode: "connected",
+        path: data?.path || normalizedPath,
+        skipped: false,
+        reason: "function_rejected",
+      };
+    }
+
+    if (data?.skipped) {
+      logger.info("Edge Function image delete skipped.", {
+        functionName: DELETE_GENERATED_IMAGE_FUNCTION,
+        path: data?.path || normalizedPath,
+        reason: data?.reason || "",
+      });
+      return {
+        deleted: false,
+        error: null,
+        mode: "connected",
+        path: data?.path || normalizedPath,
+        skipped: true,
+        reason: data?.reason || "skipped",
+      };
+    }
+
+    logger.info("Edge Function image delete successful.", {
+      functionName: DELETE_GENERATED_IMAGE_FUNCTION,
+      path: data?.path || normalizedPath,
     });
     return {
       deleted: true,
       error: null,
       mode: "connected",
-      path: normalizedPath,
+      path: data?.path || normalizedPath,
       skipped: false,
       reason: "",
     };
   } catch (error) {
-    const message = classifyStorageError(error);
-    logger.warn("Unexpected storage image delete error.", {
-      bucket: BUCKET_NAME,
+    const message = String(error?.message || error || "Unexpected image delete error").trim();
+    logger.warn("Unexpected Edge Function image delete error.", {
+      functionName: DELETE_GENERATED_IMAGE_FUNCTION,
       path: normalizedPath,
       error,
     });
@@ -433,7 +477,7 @@ export async function deleteStoredImage({ path = "", imageUrl = "" } = {}) {
       mode: "connected",
       path: normalizedPath,
       skipped: false,
-      reason: "delete_exception",
+      reason: "function_exception",
     };
   }
 }

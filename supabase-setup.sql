@@ -476,3 +476,7 @@ on storage.objects
 for delete
 to anon
 using (bucket_id = 'generated-images');
+
+-- After the delete-generated-image Edge Function is deployed and production QA passes,
+-- remove direct client-side anon delete access with:
+-- drop policy if exists "anon can delete generated images" on storage.objects;

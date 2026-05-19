@@ -152,7 +152,9 @@ Current storage safety rule:
 * additive Content Stock OS metadata such as `hook`, `content_pillar`, `approved_at`, and `quality_checklist` remains part of the safe schema contract
 * Phase 1 storage leak protection keeps a pre-delete post snapshot and uses `image_storage_path` as the primary cleanup target when deleting safe unpublished drafts/posts
 * if `image_storage_path` is missing, cleanup may only parse the same-project public URL prefix for `generated-images`; published/scheduled/publishing posts remain excluded from cleanup
-* client-side draft cleanup depends on the matching `storage.objects` delete policy for `generated-images`, while thumbnail/orphan cleanup remains future work
+* draft cleanup now prefers a dedicated Supabase Edge Function with service-role delete and server-side status/path validation
+* the current anon `storage.objects` delete policy is temporary rollback safety only and should be removed after Edge Function production QA passes
+* thumbnail/orphan cleanup remains future work
 
 ---
 

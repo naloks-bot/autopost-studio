@@ -1,2 +1,5 @@
 [functions.process-scheduled-posts]
 verify_jwt = false
+
+[functions.delete-generated-image]
+verify_jwt = false

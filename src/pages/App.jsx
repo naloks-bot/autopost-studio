@@ -1928,6 +1928,8 @@ function App() {
       const cleanupResult = await deleteStoredImage({
         path: targetPost?.image_storage_path || "",
         imageUrl: targetPost?.image_url || "",
+        status: targetPost?.status || "",
+        postId: targetPost?.id || null,
       });
 
       if (cleanupResult.error) {
