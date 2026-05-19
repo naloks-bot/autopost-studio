@@ -74,10 +74,12 @@ function buildReviewImageState(post = {}) {
   return {
     imageUrl,
     previewUrl: imageUrl,
+    thumbnailUrl: String(item?.thumbnail_url || item?.thumbnailUrl || "").trim(),
     provider: item?.image_provider || item?.imageProvider || null,
     revisedPrompt: item?.image_revised_prompt || item?.imageRevisedPrompt || null,
     storagePath: item?.image_storage_path || item?.imageStoragePath || null,
     storageMode: item?.image_storage_mode || item?.imageStorageMode || null,
+    thumbnailStoragePath: item?.thumbnail_storage_path || item?.thumbnailStoragePath || null,
   };
 }
 
@@ -86,10 +88,12 @@ function hasImageStateChanged(post = {}, imageState = {}) {
   const nextImageState = imageState || {};
   return (
     String(item?.image_url || item?.imageUrl || "").trim() !== String(nextImageState?.imageUrl || "").trim() ||
+    String(item?.thumbnail_url || item?.thumbnailUrl || "").trim() !== String(nextImageState?.thumbnailUrl || "").trim() ||
     (item?.image_provider || item?.imageProvider || null) !== (nextImageState?.provider || null) ||
     (item?.image_revised_prompt || item?.imageRevisedPrompt || null) !== (nextImageState?.revisedPrompt || null) ||
     (item?.image_storage_path || item?.imageStoragePath || null) !== (nextImageState?.storagePath || null) ||
-    (item?.image_storage_mode || item?.imageStorageMode || null) !== (nextImageState?.storageMode || null)
+    (item?.image_storage_mode || item?.imageStorageMode || null) !== (nextImageState?.storageMode || null) ||
+    (item?.thumbnail_storage_path || item?.thumbnailStoragePath || null) !== (nextImageState?.thumbnailStoragePath || null)
   );
 }
 
@@ -166,10 +170,12 @@ export default function ReviewDetailModal({
     post?.content,
     post?.topic,
     post?.image_url,
+    post?.thumbnail_url,
     post?.image_provider,
     post?.image_revised_prompt,
     post?.image_storage_path,
     post?.image_storage_mode,
+    post?.thumbnail_storage_path,
   ]);
 
   const handleCopyImagePrompt = async () => {
@@ -236,10 +242,12 @@ export default function ReviewDetailModal({
         hook: nextHook,
         content: nextCaption,
         image_url: nextImageState.imageUrl,
+        thumbnail_url: nextImageState.thumbnailUrl,
         image_provider: nextImageState.provider,
         image_revised_prompt: nextImageState.revisedPrompt,
         image_storage_path: nextImageState.storagePath,
         image_storage_mode: nextImageState.storageMode,
+        thumbnail_storage_path: nextImageState.thumbnailStoragePath,
       });
 
       if (!result?.ok) {
@@ -321,10 +329,12 @@ export default function ReviewDetailModal({
       const nextImageState = {
         imageUrl: uploadResult.data,
         previewUrl: uploadResult.data,
+        thumbnailUrl: uploadResult.thumbnailUrl || "",
         provider: "upload",
         revisedPrompt: post?.image_revised_prompt || null,
         storagePath: uploadResult.path || filePath,
         storageMode: "supabase",
+        thumbnailStoragePath: uploadResult.thumbnailPath || null,
       };
 
       setDraftImage(nextImageState);

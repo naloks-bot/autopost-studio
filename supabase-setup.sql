@@ -7,10 +7,12 @@ create table if not exists public.posts (
   content text not null,
   image_prompt text default '',
   image_url text default '',
+  thumbnail_url text default '',
   image_provider text,             -- AI model provider (openai, xai, mock)
   image_revised_prompt text,      -- AI revised prompt (if any)
   image_storage_path text,        -- Supabase Storage path
   image_storage_mode text,        -- storage mode (supabase, external)
+  thumbnail_storage_path text,    -- Supabase Storage thumbnail path
   hook text,
   content_pillar text default '',
   approved_at timestamptz,
@@ -30,12 +32,14 @@ alter table public.posts add column if not exists topic text;
 alter table public.posts add column if not exists content text;
 alter table public.posts add column if not exists image_prompt text default '';
 alter table public.posts add column if not exists image_url text default '';
+alter table public.posts add column if not exists thumbnail_url text default '';
 
 -- Image generation and storage columns used by save draft, reload/edit, and publish safety checks
 alter table public.posts add column if not exists image_provider text;
 alter table public.posts add column if not exists image_revised_prompt text;
 alter table public.posts add column if not exists image_storage_path text;
 alter table public.posts add column if not exists image_storage_mode text;
+alter table public.posts add column if not exists thumbnail_storage_path text;
 alter table public.posts add column if not exists hook text;
 alter table public.posts add column if not exists content_pillar text default '';
 alter table public.posts add column if not exists approved_at timestamptz;
@@ -64,6 +68,10 @@ where image_prompt is null;
 update public.posts
 set image_url = ''
 where image_url is null;
+
+update public.posts
+set thumbnail_url = ''
+where thumbnail_url is null;
 
 update public.posts
 set hook = topic
@@ -95,6 +103,7 @@ alter table public.posts alter column content set default '';
 alter table public.posts alter column content set not null;
 alter table public.posts alter column image_prompt set default '';
 alter table public.posts alter column image_url set default '';
+alter table public.posts alter column thumbnail_url set default '';
 alter table public.posts alter column content_pillar set default '';
 alter table public.posts alter column quality_checklist set default '{}'::jsonb;
 alter table public.posts alter column quality_checklist set not null;
@@ -330,7 +339,6 @@ drop policy if exists "authenticated can delete operation logs" on public.operat
 drop policy if exists "anon can read generated images" on storage.objects;
 drop policy if exists "anon can upload generated images" on storage.objects;
 drop policy if exists "anon can update generated images" on storage.objects;
-drop policy if exists "anon can delete generated images" on storage.objects;
 
 drop policy if exists "anon can read app settings" on public.app_settings;
 create policy "anon can read app settings"
@@ -470,13 +478,5 @@ to anon
 using (bucket_id = 'generated-images')
 with check (bucket_id = 'generated-images');
 
-drop policy if exists "anon can delete generated images" on storage.objects;
-create policy "anon can delete generated images"
-on storage.objects
-for delete
-to anon
-using (bucket_id = 'generated-images');
-
--- After the delete-generated-image Edge Function is deployed and production QA passes,
--- remove direct client-side anon delete access with:
--- drop policy if exists "anon can delete generated images" on storage.objects;
+-- Image delete is handled by the delete-generated-image Edge Function with service role.
+-- Keep direct client-side delete policy removed for generated-images.

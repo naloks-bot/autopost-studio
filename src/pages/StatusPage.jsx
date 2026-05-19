@@ -192,16 +192,23 @@ function getReviewDisplayHook(post = {}) {
   return String(item?.hook || deriveHookFromContent(item?.content, item?.topic) || item?.topic || "").trim();
 }
 
+function getPostThumbnailUrl(post = {}) {
+  const item = post || {};
+  return String(item?.thumbnail_url || item?.thumbnailUrl || item?.image_url || item?.imageUrl || "").trim();
+}
+
 function buildReviewImageState(post = {}) {
   const item = post || {};
   const imageUrl = String(item?.image_url || item?.imageUrl || "").trim();
   return {
     imageUrl,
     previewUrl: imageUrl,
+    thumbnailUrl: String(item?.thumbnail_url || item?.thumbnailUrl || "").trim(),
     provider: item?.image_provider || item?.imageProvider || null,
     revisedPrompt: item?.image_revised_prompt || item?.imageRevisedPrompt || null,
     storagePath: item?.image_storage_path || item?.imageStoragePath || null,
     storageMode: item?.image_storage_mode || item?.imageStorageMode || null,
+    thumbnailStoragePath: item?.thumbnail_storage_path || item?.thumbnailStoragePath || null,
   };
 }
 
@@ -221,10 +228,12 @@ function hasImageStateChanged(post = {}, imageState = {}) {
   const nextImageState = imageState || {};
   return (
     String(item?.image_url || item?.imageUrl || "").trim() !== String(nextImageState?.imageUrl || "").trim() ||
+    String(item?.thumbnail_url || item?.thumbnailUrl || "").trim() !== String(nextImageState?.thumbnailUrl || "").trim() ||
     (item?.image_provider || item?.imageProvider || null) !== (nextImageState?.provider || null) ||
     (item?.image_revised_prompt || item?.imageRevisedPrompt || null) !== (nextImageState?.revisedPrompt || null) ||
     (item?.image_storage_path || item?.imageStoragePath || null) !== (nextImageState?.storagePath || null) ||
-    (item?.image_storage_mode || item?.imageStorageMode || null) !== (nextImageState?.storageMode || null)
+    (item?.image_storage_mode || item?.imageStorageMode || null) !== (nextImageState?.storageMode || null) ||
+    (item?.thumbnail_storage_path || item?.thumbnailStoragePath || null) !== (nextImageState?.thumbnailStoragePath || null)
   );
 }
 
@@ -956,7 +965,7 @@ function StatusPage({
                     onClick={() => setReviewDetailPostId(post.id)}
                     className="flex min-w-0 flex-1 items-start gap-3 text-left"
                   >
-                    <ReviewThumbnail imageUrl={post.image_url} title={post.topic || post.hook} />
+                    <ReviewThumbnail imageUrl={getPostThumbnailUrl(post)} title={post.topic || post.hook} />
 
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
@@ -1230,9 +1239,9 @@ function StatusPage({
                 key={post.id}
                 className="group relative flex flex-col gap-3 overflow-hidden rounded-[1.5rem] border border-white/5 bg-slate-900/60 p-4 transition-all hover:bg-slate-900/80 lg:flex-row"
               >
-                {isDisplayableImageUrl(post.image_url) ? (
+                {isDisplayableImageUrl(getPostThumbnailUrl(post)) ? (
                   <div className="h-20 w-full shrink-0 overflow-hidden rounded-xl lg:h-24 lg:w-32">
-                    <SafeQueueImage imageUrl={post.image_url} />
+                    <SafeQueueImage imageUrl={getPostThumbnailUrl(post)} />
                   </div>
                 ) : null}
 

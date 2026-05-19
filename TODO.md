@@ -9,9 +9,10 @@ Completed and locked:
 * Phase 1 image storage leak protection shipped: safe unpublished draft/post delete now uses a pre-delete snapshot and attempts exact-path Supabase Storage image cleanup without blocking delete UX
 * published post images are retained by delete safety guards
 * Review Queue / queue card images now use lazy loading to reduce avoidable image egress
-* `supabase-setup.sql` now includes the required `generated-images` delete policy for client-side draft cleanup
-* draft cleanup is now hardened via a dedicated Edge Function using service-role delete with server-side status/path checks
-* anon delete policy remains temporarily for rollback safety and should be removed only after Edge Function production QA passes
+* thumbnail system shipped: uploads now create smaller JPG thumbnails and queue/list views prefer `thumbnail_url` with full-image fallback
+* draft cleanup is hardened via a dedicated Edge Function using service-role delete with server-side status/path checks
+* deleting a safe unpublished draft/post now attempts to remove both `image_storage_path` and `thumbnail_storage_path`
+* direct anon delete policy for `generated-images` remains removed; cleanup goes through the Edge Function path
 * publish flow stable
 * scheduler V1 stable
 * Create flow stable
@@ -97,7 +98,6 @@ Operational workflow lock:
 
 Remaining future work for image egress/storage:
 
-* thumbnail system
 * cleanup scheduler / orphan scanner
 
 Locked model selection rules:

@@ -28,10 +28,12 @@ Recent completed checkpoints:
 * Phase 1 image storage leak protection shipped: deleting a safe unpublished draft/post now captures a pre-delete snapshot and attempts Supabase Storage image cleanup by exact stored path without blocking delete UX
 * published post images are retained during delete safety checks
 * review queue / queue card images now use lazy loading to reduce unnecessary image egress
-* generated-images client delete requires the matching Supabase Storage `DELETE` policy; `supabase-setup.sql` now includes it for production-safe draft cleanup
+* review queue / publishing queue thumbnails now prefer small JPG thumbnail assets with full-image fallback for older posts
+* uploaded/generated images now save both full image paths and thumbnail paths in Supabase for lower queue egress
 * draft image cleanup is now hardened through a dedicated Supabase Edge Function that validates status/path server-side and deletes via service role
-* anon `generated-images` delete policy remains temporarily in place until Edge Function production QA passes, then can be removed
-* thumbnail system and cleanup scheduler/orphan scanner remain future work
+* draft delete cleanup now attempts to remove both full images and thumbnails for safe unpublished posts
+* direct anon delete policy for `generated-images` remains removed; Edge Function delete is the storage cleanup path
+* cleanup scheduler/orphan scanner remain future work
 * compact Review Queue cards shipped for faster scanning
 * Review Detail Modal now uses a desktop two-column layout
 * Review Detail Modal now supports inline hook/caption editing, clearer full-image preview, and in-modal image replacement

@@ -196,6 +196,8 @@ function createStoredImageCleanupSnapshot(post) {
     status: String(post.status || "draft").toLowerCase(),
     image_storage_path: String(post.image_storage_path || "").trim(),
     image_url: String(post.image_url || "").trim(),
+    thumbnail_storage_path: String(post.thumbnail_storage_path || "").trim(),
+    thumbnail_url: String(post.thumbnail_url || "").trim(),
   };
 }
 
@@ -576,10 +578,12 @@ function App() {
       id: draft.id,
       source: draft.source === "local" ? "local" : "remote",
       created_at: draft.created_at || null,
+      thumbnail_url: draft.thumbnail_url || "",
       image_provider: draft.image_provider || null,
       image_revised_prompt: draft.image_revised_prompt || null,
       image_storage_path: draft.image_storage_path || null,
       image_storage_mode: draft.image_storage_mode || null,
+      thumbnail_storage_path: draft.thumbnail_storage_path || null,
     });
     setCreateNotice({ tone: "info", message: "โหลดร่างกลับมาแก้ไขแล้ว" });
     setActiveTab("create");
@@ -865,10 +869,15 @@ function App() {
         content: cleanContent,
         image_prompt: typeof extraData.image_prompt === "string" ? extraData.image_prompt : String(form.imagePrompt || "").trim(),
         image_url: typeof extraData.image_url === "string" ? extraData.image_url : String(form.imageUrl || "").trim(),
+        thumbnail_url:
+          typeof extraData.thumbnail_url === "string"
+            ? extraData.thumbnail_url
+            : String(editingDraft?.thumbnail_url || "").trim(),
         image_provider: extraData.image_provider || editingDraft?.image_provider || null,
         image_revised_prompt: extraData.image_revised_prompt || editingDraft?.image_revised_prompt || null,
         image_storage_path: extraData.image_storage_path || editingDraft?.image_storage_path || null,
         image_storage_mode: extraData.image_storage_mode || editingDraft?.image_storage_mode || null,
+        thumbnail_storage_path: extraData.thumbnail_storage_path || editingDraft?.thumbnail_storage_path || null,
         hook: deriveHookFromContent(cleanContent, resolvedTopic),
         content_pillar: typeof extraData.content_pillar === "string" ? extraData.content_pillar : "",
         approved_at: null,
@@ -1067,6 +1076,8 @@ function App() {
       const nextHook = String(changes.hook || currentHook).trim() || deriveHookFromContent(nextContent, post.topic);
       const nextImageUrl =
         typeof changes.image_url === "string" ? changes.image_url.trim() : String(post.image_url || "").trim();
+      const nextThumbnailUrl =
+        typeof changes.thumbnail_url === "string" ? changes.thumbnail_url.trim() : String(post.thumbnail_url || "").trim();
       const nextImageProvider =
         typeof changes.image_provider === "undefined" ? post.image_provider || null : changes.image_provider || null;
       const nextImageRevisedPrompt =
@@ -1077,26 +1088,34 @@ function App() {
         typeof changes.image_storage_path === "undefined" ? post.image_storage_path || null : changes.image_storage_path || null;
       const nextImageStorageMode =
         typeof changes.image_storage_mode === "undefined" ? post.image_storage_mode || null : changes.image_storage_mode || null;
+      const nextThumbnailStoragePath =
+        typeof changes.thumbnail_storage_path === "undefined"
+          ? post.thumbnail_storage_path || null
+          : changes.thumbnail_storage_path || null;
 
       const approvalReset =
         post.status === "approved" &&
         (nextContent !== String(post.content || "").trim() ||
           nextHook !== currentHook ||
           nextImageUrl !== String(post.image_url || "").trim() ||
+          nextThumbnailUrl !== String(post.thumbnail_url || "").trim() ||
           nextImageProvider !== (post.image_provider || null) ||
           nextImageRevisedPrompt !== (post.image_revised_prompt || null) ||
           nextImageStoragePath !== (post.image_storage_path || null) ||
-          nextImageStorageMode !== (post.image_storage_mode || null));
+          nextImageStorageMode !== (post.image_storage_mode || null) ||
+          nextThumbnailStoragePath !== (post.thumbnail_storage_path || null));
 
       const nextDraft = {
         ...post,
         content: nextContent,
         hook: nextHook,
         image_url: nextImageUrl,
+        thumbnail_url: nextThumbnailUrl,
         image_provider: nextImageProvider,
         image_revised_prompt: nextImageRevisedPrompt,
         image_storage_path: nextImageStoragePath,
         image_storage_mode: nextImageStorageMode,
+        thumbnail_storage_path: nextThumbnailStoragePath,
         status: approvalReset ? "review" : post.status || "draft",
         approved_at: approvalReset ? null : post.approved_at || null,
         scheduled_at: post.status === "scheduled" ? post.scheduled_at || null : null,
@@ -1914,20 +1933,27 @@ function App() {
         return { skipped: true, reason: "status_guard" };
       }
 
-      const resolvedStoragePath = resolveStoredImageDeletePath({
-        path: targetPost?.image_storage_path || "",
-        imageUrl: targetPost?.image_url || "",
-      });
+      const resolvedStoragePaths = [
+        resolveStoredImageDeletePath({
+          path: targetPost?.image_storage_path || "",
+          imageUrl: targetPost?.image_url || "",
+        }),
+        resolveStoredImageDeletePath({
+          path: targetPost?.thumbnail_storage_path || "",
+          imageUrl: targetPost?.thumbnail_url || "",
+        }),
+      ].filter(Boolean);
       console.info("[AutoPost Storage] cleanup attempt", {
         postId: targetPost?.id || null,
         status: targetPost?.status || null,
         hasImageStoragePath: Boolean(targetPost?.image_storage_path),
-        resolvedStoragePath: resolvedStoragePath || null,
+        hasThumbnailStoragePath: Boolean(targetPost?.thumbnail_storage_path),
+        resolvedStoragePaths,
       });
 
       const cleanupResult = await deleteStoredImage({
-        path: targetPost?.image_storage_path || "",
-        imageUrl: targetPost?.image_url || "",
+        paths: [targetPost?.image_storage_path || "", targetPost?.thumbnail_storage_path || ""],
+        imageUrls: [targetPost?.image_url || "", targetPost?.thumbnail_url || ""],
         status: targetPost?.status || "",
         postId: targetPost?.id || null,
       });
@@ -1937,7 +1963,8 @@ function App() {
           postId: targetPost?.id || null,
           status: targetPost?.status || null,
           hasImageStoragePath: Boolean(targetPost?.image_storage_path),
-          resolvedStoragePath: cleanupResult.path || resolvedStoragePath || null,
+          hasThumbnailStoragePath: Boolean(targetPost?.thumbnail_storage_path),
+          resolvedStoragePaths: cleanupResult.paths || resolvedStoragePaths,
           error: cleanupResult.error,
           reason: cleanupResult.reason || "",
         });
@@ -1948,7 +1975,8 @@ function App() {
         postId: targetPost?.id || null,
         status: targetPost?.status || null,
         hasImageStoragePath: Boolean(targetPost?.image_storage_path),
-        resolvedStoragePath: cleanupResult.path || resolvedStoragePath || null,
+        hasThumbnailStoragePath: Boolean(targetPost?.thumbnail_storage_path),
+        resolvedStoragePaths: cleanupResult.paths || resolvedStoragePaths,
         deleted: Boolean(cleanupResult.deleted),
         skipped: Boolean(cleanupResult.skipped),
         reason: cleanupResult.reason || "",
@@ -1991,10 +2019,12 @@ function App() {
         content: sanitizeGeneratedCaption(String(post.content || "").trim()),
         image_prompt: String(post.image_prompt || "").trim(),
         image_url: String(post.image_url || "").trim(),
+        thumbnail_url: String(post.thumbnail_url || "").trim(),
         image_provider: post.image_provider || null,
         image_revised_prompt: post.image_revised_prompt || null,
         image_storage_path: post.image_storage_path || null,
         image_storage_mode: post.image_storage_mode || null,
+        thumbnail_storage_path: post.thumbnail_storage_path || null,
         hook: post.hook || deriveHookFromContent(post.content, post.topic),
         content_pillar: post.content_pillar || "",
         approved_at: null,

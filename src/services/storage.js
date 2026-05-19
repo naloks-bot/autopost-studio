@@ -14,6 +14,8 @@ const DELETE_GENERATED_IMAGE_FUNCTION = "delete-generated-image";
 const IMAGE_MAX_WIDTH = 1600;
 const IMAGE_JPEG_QUALITY = 0.85;
 const JPEG_RECOMPRESS_THRESHOLD_BYTES = 1024 * 1024;
+const THUMBNAIL_MAX_WIDTH = 480;
+const THUMBNAIL_JPEG_QUALITY = 0.78;
 
 function normalizeStoragePath(path = "") {
   return String(path || "").replace(/^\/+/, "").trim();
@@ -92,21 +94,31 @@ function shouldBypassOptimization(blob) {
   return false;
 }
 
-function calculateTargetDimensions(width, height) {
+function calculateTargetDimensions(width, height, maxWidth = IMAGE_MAX_WIDTH) {
   if (!width || !height) {
     return { width: 0, height: 0, resized: false };
   }
 
-  if (width <= IMAGE_MAX_WIDTH) {
+  if (width <= maxWidth) {
     return { width, height, resized: false };
   }
 
-  const ratio = IMAGE_MAX_WIDTH / width;
+  const ratio = maxWidth / width;
   return {
-    width: IMAGE_MAX_WIDTH,
+    width: maxWidth,
     height: Math.max(1, Math.round(height * ratio)),
     resized: true,
   };
+}
+
+function deriveThumbnailStoragePath(path = "") {
+  const normalizedPath = normalizeStoragePath(path);
+  if (!normalizedPath) return "";
+
+  const segments = normalizedPath.split("/").filter(Boolean);
+  if (!segments.length) return "";
+  const relativePath = segments.length > 1 ? segments.slice(1).join("/") : segments[0];
+  return replaceStoragePathExtension(`thumbs/${relativePath}`, "jpg");
 }
 
 function loadImageFromBlob(blob) {
@@ -206,7 +218,7 @@ async function optimizeImageForUpload(filePath, blob) {
   }
 
   const { width: sourceWidth, height: sourceHeight } = dimensions;
-  const { width: targetWidth, height: targetHeight, resized } = calculateTargetDimensions(sourceWidth, sourceHeight);
+  const { width: targetWidth, height: targetHeight, resized } = calculateTargetDimensions(sourceWidth, sourceHeight, IMAGE_MAX_WIDTH);
   const isJpegSource = originalContentType === "image/jpeg" || originalContentType === "image/jpg";
   const shouldOptimize = !isJpegSource || resized || originalSize > JPEG_RECOMPRESS_THRESHOLD_BYTES;
 
@@ -303,6 +315,125 @@ async function optimizeImageForUpload(filePath, blob) {
   }
 }
 
+async function createThumbnailForUpload(filePath, blob) {
+  const thumbnailPath = deriveThumbnailStoragePath(filePath);
+  const originalContentType = getBlobContentType(blob).toLowerCase();
+  const originalSize = typeof blob?.size === "number" ? blob.size : 0;
+
+  const baseDiagnostics = {
+    sourcePath: normalizeStoragePath(filePath),
+    thumbnailPath,
+    originalType: originalContentType,
+    originalSize,
+    optimized: false,
+    fallbackReason: "",
+  };
+
+  if (!(blob instanceof Blob)) {
+    return {
+      blob: null,
+      filePath: "",
+      diagnostics: {
+        ...baseDiagnostics,
+        fallbackReason: "invalid_blob",
+      },
+    };
+  }
+
+  if (!originalContentType.startsWith("image/") || originalContentType === "image/gif") {
+    return {
+      blob: null,
+      filePath: "",
+      diagnostics: {
+        ...baseDiagnostics,
+        fallbackReason: originalContentType === "image/gif" ? "gif_preserved" : "unsupported_content_type",
+      },
+    };
+  }
+
+  let dimensions;
+  try {
+    dimensions = await loadImageFromBlob(blob);
+  } catch (error) {
+    logger.warn("Thumbnail generation skipped; browser could not decode the source image.", {
+      path: normalizeStoragePath(filePath),
+      error: error instanceof Error ? error.message : String(error || "Unknown decode error"),
+    });
+    return {
+      blob: null,
+      filePath: "",
+      diagnostics: {
+        ...baseDiagnostics,
+        fallbackReason: "decode_failed",
+      },
+    };
+  }
+
+  const { width: sourceWidth, height: sourceHeight } = dimensions;
+  const { width: targetWidth, height: targetHeight } = calculateTargetDimensions(sourceWidth, sourceHeight, THUMBNAIL_MAX_WIDTH);
+
+  try {
+    const canvas = document.createElement("canvas");
+    canvas.width = targetWidth;
+    canvas.height = targetHeight;
+
+    const context = canvas.getContext("2d", { alpha: false });
+    if (!context) {
+      throw new Error("Canvas context unavailable");
+    }
+
+    context.fillStyle = "#ffffff";
+    context.fillRect(0, 0, targetWidth, targetHeight);
+
+    const objectUrl = URL.createObjectURL(blob);
+    try {
+      const image = await new Promise((resolve, reject) => {
+        const nextImage = new Image();
+        nextImage.onload = () => resolve(nextImage);
+        nextImage.onerror = () => reject(new Error("Thumbnail redraw failed"));
+        nextImage.decoding = "async";
+        nextImage.src = objectUrl;
+      });
+      context.drawImage(image, 0, 0, targetWidth, targetHeight);
+    } finally {
+      URL.revokeObjectURL(objectUrl);
+    }
+
+    const thumbnailBlob = await canvasToBlob(canvas, "image/jpeg", THUMBNAIL_JPEG_QUALITY);
+    return {
+      blob: thumbnailBlob,
+      filePath: thumbnailPath,
+      diagnostics: {
+        ...baseDiagnostics,
+        optimized: true,
+        optimizedType: "image/jpeg",
+        optimizedSize: thumbnailBlob.size,
+        width: sourceWidth,
+        height: sourceHeight,
+        optimizedWidth: targetWidth,
+        optimizedHeight: targetHeight,
+      },
+    };
+  } catch (error) {
+    logger.warn("Thumbnail generation failed; continuing with the full image only.", {
+      path: normalizeStoragePath(filePath),
+      error: error instanceof Error ? error.message : String(error || "Unknown thumbnail error"),
+    });
+    return {
+      blob: null,
+      filePath: "",
+      diagnostics: {
+        ...baseDiagnostics,
+        width: sourceWidth,
+        height: sourceHeight,
+        optimizedWidth: targetWidth,
+        optimizedHeight: targetHeight,
+        fallbackReason: "thumbnail_failed",
+      },
+    };
+  }
+}
+
 function classifyStorageError(error) {
   const message = String(error?.message || error || "").trim();
   const statusCode = String(error?.statusCode || error?.status || "");
@@ -361,7 +492,78 @@ export function resolveStoredImageDeletePath({ path = "", imageUrl = "" } = {}) 
   return normalizeStoragePath(path) || getSafeStoragePathFromPublicUrl(imageUrl);
 }
 
-export async function deleteStoredImage({ path = "", imageUrl = "", status = "", postId = null } = {}) {
+function buildDeleteTargetPayload({ path = "", imageUrl = "", paths = [], imageUrls = [] } = {}) {
+  const hasArrayTargets =
+    (Array.isArray(paths) && paths.length > 0) ||
+    (Array.isArray(imageUrls) && imageUrls.length > 0);
+  const pathList = Array.isArray(paths) ? paths : [];
+  const imageUrlList = Array.isArray(imageUrls) ? imageUrls : [];
+  const entries = hasArrayTargets
+    ? Array.from({ length: Math.max(pathList.length, imageUrlList.length) }, (_, index) => ({
+        path: pathList[index] || "",
+        imageUrl: imageUrlList[index] || "",
+      }))
+    : [{ path, imageUrl }];
+
+  const resolvedPaths = [];
+  for (const entry of entries) {
+    const resolvedPath = resolveStoredImageDeletePath(entry);
+    if (resolvedPath && !resolvedPaths.includes(resolvedPath)) {
+      resolvedPaths.push(resolvedPath);
+    }
+  }
+
+  return {
+    entries,
+    resolvedPaths,
+    firstResolvedPath: resolvedPaths[0] || null,
+  };
+}
+
+async function uploadPreparedStorageBlob({ path, blob, contentType, bucketState, diagnostics, label = "image" }) {
+  const normalizedPath = normalizeStoragePath(path);
+  const { data, error } = await supabase.storage.from(BUCKET_NAME).upload(normalizedPath, blob, {
+    cacheControl: "3600",
+    upsert: true,
+    contentType,
+  });
+
+  if (error) {
+    const message = classifyStorageError(error);
+    logger.error(`Supabase Storage ${label} upload failed.`, {
+      bucket: BUCKET_NAME,
+      path: normalizedPath,
+      contentType,
+      error,
+      bucketCheck: bucketState.ok ? "ok" : bucketState.reason,
+      optimization: diagnostics,
+    });
+    return { data: null, error: message, path: normalizedPath };
+  }
+
+  const storedPath = normalizeStoragePath(data?.path || normalizedPath);
+  const publicUrl = getPublicImageUrl(storedPath);
+  if (!publicUrl) {
+    const message = `Supabase ${label} upload succeeded, but a public HTTPS URL could not be generated for '${storedPath}'.`;
+    logger.error(message, {
+      bucket: BUCKET_NAME,
+      path: storedPath,
+      uploadData: data,
+      optimization: diagnostics,
+    });
+    return { data: null, error: message, path: storedPath };
+  }
+
+  logger.info(`Supabase Storage ${label} upload successful.`, {
+    bucket: BUCKET_NAME,
+    path: storedPath,
+    publicUrl,
+    optimization: diagnostics,
+  });
+  return { data: publicUrl, error: null, path: storedPath };
+}
+
+export async function deleteStoredImage({ path = "", imageUrl = "", paths = [], imageUrls = [], status = "", postId = null } = {}) {
   if (!hasSupabaseConfig || !supabase) {
     return {
       deleted: false,
@@ -373,13 +575,14 @@ export async function deleteStoredImage({ path = "", imageUrl = "", status = "",
     };
   }
 
-  const normalizedPath = resolveStoredImageDeletePath({ path, imageUrl });
-  if (!normalizedPath) {
+  const deleteTargets = buildDeleteTargetPayload({ path, imageUrl, paths, imageUrls });
+  if (!deleteTargets.resolvedPaths.length) {
     return {
       deleted: false,
       error: null,
       mode: "connected",
       path: null,
+      paths: [],
       skipped: true,
       reason: "missing_safe_path",
     };
@@ -387,7 +590,7 @@ export async function deleteStoredImage({ path = "", imageUrl = "", status = "",
 
   logger.info("Deleting image object from Supabase Storage.", {
     functionName: DELETE_GENERATED_IMAGE_FUNCTION,
-    path: normalizedPath,
+    paths: deleteTargets.resolvedPaths,
     status: String(status || "").trim().toLowerCase() || null,
     postId: postId || null,
   });
@@ -397,6 +600,8 @@ export async function deleteStoredImage({ path = "", imageUrl = "", status = "",
       body: {
         image_storage_path: path || "",
         image_url: imageUrl || "",
+        image_storage_paths: deleteTargets.entries.map((entry) => String(entry.path || "")),
+        image_urls: deleteTargets.entries.map((entry) => String(entry.imageUrl || "")),
         status: String(status || "").trim().toLowerCase() || "",
         post_id: postId || null,
       },
@@ -406,14 +611,15 @@ export async function deleteStoredImage({ path = "", imageUrl = "", status = "",
       const message = String(error.message || "Edge Function image delete failed").trim();
       logger.warn("Edge Function image delete request failed.", {
         functionName: DELETE_GENERATED_IMAGE_FUNCTION,
-        path: normalizedPath,
+        paths: deleteTargets.resolvedPaths,
         error,
       });
       return {
         deleted: false,
         error: message,
         mode: "connected",
-        path: normalizedPath,
+        path: deleteTargets.firstResolvedPath,
+        paths: deleteTargets.resolvedPaths,
         skipped: false,
         reason: "function_request_failed",
       };
@@ -423,30 +629,32 @@ export async function deleteStoredImage({ path = "", imageUrl = "", status = "",
       const message = String(data?.error || "Edge Function image delete failed").trim();
       logger.warn("Edge Function image delete rejected.", {
         functionName: DELETE_GENERATED_IMAGE_FUNCTION,
-        path: normalizedPath,
+        paths: deleteTargets.resolvedPaths,
         response: data,
       });
       return {
         deleted: false,
         error: message,
         mode: "connected",
-        path: data?.path || normalizedPath,
+        path: data?.path || deleteTargets.firstResolvedPath,
+        paths: data?.paths || deleteTargets.resolvedPaths,
         skipped: false,
-        reason: "function_rejected",
+        reason: data?.reason || "function_rejected",
       };
     }
 
     if (data?.skipped) {
       logger.info("Edge Function image delete skipped.", {
         functionName: DELETE_GENERATED_IMAGE_FUNCTION,
-        path: data?.path || normalizedPath,
+        paths: data?.paths || deleteTargets.resolvedPaths,
         reason: data?.reason || "",
       });
       return {
         deleted: false,
         error: null,
         mode: "connected",
-        path: data?.path || normalizedPath,
+        path: data?.path || deleteTargets.firstResolvedPath,
+        paths: data?.paths || deleteTargets.resolvedPaths,
         skipped: true,
         reason: data?.reason || "skipped",
       };
@@ -454,13 +662,14 @@ export async function deleteStoredImage({ path = "", imageUrl = "", status = "",
 
     logger.info("Edge Function image delete successful.", {
       functionName: DELETE_GENERATED_IMAGE_FUNCTION,
-      path: data?.path || normalizedPath,
+      paths: data?.paths || deleteTargets.resolvedPaths,
     });
     return {
       deleted: true,
       error: null,
       mode: "connected",
-      path: data?.path || normalizedPath,
+      path: data?.path || deleteTargets.firstResolvedPath,
+      paths: data?.paths || deleteTargets.resolvedPaths,
       skipped: false,
       reason: "",
     };
@@ -468,14 +677,15 @@ export async function deleteStoredImage({ path = "", imageUrl = "", status = "",
     const message = String(error?.message || error || "Unexpected image delete error").trim();
     logger.warn("Unexpected Edge Function image delete error.", {
       functionName: DELETE_GENERATED_IMAGE_FUNCTION,
-      path: normalizedPath,
+      paths: deleteTargets.resolvedPaths,
       error,
     });
     return {
       deleted: false,
       error: message,
       mode: "connected",
-      path: normalizedPath,
+      path: deleteTargets.firstResolvedPath,
+      paths: deleteTargets.resolvedPaths,
       skipped: false,
       reason: "function_exception",
     };
@@ -491,7 +701,7 @@ export async function deleteStoredImage({ path = "", imageUrl = "", status = "",
 export async function uploadImageBlob(filePath, blob) {
   if (!hasSupabaseConfig || !supabase) {
     logger.warn("Supabase not configured for storage upload.");
-    return { data: null, error: "Supabase not configured", mode: "offline", path: null };
+    return { data: null, error: "Supabase not configured", mode: "offline", path: null, thumbnailUrl: null, thumbnailPath: null };
   }
 
   const preparedUpload = await optimizeImageForUpload(filePath, blob);
@@ -510,46 +720,53 @@ export async function uploadImageBlob(filePath, blob) {
   });
 
   try {
-    const { data, error } = await supabase.storage
-      .from(BUCKET_NAME)
-      .upload(normalizedPath, preparedUpload.blob, {
-        cacheControl: "3600",
-        upsert: true,
-        contentType,
-      });
-
-    if (error) {
-      const msg = classifyStorageError(error);
-      logger.error("Supabase Storage upload failed.", {
-        bucket: BUCKET_NAME,
-        path: normalizedPath,
-        contentType,
-        error,
-        bucketCheck: bucketState.ok ? "ok" : bucketState.reason,
-        optimization: preparedUpload.diagnostics,
-      });
-      return { data: null, error: msg, mode: "connected", path: normalizedPath };
-    }
-
-    const storedPath = normalizeStoragePath(data?.path || normalizedPath);
-    const publicUrl = getPublicImageUrl(storedPath);
-    if (!publicUrl) {
-      const message = `Supabase upload succeeded, but a public HTTPS URL could not be generated for '${storedPath}'.`;
-      logger.error(message, {
-        bucket: BUCKET_NAME,
-        path: storedPath,
-        uploadData: data,
-      });
-      return { data: null, error: message, mode: "connected", path: storedPath };
-    }
-
-    logger.info("Supabase Storage upload successful.", {
-      bucket: BUCKET_NAME,
-      path: storedPath,
-      publicUrl,
-      optimization: preparedUpload.diagnostics,
+    const fullUpload = await uploadPreparedStorageBlob({
+      path: normalizedPath,
+      blob: preparedUpload.blob,
+      contentType,
+      bucketState,
+      diagnostics: preparedUpload.diagnostics,
+      label: "image",
     });
-    return { data: publicUrl, error: null, mode: "connected", path: storedPath };
+
+    if (!fullUpload.data) {
+      return { data: null, error: fullUpload.error, mode: "connected", path: fullUpload.path, thumbnailUrl: null, thumbnailPath: null };
+    }
+
+    let thumbnailUrl = null;
+    let thumbnailPath = null;
+    const preparedThumbnail = await createThumbnailForUpload(fullUpload.path || normalizedPath, preparedUpload.blob);
+    if (preparedThumbnail.blob && preparedThumbnail.filePath) {
+      const thumbnailUpload = await uploadPreparedStorageBlob({
+        path: preparedThumbnail.filePath,
+        blob: preparedThumbnail.blob,
+        contentType: "image/jpeg",
+        bucketState,
+        diagnostics: preparedThumbnail.diagnostics,
+        label: "thumbnail",
+      });
+
+      if (thumbnailUpload.data) {
+        thumbnailUrl = thumbnailUpload.data;
+        thumbnailPath = thumbnailUpload.path || preparedThumbnail.filePath;
+      } else {
+        logger.warn("Thumbnail upload failed; continuing with full image only.", {
+          bucket: BUCKET_NAME,
+          path: preparedThumbnail.filePath,
+          error: thumbnailUpload.error,
+          optimization: preparedThumbnail.diagnostics,
+        });
+      }
+    }
+
+    return {
+      data: fullUpload.data,
+      error: null,
+      mode: "connected",
+      path: fullUpload.path,
+      thumbnailUrl,
+      thumbnailPath,
+    };
   } catch (err) {
     const message = classifyStorageError(err);
     logger.error("Unexpected error during storage upload.", {
@@ -559,7 +776,7 @@ export async function uploadImageBlob(filePath, blob) {
       error: err,
       optimization: preparedUpload.diagnostics,
     });
-    return { data: null, error: message, mode: "connected", path: normalizedPath };
+    return { data: null, error: message, mode: "connected", path: normalizedPath, thumbnailUrl: null, thumbnailPath: null };
   }
 }
 
@@ -571,7 +788,7 @@ export async function uploadImageBlob(filePath, blob) {
  */
 export async function uploadImageFromUrl(filePath, imageUrl) {
   if (!hasSupabaseConfig || !supabase) {
-    return { data: null, error: "Supabase not configured", mode: "offline", path: null };
+    return { data: null, error: "Supabase not configured", mode: "offline", path: null, thumbnailUrl: null, thumbnailPath: null };
   }
 
   logger.info("Mirroring image to Supabase Storage.", {
@@ -605,6 +822,6 @@ export async function uploadImageFromUrl(filePath, imageUrl) {
       sourceUrl: imageUrl,
       error: err,
     });
-    return { data: null, error: message, mode: "connected", path: null };
+    return { data: null, error: message, mode: "connected", path: null, thumbnailUrl: null, thumbnailPath: null };
   }
 }

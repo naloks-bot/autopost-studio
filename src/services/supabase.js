@@ -5,9 +5,9 @@ import { deriveHookFromContent, normalizeQualityChecklist } from "./content-stoc
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
 const POSTS_SELECT =
-  "id, page_id, topic, content, image_prompt, image_url, image_provider, image_revised_prompt, image_storage_path, image_storage_mode, hook, content_pillar, approved_at, quality_checklist, status, scheduled_at, posted_at, facebook_post_id, created_at, updated_at";
+  "id, page_id, topic, content, image_prompt, image_url, thumbnail_url, image_provider, image_revised_prompt, image_storage_path, image_storage_mode, thumbnail_storage_path, hook, content_pillar, approved_at, quality_checklist, status, scheduled_at, posted_at, facebook_post_id, created_at, updated_at";
 const POSTS_SELECT_FALLBACK =
-  "id, page_id, topic, content, image_prompt, image_url, image_provider, image_revised_prompt, image_storage_path, image_storage_mode, status, scheduled_at, posted_at, created_at";
+  "id, page_id, topic, content, image_prompt, image_url, thumbnail_url, image_provider, image_revised_prompt, image_storage_path, image_storage_mode, thumbnail_storage_path, status, scheduled_at, posted_at, created_at";
 const POSTS_SELECT_LEGACY =
   "id, page_id, topic, content, image_prompt, image_url, status, scheduled_at, posted_at, created_at";
 const POSTS_SELECT_BASE =
@@ -48,10 +48,12 @@ export function normalizePost(post) {
     content: post.content ?? "",
     image_prompt: post.image_prompt ?? "",
     image_url: post.image_url ?? "",
+    thumbnail_url: post.thumbnail_url ?? "",
     image_provider: post.image_provider ?? null,
     image_revised_prompt: post.image_revised_prompt ?? null,
     image_storage_path: post.image_storage_path ?? null,
     image_storage_mode: post.image_storage_mode ?? null,
+    thumbnail_storage_path: post.thumbnail_storage_path ?? null,
     hook: post.hook ?? deriveHookFromContent(post.content, post.topic),
     content_pillar: post.content_pillar ?? "",
     approved_at: post.approved_at ?? null,
@@ -169,6 +171,8 @@ function buildPostsWritePayloadVariants(payload = {}) {
       "image_revised_prompt",
       "image_storage_path",
       "image_storage_mode",
+      "thumbnail_url",
+      "thumbnail_storage_path",
       "hook",
       "content_pillar",
       "approved_at",
@@ -181,6 +185,8 @@ function buildPostsWritePayloadVariants(payload = {}) {
       "image_revised_prompt",
       "image_storage_path",
       "image_storage_mode",
+      "thumbnail_url",
+      "thumbnail_storage_path",
       "hook",
       "content_pillar",
       "approved_at",
@@ -376,10 +382,12 @@ function buildDraftPayload(draft = {}) {
     content: draft.content,
     image_prompt: draft.image_prompt,
     image_url: draft.image_url,
+    thumbnail_url: draft.thumbnail_url || "",
     image_provider: draft.image_provider || null,
     image_revised_prompt: draft.image_revised_prompt || null,
     image_storage_path: draft.image_storage_path || null,
     image_storage_mode: draft.image_storage_mode || null,
+    thumbnail_storage_path: draft.thumbnail_storage_path || null,
     hook: draft.hook || deriveHookFromContent(draft.content, draft.topic),
     content_pillar: draft.content_pillar || "",
     approved_at: draft.approved_at || null,

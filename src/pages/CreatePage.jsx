@@ -96,17 +96,23 @@ function CreatePage({
     }
 
     setImageAsset((current) => {
-      if (current?.imageUrl === form.imageUrl || current?.previewUrl === form.imageUrl) {
+      if (
+        (current?.imageUrl === form.imageUrl || current?.previewUrl === form.imageUrl) &&
+        String(current?.thumbnailUrl || "") === String(editingDraft?.thumbnail_url || "") &&
+        (current?.thumbnailStoragePath || null) === (editingDraft?.thumbnail_storage_path || null)
+      ) {
         return current;
       }
 
       return {
         imageUrl: form.imageUrl,
         previewUrl: form.imageUrl,
+        thumbnailUrl: editingDraft?.thumbnail_url || "",
         provider: editingDraft?.image_provider || null,
         revisedPrompt: editingDraft?.image_revised_prompt || null,
         storagePath: editingDraft?.image_storage_path || null,
         storageMode: editingDraft?.image_storage_mode || null,
+        thumbnailStoragePath: editingDraft?.thumbnail_storage_path || null,
         source: "existing",
       };
     });
@@ -190,10 +196,12 @@ function CreatePage({
         const nextImage = {
           imageUrl: finalUrl,
           previewUrl: finalUrl,
+          thumbnailUrl: uploadResult.thumbnailUrl || "",
           revisedPrompt: result.data.revisedPrompt,
           provider: result.mode,
           storagePath,
           storageMode,
+          thumbnailStoragePath: uploadResult.thumbnailPath || null,
           source: "ai",
         };
 
@@ -226,9 +234,11 @@ function CreatePage({
     setImageAsset({
       imageUrl: previewUrl,
       previewUrl,
+      thumbnailUrl: "",
       provider: "upload",
       storagePath: null,
       storageMode: "local",
+      thumbnailStoragePath: null,
       source: "upload",
       fileName: file.name,
     });
@@ -242,9 +252,11 @@ function CreatePage({
         setImageAsset({
           imageUrl: uploadResult.data,
           previewUrl,
+          thumbnailUrl: uploadResult.thumbnailUrl || "",
           provider: "upload",
           storagePath: uploadResult.path || filePath,
           storageMode: "supabase",
+          thumbnailStoragePath: uploadResult.thumbnailPath || null,
           source: "upload",
           fileName: file.name,
         });
@@ -260,9 +272,11 @@ function CreatePage({
       setImageAsset({
         imageUrl: dataUrl,
         previewUrl: dataUrl,
+        thumbnailUrl: "",
         provider: "upload",
         storagePath: null,
         storageMode: "local",
+        thumbnailStoragePath: null,
         source: "upload",
         fileName: file.name,
       });
@@ -280,9 +294,11 @@ function CreatePage({
         setImageAsset({
           imageUrl: dataUrl,
           previewUrl: dataUrl,
+          thumbnailUrl: "",
           provider: "upload",
           storagePath: null,
           storageMode: "local",
+          thumbnailStoragePath: null,
           source: "upload",
           fileName: file.name,
         });
@@ -299,11 +315,13 @@ function CreatePage({
     const safePersistedImageUrl = isUnsafeDraftImageUrl(resolvedImageUrl) ? "" : resolvedImageUrl;
     const extraData = {
       image_url: safePersistedImageUrl,
+      thumbnail_url: safePersistedImageUrl ? imageAsset?.thumbnailUrl || editingDraft?.thumbnail_url || "" : "",
       image_prompt: form.imagePrompt,
       image_provider: imageAsset?.provider || null,
       image_revised_prompt: imageAsset?.revisedPrompt || null,
       image_storage_path: safePersistedImageUrl ? imageAsset?.storagePath || null : null,
       image_storage_mode: safePersistedImageUrl ? imageAsset?.storageMode || null : null,
+      thumbnail_storage_path: safePersistedImageUrl ? imageAsset?.thumbnailStoragePath || editingDraft?.thumbnail_storage_path || null : null,
     };
 
     if (resolvedImageUrl && !safePersistedImageUrl) {

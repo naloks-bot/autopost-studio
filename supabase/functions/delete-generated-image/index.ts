@@ -24,7 +24,9 @@ const BLOCKED_DELETE_STATUSES = new Set(["scheduled", "publishing", "posted", "p
 
 type DeletePayload = {
   image_storage_path?: string | null;
+  image_storage_paths?: Array<string | null> | null;
   image_url?: string | null;
+  image_urls?: Array<string | null> | null;
   status?: string | null;
   post_id?: string | null;
 };
@@ -63,13 +65,13 @@ function isSafeStoragePath(path: string) {
   return path.includes("/");
 }
 
-function resolveSafeStoragePath(payload: DeletePayload) {
-  const directPath = normalizeStoragePath(payload.image_storage_path);
+function resolveSafeStoragePathTarget(pathValue: string | null | undefined, imageUrlValue: string | null | undefined) {
+  const directPath = normalizeStoragePath(pathValue);
   if (directPath) {
     return isSafeStoragePath(directPath) ? directPath : "";
   }
 
-  const imageUrl = String(payload.image_url || "").trim();
+  const imageUrl = String(imageUrlValue || "").trim();
   if (!imageUrl) return "";
 
   try {
@@ -84,6 +86,43 @@ function resolveSafeStoragePath(payload: DeletePayload) {
   } catch {
     return "";
   }
+}
+
+function buildDeleteTargets(payload: DeletePayload) {
+  const pathList = Array.isArray(payload.image_storage_paths) ? payload.image_storage_paths : [];
+  const imageUrlList = Array.isArray(payload.image_urls) ? payload.image_urls : [];
+  const hasArrayTargets = pathList.length > 0 || imageUrlList.length > 0;
+  const entries = hasArrayTargets
+    ? Array.from({ length: Math.max(pathList.length, imageUrlList.length) }, (_, index) => ({
+        path: pathList[index] ?? "",
+        imageUrl: imageUrlList[index] ?? "",
+      }))
+    : [{ path: payload.image_storage_path ?? "", imageUrl: payload.image_url ?? "" }];
+
+  const resolvedPaths: string[] = [];
+  let invalidTargetFound = false;
+
+  for (const entry of entries) {
+    const hasInput = Boolean(String(entry.path || "").trim() || String(entry.imageUrl || "").trim());
+    if (!hasInput) {
+      continue;
+    }
+
+    const resolvedPath = resolveSafeStoragePathTarget(entry.path, entry.imageUrl);
+    if (!resolvedPath) {
+      invalidTargetFound = true;
+      continue;
+    }
+
+    if (!resolvedPaths.includes(resolvedPath)) {
+      resolvedPaths.push(resolvedPath);
+    }
+  }
+
+  return {
+    resolvedPaths,
+    invalidTargetFound,
+  };
 }
 
 function canDeleteForStatus(status: string) {
@@ -126,12 +165,16 @@ serve(async (req) => {
     return jsonResponse({ ok: true, skipped: true, reason: "status_guard" });
   }
 
-  const resolvedPath = resolveSafeStoragePath(payload);
-  if (!resolvedPath) {
+  const deleteTargets = buildDeleteTargets(payload);
+  if (deleteTargets.invalidTargetFound || !deleteTargets.resolvedPaths.length) {
     console.warn("[delete-generated-image] rejected unsafe path", {
       postId,
       status: status || null,
-      hasImageStoragePath: Boolean(String(payload.image_storage_path || "").trim()),
+      hasDeleteInput:
+        Boolean(String(payload.image_storage_path || "").trim()) ||
+        Boolean(String(payload.image_url || "").trim()) ||
+        (Array.isArray(payload.image_storage_paths) && payload.image_storage_paths.some((value) => String(value || "").trim())) ||
+        (Array.isArray(payload.image_urls) && payload.image_urls.some((value) => String(value || "").trim())),
     });
     return jsonResponse({ ok: false, error: "Missing or unsafe storage path" });
   }
@@ -143,24 +186,51 @@ serve(async (req) => {
   console.info("[delete-generated-image] delete attempt", {
     postId,
     status: status || null,
-    path: resolvedPath,
+    paths: deleteTargets.resolvedPaths,
   });
 
-  const { error } = await adminClient.storage.from(BUCKET_NAME).remove([resolvedPath]);
-  if (error) {
+  const deletedPaths: string[] = [];
+  const failedPaths: Array<{ path: string; error: string }> = [];
+
+  for (const resolvedPath of deleteTargets.resolvedPaths) {
+    const { error } = await adminClient.storage.from(BUCKET_NAME).remove([resolvedPath]);
+    if (error) {
+      failedPaths.push({
+        path: resolvedPath,
+        error: error.message || "Storage delete failed",
+      });
+      continue;
+    }
+
+    deletedPaths.push(resolvedPath);
+  }
+
+  if (failedPaths.length) {
     console.warn("[delete-generated-image] storage delete failed", {
       postId,
       status: status || null,
-      path: resolvedPath,
-      error: error.message || "Unknown storage delete error",
+      deletedPaths,
+      failedPaths,
     });
-    return jsonResponse({ ok: false, error: error.message || "Storage delete failed", path: resolvedPath });
+    return jsonResponse({
+      ok: false,
+      error: deletedPaths.length ? "Partial storage delete failure" : "Storage delete failed",
+      path: deletedPaths[0] || deleteTargets.resolvedPaths[0] || null,
+      paths: deletedPaths.length ? deletedPaths : deleteTargets.resolvedPaths,
+      failed_paths: failedPaths,
+      reason: deletedPaths.length ? "partial_delete_failure" : "delete_failed",
+    });
   }
 
   console.info("[delete-generated-image] delete success", {
     postId,
     status: status || null,
-    path: resolvedPath,
+    paths: deletedPaths,
   });
-  return jsonResponse({ ok: true, deleted: true, path: resolvedPath });
+  return jsonResponse({
+    ok: true,
+    deleted: true,
+    path: deletedPaths[0] || null,
+    paths: deletedPaths,
+  });
 });
