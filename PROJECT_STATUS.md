@@ -32,6 +32,7 @@ Recent completed checkpoints:
 * uploaded/generated images now save both full image paths and thumbnail paths in Supabase for lower queue egress
 * draft image cleanup is now hardened through a dedicated Supabase Edge Function that validates status/path server-side and deletes via service role
 * draft delete cleanup now attempts to remove both full images and thumbnails for safe unpublished posts
+* Create/save image state now preserves `thumbnail_storage_path` so new drafts keep thumbnail metadata through save/read/delete cleanup
 * direct anon delete policy for `generated-images` remains removed; Edge Function delete is the storage cleanup path
 * cleanup scheduler/orphan scanner remain future work
 * compact Review Queue cards shipped for faster scanning

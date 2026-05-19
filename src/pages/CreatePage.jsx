@@ -96,8 +96,15 @@ function CreatePage({
     }
 
     setImageAsset((current) => {
+      const currentMatchesFormImage = current?.imageUrl === form.imageUrl || current?.previewUrl === form.imageUrl;
+      const currentHasStoredMetadata = Boolean(current?.storagePath || current?.thumbnailStoragePath || current?.thumbnailUrl);
+
+      if (currentMatchesFormImage && current?.source !== "existing" && currentHasStoredMetadata) {
+        return current;
+      }
+
       if (
-        (current?.imageUrl === form.imageUrl || current?.previewUrl === form.imageUrl) &&
+        currentMatchesFormImage &&
         String(current?.thumbnailUrl || "") === String(editingDraft?.thumbnail_url || "") &&
         (current?.thumbnailStoragePath || null) === (editingDraft?.thumbnail_storage_path || null)
       ) {
@@ -193,6 +200,14 @@ function CreatePage({
           storageMode = "supabase";
         }
 
+        console.info("[AutoPost Storage] upload result", {
+          source: "ai",
+          hasImageStoragePath: Boolean(storagePath),
+          hasThumbnailStoragePath: Boolean(uploadResult.thumbnailPath),
+          imageStoragePath: storagePath || null,
+          thumbnailStoragePath: uploadResult.thumbnailPath || null,
+        });
+
         const nextImage = {
           imageUrl: finalUrl,
           previewUrl: finalUrl,
@@ -249,6 +264,14 @@ function CreatePage({
       const uploadResult = await uploadImageBlob(filePath, file);
 
       if (uploadResult.data) {
+        console.info("[AutoPost Storage] upload result", {
+          source: "upload",
+          hasImageStoragePath: Boolean(uploadResult.path || filePath),
+          hasThumbnailStoragePath: Boolean(uploadResult.thumbnailPath),
+          imageStoragePath: uploadResult.path || filePath,
+          thumbnailStoragePath: uploadResult.thumbnailPath || null,
+        });
+
         setImageAsset({
           imageUrl: uploadResult.data,
           previewUrl,
@@ -327,6 +350,14 @@ function CreatePage({
     if (resolvedImageUrl && !safePersistedImageUrl) {
       setImageGenerationError("ยังไม่มี URL รูปภาพสาธารณะ จึงบันทึกร่างแบบไม่แนบรูปสำหรับโพสต์จริง");
     }
+
+    console.info("[AutoPost Storage] draft payload prepared", {
+      draftId: editingDraft?.id || null,
+      hasImageStoragePath: Boolean(extraData.image_storage_path),
+      hasThumbnailStoragePath: Boolean(extraData.thumbnail_storage_path),
+      imageStoragePath: extraData.image_storage_path || null,
+      thumbnailStoragePath: extraData.thumbnail_storage_path || null,
+    });
 
     return extraData;
   }

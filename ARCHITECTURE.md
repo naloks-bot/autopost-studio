@@ -155,6 +155,7 @@ Current storage safety rule:
 * if `image_storage_path` or `thumbnail_storage_path` is missing, cleanup may only parse the same-project public URL prefix for `generated-images`; published/scheduled/publishing posts remain excluded from cleanup
 * draft cleanup now prefers a dedicated Supabase Edge Function with service-role delete and server-side status/path validation
 * draft cleanup now removes both full image objects and thumbnail objects when safe unpublished posts are deleted
+* Create/upload state must preserve `thumbnail_storage_path` through draft save/read cycles so cleanup can target both `uploads/...` and `thumbs/...`
 * direct anon `storage.objects` delete access for `generated-images` stays removed; cleanup runs through the Edge Function path
 * orphan cleanup remains future work
 

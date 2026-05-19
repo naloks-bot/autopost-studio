@@ -12,6 +12,7 @@ Completed and locked:
 * thumbnail system shipped: uploads now create smaller JPG thumbnails and queue/list views prefer `thumbnail_url` with full-image fallback
 * draft cleanup is hardened via a dedicated Edge Function using service-role delete with server-side status/path checks
 * deleting a safe unpublished draft/post now attempts to remove both `image_storage_path` and `thumbnail_storage_path`
+* thumbnail metadata persistence is fixed so new draft saves keep `thumbnail_storage_path` and delete cleanup can reach both storage objects
 * direct anon delete policy for `generated-images` remains removed; cleanup goes through the Edge Function path
 * publish flow stable
 * scheduler V1 stable

@@ -886,12 +886,29 @@ function App() {
         created_at: editingDraft?.created_at || new Date().toISOString(),
       };
 
+      console.info("[AutoPost Storage] save draft request", {
+        draftId: editingDraft?.id || null,
+        storageTarget: editingDraft?.source === "remote" ? "remote-update" : "remote-insert",
+        hasImageStoragePath: Boolean(draft.image_storage_path),
+        hasThumbnailStoragePath: Boolean(draft.thumbnail_storage_path),
+        imageStoragePath: draft.image_storage_path || null,
+        thumbnailStoragePath: draft.thumbnail_storage_path || null,
+      });
+
       const remote =
         editingDraft?.source === "remote"
           ? await updateRemoteDraft(editingDraft.id, draft, { workspacePages })
           : await insertRemoteDraft(draft, { workspacePages });
 
       if (remote.data) {
+        console.info("[AutoPost Storage] save draft result", {
+          draftId: remote.data.id || null,
+          source: "remote",
+          hasImageStoragePath: Boolean(remote.data.image_storage_path),
+          hasThumbnailStoragePath: Boolean(remote.data.thumbnail_storage_path),
+          imageStoragePath: remote.data.image_storage_path || null,
+          thumbnailStoragePath: remote.data.thumbnail_storage_path || null,
+        });
         setRemotePosts((current) => {
           if (editingDraft?.source === "remote") {
             return current.map((item) => (item.id === editingDraft.id ? remote.data : item));
@@ -918,6 +935,15 @@ function App() {
       if (["read-only", "offline", "missing-table"].includes(remote.mode)) {
         const localEntry =
           editingDraft?.source === "local" ? updateLocalDraft(editingDraft.id, draft) : saveLocalDraft(draft);
+
+        console.info("[AutoPost Storage] save draft result", {
+          draftId: localEntry?.id || null,
+          source: "local",
+          hasImageStoragePath: Boolean(localEntry?.image_storage_path),
+          hasThumbnailStoragePath: Boolean(localEntry?.thumbnail_storage_path),
+          imageStoragePath: localEntry?.image_storage_path || null,
+          thumbnailStoragePath: localEntry?.thumbnail_storage_path || null,
+        });
 
         setLocalDrafts((current) => {
           if (!localEntry) return current;
