@@ -6,6 +6,9 @@ AutoPost Studio now has a frozen Content Stock OS production baseline that is us
 
 Completed and locked:
 
+* Phase 1 image storage leak protection shipped: safe unpublished draft/post delete now attempts Supabase Storage image cleanup without blocking delete UX
+* published post images are retained by delete safety guards
+* Review Queue / queue card images now use lazy loading to reduce avoidable image egress
 * publish flow stable
 * scheduler V1 stable
 * Create flow stable
@@ -88,6 +91,11 @@ Operational workflow lock:
 * if a manual/auth-required step blocks progress, provide exact manual instructions with where to go, what to click/run, expected success result, and the result/error to report back
 * preserve stable systems: scheduler V1, publish flow, storage flow, Supabase architecture, Create flow, and provider routing
 * future app changes should be bug/blocker only unless they directly save time or cost
+
+Remaining future work for image egress/storage:
+
+* thumbnail system
+* cleanup scheduler / orphan scanner
 
 Locked model selection rules:
 

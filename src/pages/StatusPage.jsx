@@ -247,6 +247,7 @@ function ReviewThumbnail({ imageUrl, title, large = false }) {
         <img
           src={safeImageUrl}
           alt={title || "Review image"}
+          loading="lazy"
           className="h-full w-full object-cover"
           onError={() => setHasImageError(true)}
         />
@@ -279,6 +280,7 @@ function SafeQueueImage({ imageUrl, alt = "Preview" }) {
     <img
       src={safeImageUrl}
       alt={alt}
+      loading="lazy"
       className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
       onError={() => setHasImageError(true)}
     />

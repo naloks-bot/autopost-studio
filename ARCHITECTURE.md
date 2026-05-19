@@ -150,6 +150,7 @@ Current storage safety rule:
 
 * `supabase-setup.sql` must remain rerun-safe in Supabase SQL Editor with `DROP POLICY IF EXISTS` immediately before each `CREATE POLICY`
 * additive Content Stock OS metadata such as `hook`, `content_pillar`, `approved_at`, and `quality_checklist` remains part of the safe schema contract
+* Phase 1 storage leak protection keeps `image_storage_path` as the primary cleanup target when deleting safe unpublished drafts/posts, while retaining images for published posts and leaving thumbnail/orphan cleanup as future work
 
 ---
 
@@ -233,6 +234,7 @@ The stable production boundary now includes:
 * single-draft Create flow
 * batch 5 / 10 / 20 content generation with safer diversity
 * compact Review Queue workflow
+* Phase 1 image storage leak protection for safe unpublished delete paths, plus lazy-loaded queue/card images to reduce avoidable storage egress
 * Review Detail Modal with image prompt access and copy
 * approval-gated review, schedule, and publish flow
 * manual `โพสต์` for approved posts

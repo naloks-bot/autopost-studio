@@ -7,12 +7,32 @@ import { hasSupabaseConfig, supabase } from "./supabase.js";
  */
 
 const BUCKET_NAME = "generated-images";
+const SUPABASE_PROJECT_URL = String(import.meta.env.VITE_SUPABASE_URL || "").replace(/\/+$/, "");
 const IMAGE_MAX_WIDTH = 1600;
 const IMAGE_JPEG_QUALITY = 0.85;
 const JPEG_RECOMPRESS_THRESHOLD_BYTES = 1024 * 1024;
 
 function normalizeStoragePath(path = "") {
   return String(path || "").replace(/^\/+/, "").trim();
+}
+
+function getSafeStoragePathFromPublicUrl(value = "") {
+  const publicUrl = String(value || "").trim();
+  if (!publicUrl || !SUPABASE_PROJECT_URL) return "";
+
+  try {
+    const parsed = new URL(publicUrl);
+    const expectedPrefix = `${SUPABASE_PROJECT_URL}/storage/v1/object/public/${BUCKET_NAME}/`;
+    const normalizedUrl = `${parsed.origin}${parsed.pathname}`;
+    if (!normalizedUrl.startsWith(expectedPrefix)) {
+      return "";
+    }
+
+    const relativePath = decodeURIComponent(normalizedUrl.slice(expectedPrefix.length));
+    return normalizeStoragePath(relativePath);
+  } catch {
+    return "";
+  }
 }
 
 function isPublicHttpsUrl(value = "") {
@@ -327,6 +347,84 @@ export function getPublicImageUrl(path) {
   const { data } = supabase.storage.from(BUCKET_NAME).getPublicUrl(normalizedPath);
   const publicUrl = data?.publicUrl || null;
   return isPublicHttpsUrl(publicUrl) ? publicUrl : null;
+}
+
+export async function deleteStoredImage({ path = "", imageUrl = "" } = {}) {
+  if (!hasSupabaseConfig || !supabase) {
+    return {
+      deleted: false,
+      error: "Supabase not configured",
+      mode: "offline",
+      path: null,
+      skipped: true,
+      reason: "offline",
+    };
+  }
+
+  const normalizedPath = normalizeStoragePath(path) || getSafeStoragePathFromPublicUrl(imageUrl);
+  if (!normalizedPath) {
+    return {
+      deleted: false,
+      error: null,
+      mode: "connected",
+      path: null,
+      skipped: true,
+      reason: "missing_safe_path",
+    };
+  }
+
+  logger.info("Deleting image object from Supabase Storage.", {
+    bucket: BUCKET_NAME,
+    path: normalizedPath,
+  });
+
+  try {
+    const { error } = await supabase.storage.from(BUCKET_NAME).remove([normalizedPath]);
+    if (error) {
+      const message = classifyStorageError(error);
+      logger.warn("Supabase Storage image delete failed.", {
+        bucket: BUCKET_NAME,
+        path: normalizedPath,
+        error,
+      });
+      return {
+        deleted: false,
+        error: message,
+        mode: "connected",
+        path: normalizedPath,
+        skipped: false,
+        reason: "delete_failed",
+      };
+    }
+
+    logger.info("Supabase Storage image delete successful.", {
+      bucket: BUCKET_NAME,
+      path: normalizedPath,
+    });
+    return {
+      deleted: true,
+      error: null,
+      mode: "connected",
+      path: normalizedPath,
+      skipped: false,
+      reason: "",
+    };
+  } catch (error) {
+    const message = classifyStorageError(error);
+    logger.warn("Unexpected storage image delete error.", {
+      bucket: BUCKET_NAME,
+      path: normalizedPath,
+      error,
+    });
+    return {
+      deleted: false,
+      error: message,
+      mode: "connected",
+      path: normalizedPath,
+      skipped: false,
+      reason: "delete_exception",
+    };
+  }
 }
 
 /**

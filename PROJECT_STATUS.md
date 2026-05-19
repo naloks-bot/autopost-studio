@@ -25,6 +25,10 @@ Current stable systems now locked:
 
 Recent completed checkpoints:
 
+* Phase 1 image storage leak protection shipped: deleting a safe unpublished draft/post now attempts Supabase Storage image cleanup by stored path without blocking delete UX
+* published post images are retained during delete safety checks
+* review queue / queue card images now use lazy loading to reduce unnecessary image egress
+* thumbnail system and cleanup scheduler/orphan scanner remain future work
 * compact Review Queue cards shipped for faster scanning
 * Review Detail Modal now uses a desktop two-column layout
 * Review Detail Modal now supports inline hook/caption editing, clearer full-image preview, and in-modal image replacement
