@@ -150,7 +150,7 @@ export default function ImageStudioCard({
         <input
           ref={fileInputRef}
           type="file"
-          accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
+          accept="image/jpeg,image/png,image/webp,image/gif,.jpg,.jpeg,.png,.webp,.gif"
           className="hidden"
           onChange={(event) => {
             const file = event.target.files?.[0];

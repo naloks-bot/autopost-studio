@@ -81,17 +81,6 @@ function buildReviewImageState(post = {}) {
   };
 }
 
-function getUploadFileExtension(file) {
-  const original = file?.name?.split(".").pop()?.toLowerCase();
-  if (original && ["jpg", "jpeg", "png", "webp"].includes(original)) {
-    return original === "jpeg" ? "jpg" : original;
-  }
-
-  if (file?.type === "image/png") return "png";
-  if (file?.type === "image/webp") return "webp";
-  return "jpg";
-}
-
 function hasImageStateChanged(post = {}, imageState = {}) {
   const item = post || {};
   const nextImageState = imageState || {};
@@ -308,7 +297,7 @@ export default function ReviewDetailModal({
     event.target.value = "";
     if (!file || !post) return;
 
-    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+    if (!["image/jpeg", "image/png", "image/webp", "image/gif"].includes(file.type)) {
       setSaveFeedback({ tone: "warning", message: "รองรับเฉพาะไฟล์ JPG, PNG หรือ WEBP" });
       return;
     }
@@ -318,8 +307,7 @@ export default function ReviewDetailModal({
 
     try {
       const today = new Date().toISOString().split("T")[0];
-      const extension = getUploadFileExtension(file);
-      const filePath = `uploads/${today}/review-${post?.id || "draft"}-${Date.now()}.${extension}`;
+      const filePath = `uploads/${today}/review-${post?.id || "draft"}-${Date.now()}.jpg`;
       const uploadResult = await uploadImageBlob(filePath, file);
 
       if (!uploadResult.data) {
@@ -335,7 +323,7 @@ export default function ReviewDetailModal({
         previewUrl: uploadResult.data,
         provider: "upload",
         revisedPrompt: post?.image_revised_prompt || null,
-        storagePath: filePath,
+        storagePath: uploadResult.path || filePath,
         storageMode: "supabase",
       };
 
@@ -424,7 +412,7 @@ export default function ReviewDetailModal({
                 {isUploadingImage ? "กำลังอัปโหลด..." : "เปลี่ยนรูป / อัปโหลดรูป"}
                 <input
                   type="file"
-                  accept="image/jpeg,image/png,image/webp"
+                  accept="image/jpeg,image/png,image/webp,image/gif"
                   className="hidden"
                   onChange={(event) => {
                     void handleUploadImage(event);

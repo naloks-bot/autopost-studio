@@ -21,17 +21,6 @@ function readFileAsDataUrl(file) {
   });
 }
 
-function getFileExtension(file) {
-  const original = file?.name?.split(".").pop()?.toLowerCase();
-  if (original && ["jpg", "jpeg", "png", "webp"].includes(original)) {
-    return original === "jpeg" ? "jpg" : original;
-  }
-
-  if (file?.type === "image/png") return "png";
-  if (file?.type === "image/webp") return "webp";
-  return "jpg";
-}
-
 function isUnsafeDraftImageUrl(value = "") {
   const next = String(value || "").trim();
   if (!next) return false;
@@ -188,13 +177,13 @@ function CreatePage({
         let storagePath = null;
         let storageMode = "external";
         const today = new Date().toISOString().split("T")[0];
-        const filename = `gen-${Date.now()}.webp`;
+        const filename = `gen-${Date.now()}.jpg`;
         const filePath = `generated/${today}/${filename}`;
         const uploadResult = await uploadImageFromUrl(filePath, rawUrl);
 
         if (uploadResult.data) {
           finalUrl = uploadResult.data;
-          storagePath = filePath;
+          storagePath = uploadResult.path || filePath;
           storageMode = "supabase";
         }
 
@@ -221,7 +210,7 @@ function CreatePage({
   async function handleUploadImage(file) {
     if (!file) return;
 
-    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+    if (!["image/jpeg", "image/png", "image/webp", "image/gif"].includes(file.type)) {
       setImageGenerationError("รองรับเฉพาะไฟล์ JPG, PNG หรือ WEBP");
       return;
     }
@@ -246,8 +235,7 @@ function CreatePage({
 
     try {
       const today = new Date().toISOString().split("T")[0];
-      const extension = getFileExtension(file);
-      const filePath = `uploads/${today}/upload-${Date.now()}.${extension}`;
+      const filePath = `uploads/${today}/upload-${Date.now()}.jpg`;
       const uploadResult = await uploadImageBlob(filePath, file);
 
       if (uploadResult.data) {
@@ -255,7 +243,7 @@ function CreatePage({
           imageUrl: uploadResult.data,
           previewUrl,
           provider: "upload",
-          storagePath: filePath,
+          storagePath: uploadResult.path || filePath,
           storageMode: "supabase",
           source: "upload",
           fileName: file.name,
