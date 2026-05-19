@@ -161,6 +161,7 @@ serve(async (req) => {
     console.info("[delete-generated-image] skipped by status guard", {
       postId,
       status: status || null,
+      deleteTargetCount: 0,
     });
     return jsonResponse({ ok: true, skipped: true, reason: "status_guard" });
   }
@@ -170,6 +171,7 @@ serve(async (req) => {
     console.warn("[delete-generated-image] rejected unsafe path", {
       postId,
       status: status || null,
+      deleteTargetCount: deleteTargets.resolvedPaths.length,
       hasDeleteInput:
         Boolean(String(payload.image_storage_path || "").trim()) ||
         Boolean(String(payload.image_url || "").trim()) ||
@@ -186,6 +188,7 @@ serve(async (req) => {
   console.info("[delete-generated-image] delete attempt", {
     postId,
     status: status || null,
+    deleteTargetCount: deleteTargets.resolvedPaths.length,
     paths: deleteTargets.resolvedPaths,
   });
 
@@ -209,6 +212,7 @@ serve(async (req) => {
     console.warn("[delete-generated-image] storage delete failed", {
       postId,
       status: status || null,
+      deleteTargetCount: deleteTargets.resolvedPaths.length,
       deletedPaths,
       failedPaths,
     });
@@ -225,6 +229,7 @@ serve(async (req) => {
   console.info("[delete-generated-image] delete success", {
     postId,
     status: status || null,
+    deleteTargetCount: deletedPaths.length,
     paths: deletedPaths,
   });
   return jsonResponse({

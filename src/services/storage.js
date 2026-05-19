@@ -590,6 +590,7 @@ export async function deleteStoredImage({ path = "", imageUrl = "", paths = [], 
 
   logger.info("Deleting image object from Supabase Storage.", {
     functionName: DELETE_GENERATED_IMAGE_FUNCTION,
+    deleteTargetCount: deleteTargets.resolvedPaths.length,
     paths: deleteTargets.resolvedPaths,
     status: String(status || "").trim().toLowerCase() || null,
     postId: postId || null,
@@ -611,6 +612,7 @@ export async function deleteStoredImage({ path = "", imageUrl = "", paths = [], 
       const message = String(error.message || "Edge Function image delete failed").trim();
       logger.warn("Edge Function image delete request failed.", {
         functionName: DELETE_GENERATED_IMAGE_FUNCTION,
+        deleteTargetCount: deleteTargets.resolvedPaths.length,
         paths: deleteTargets.resolvedPaths,
         error,
       });
@@ -629,6 +631,7 @@ export async function deleteStoredImage({ path = "", imageUrl = "", paths = [], 
       const message = String(data?.error || "Edge Function image delete failed").trim();
       logger.warn("Edge Function image delete rejected.", {
         functionName: DELETE_GENERATED_IMAGE_FUNCTION,
+        deleteTargetCount: deleteTargets.resolvedPaths.length,
         paths: deleteTargets.resolvedPaths,
         response: data,
       });
@@ -646,6 +649,7 @@ export async function deleteStoredImage({ path = "", imageUrl = "", paths = [], 
     if (data?.skipped) {
       logger.info("Edge Function image delete skipped.", {
         functionName: DELETE_GENERATED_IMAGE_FUNCTION,
+        deleteTargetCount: (data?.paths || deleteTargets.resolvedPaths).length,
         paths: data?.paths || deleteTargets.resolvedPaths,
         reason: data?.reason || "",
       });
@@ -662,6 +666,7 @@ export async function deleteStoredImage({ path = "", imageUrl = "", paths = [], 
 
     logger.info("Edge Function image delete successful.", {
       functionName: DELETE_GENERATED_IMAGE_FUNCTION,
+      deleteTargetCount: (data?.paths || deleteTargets.resolvedPaths).length,
       paths: data?.paths || deleteTargets.resolvedPaths,
     });
     return {
@@ -677,6 +682,7 @@ export async function deleteStoredImage({ path = "", imageUrl = "", paths = [], 
     const message = String(error?.message || error || "Unexpected image delete error").trim();
     logger.warn("Unexpected Edge Function image delete error.", {
       functionName: DELETE_GENERATED_IMAGE_FUNCTION,
+      deleteTargetCount: deleteTargets.resolvedPaths.length,
       paths: deleteTargets.resolvedPaths,
       error,
     });

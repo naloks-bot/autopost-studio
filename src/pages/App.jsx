@@ -1948,6 +1948,7 @@ function App() {
         status: targetPost?.status || null,
         hasImageStoragePath: Boolean(targetPost?.image_storage_path),
         hasThumbnailStoragePath: Boolean(targetPost?.thumbnail_storage_path),
+        deleteTargetCount: resolvedStoragePaths.length,
         resolvedStoragePaths,
       });
 
@@ -1964,6 +1965,7 @@ function App() {
           status: targetPost?.status || null,
           hasImageStoragePath: Boolean(targetPost?.image_storage_path),
           hasThumbnailStoragePath: Boolean(targetPost?.thumbnail_storage_path),
+          deleteTargetCount: (cleanupResult.paths || resolvedStoragePaths).length,
           resolvedStoragePaths: cleanupResult.paths || resolvedStoragePaths,
           error: cleanupResult.error,
           reason: cleanupResult.reason || "",
@@ -1976,6 +1978,7 @@ function App() {
         status: targetPost?.status || null,
         hasImageStoragePath: Boolean(targetPost?.image_storage_path),
         hasThumbnailStoragePath: Boolean(targetPost?.thumbnail_storage_path),
+        deleteTargetCount: (cleanupResult.paths || resolvedStoragePaths).length,
         resolvedStoragePaths: cleanupResult.paths || resolvedStoragePaths,
         deleted: Boolean(cleanupResult.deleted),
         skipped: Boolean(cleanupResult.skipped),
