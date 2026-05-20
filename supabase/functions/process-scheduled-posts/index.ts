@@ -9,6 +9,9 @@ const corsHeaders = {
 const FB_API_VERSION = "v23.0";
 const FB_BASE_URL = `https://graph.facebook.com/${FB_API_VERSION}`;
 const SCHEDULER_DIAGNOSTIC_LIMIT = 100;
+const APP_SETTINGS_ID = "default";
+const APP_SETTINGS_SELECT =
+  "id, workspace_name, business_name, brand_voice, default_topic_hint, openai_api_key, gemini_api_key, facebook_app_id, facebook_app_secret, facebook_page_id, facebook_page_access_token, facebook_publish_mode, scheduler_enabled, created_at, updated_at";
 
 function normalizePageId(pageId: string | null | undefined) {
   return typeof pageId === "string" && pageId.trim() ? pageId.trim() : "default";
@@ -67,6 +70,34 @@ function getTokenFingerprint(token: string | null | undefined) {
   return `${(hash >>> 0).toString(16).padStart(8, "0")}:${value.slice(-4)}`;
 }
 
+function sanitizeSupabaseError(error: Record<string, any> | null | undefined) {
+  if (!error) return null;
+  return {
+    code: error.code || "",
+    message: error.message || "",
+    details: error.details || "",
+    hint: error.hint || "",
+  };
+}
+
+function getProjectRefFromSupabaseUrl(value: string | null | undefined) {
+  try {
+    const host = new URL(String(value || "")).host;
+    return host.endsWith(".supabase.co") ? host.replace(".supabase.co", "") : host;
+  } catch {
+    return "";
+  }
+}
+
+function buildFunctionEnvironmentDiagnostics(req: Request, supabaseUrl: string) {
+  return {
+    function_request_host: new URL(req.url).host,
+    supabase_url_host: supabaseUrl ? new URL(supabaseUrl).host : "",
+    function_project_ref: getProjectRefFromSupabaseUrl(req.url),
+    supabase_project_ref: getProjectRefFromSupabaseUrl(supabaseUrl),
+  };
+}
+
 function getImageUrlHost(value: string | null | undefined) {
   const next = String(value || "").trim();
   if (!next) return "";
@@ -76,6 +107,72 @@ function getImageUrlHost(value: string | null | undefined) {
   } catch {
     return "";
   }
+}
+
+async function readDefaultAppSettings(
+  supabase: ReturnType<typeof createClient>,
+  writeOperationLog: (entry: Record<string, any>) => Promise<void>,
+  environmentDiagnostics: Record<string, any>,
+) {
+  const settingsResult = await supabase
+    .from("app_settings")
+    .select(APP_SETTINGS_SELECT)
+    .eq("id", APP_SETTINGS_ID)
+    .limit(1)
+    .maybeSingle();
+
+  if (settingsResult.error) {
+    const diagnostics = {
+      ...environmentDiagnostics,
+      settings_id: APP_SETTINGS_ID,
+      query_path: `app_settings.id = ${APP_SETTINGS_ID}`,
+      query_error: sanitizeSupabaseError(settingsResult.error),
+    };
+    console.error("scheduler_settings_query_failed", JSON.stringify(diagnostics));
+    await writeOperationLog({
+      category: "scheduler",
+      level: "error",
+      source: "scheduler_edge",
+      event: "settings_query_failed",
+      message: `Scheduler could not read app_settings row "${APP_SETTINGS_ID}".`,
+      metadata: {
+        ...diagnostics,
+        result: "settings_query_failed",
+      },
+    });
+  }
+
+  if (settingsResult.error || settingsResult.data) {
+    return settingsResult;
+  }
+
+  const listResult = await supabase
+    .from("app_settings")
+    .select("id, scheduler_enabled, facebook_publish_mode, updated_at")
+    .limit(10);
+  const diagnostics = {
+    ...environmentDiagnostics,
+    settings_id: APP_SETTINGS_ID,
+    query_path: `app_settings.id = ${APP_SETTINGS_ID}`,
+    app_settings_row_count_probe: listResult.data?.length ?? null,
+    app_settings_visible_ids: (listResult.data || []).map((row: Record<string, any>) => row.id),
+    probe_error: sanitizeSupabaseError(listResult.error),
+  };
+
+  console.error("scheduler_settings_missing", JSON.stringify(diagnostics));
+  await writeOperationLog({
+    category: "scheduler",
+    level: "error",
+    source: "scheduler_edge",
+    event: "settings_missing",
+    message: `Scheduler settings row "${APP_SETTINGS_ID}" was not found.`,
+    metadata: {
+      ...diagnostics,
+      result: "settings_missing",
+    },
+  });
+
+  return settingsResult;
 }
 
 function getEndpointType(endpoint: string) {
@@ -473,6 +570,7 @@ serve(async (req) => {
       throw new Error("Missing Supabase environment variables.");
     }
 
+    const environmentDiagnostics = buildFunctionEnvironmentDiagnostics(req, supabaseUrl);
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     const writeOperationLog = async (entry: Record<string, any>) => {
       const { error } = await supabase.from("operation_logs").insert([entry]);
@@ -484,15 +582,23 @@ serve(async (req) => {
       }
     };
 
-    const { data: settings, error: settingsError } = await supabase
-      .from("app_settings")
-      .select("*")
-      .eq("id", "default")
-      .maybeSingle();
+    const { data: settings, error: settingsError } = await readDefaultAppSettings(
+      supabase,
+      writeOperationLog,
+      environmentDiagnostics,
+    );
 
     if (settingsError) throw settingsError;
     if (!settings) {
-      return new Response(JSON.stringify({ message: "No settings found, skipping." }), {
+      return new Response(JSON.stringify({
+        error: `Scheduler settings row "${APP_SETTINGS_ID}" was not found.`,
+        diagnostics: {
+          ...environmentDiagnostics,
+          settings_id: APP_SETTINGS_ID,
+          query_path: `app_settings.id = ${APP_SETTINGS_ID}`,
+        },
+      }), {
+        status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }

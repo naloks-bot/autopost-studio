@@ -1,7 +1,7 @@
 name: Process Scheduled Posts
 
 env:
-  SCHEDULER_FUNCTION_URL: https://qydjsobtspoykhzcckht.supabase.co/functions/v1/process-scheduled-posts
+  SCHEDULER_FUNCTION_URL: https://xbwsxmewhsmchhpbjmgr.supabase.co/functions/v1/process-scheduled-posts
 
 on:
   workflow_dispatch:

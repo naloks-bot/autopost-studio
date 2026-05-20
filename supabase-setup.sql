@@ -138,6 +138,10 @@ alter table public.app_settings add column if not exists gemini_api_key text not
 alter table public.app_settings add column if not exists facebook_publish_mode text not null default 'mock';
 alter table public.app_settings add column if not exists scheduler_enabled boolean not null default false;
 
+insert into public.app_settings (id)
+values ('default')
+on conflict (id) do nothing;
+
 create table if not exists public.pages (
   id text primary key,
   label text not null,
